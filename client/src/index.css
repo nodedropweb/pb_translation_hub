@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* FONT FAMILY */
+  --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* DEFAULT THEME (MODERN DARK) - Lighter for visibility */
+  --bg-app: #101214;
+  --bg-sidebar: #16181b;
+  --bg-card: #1c1e22;
+  --bg-card-hover: #222529;
+  --bg-input: #0a0a0b;
+  
+  --text-main: #f8f9fa;
+  --text-muted: #94a3b8;
+  --text-inverse: #0f172a;
+  
+  --border-main: #2d3239;
+  --border-muted: #1e2227;
+  
+  --brand-600: #7f56d9;
+  --brand-700: #6941c6;
+  --brand-50: rgba(127, 86, 217, 0.1);
+  
+  --glass-bg: rgba(15, 18, 20, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 12px;
+}
+
+/* THEME: MODERN DARK (Explicit) */
+.theme-dark {
+  --bg-app: #101214;
+  --bg-sidebar: #16181b;
+  --bg-card: #1c1e22;
+  --bg-card-hover: #222529;
+  --bg-input: #0a0a0b;
+  --text-main: #f8f9fa;
+  --text-muted: #94a3b8;
+  --border-main: #2d3239;
+}
+
+/* THEME: MODERN LIGHT */
+.theme-light {
+  --bg-app: #ffffff;
+  --bg-sidebar: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #f8fafc;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+  
+  --border-main: #e2e8f0;
+  --border-muted: #f1f5f9;
+  
+  --brand-600: #7f56d9;
+  --brand-700: #6941c6;
+  --brand-50: #f4f3ff;
+  
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.05);
+}
+
+/* THEME: LIQUID */
+.theme-liquid {
+  --bg-app: #060912;
+  --bg-sidebar: #0a0f1d;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --bg-input: #0d121f;
+  
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-inverse: #0f172a;
+  
+  --border-main: #1f2937;
+  --border-muted: #111827;
+  
+  --brand-600: #38bdf8;
+  --brand-700: #0ea5e9;
+  --brand-50: rgba(56, 189, 248, 0.1);
+}
+
+/* THEME: GLASSY */
+.theme-glassy {
+  --bg-app: transparent;
+  --bg-sidebar: rgba(0, 0, 0, 0.4);
+  --bg-card: rgba(0, 0, 0, 0.4);
+  --bg-card-hover: rgba(0, 0, 0, 0.5);
+  --bg-input: rgba(0, 0, 0, 0.3);
+  
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  
+  --border-main: rgba(255, 255, 255, 0.15);
+  --border-muted: rgba(255, 255, 255, 0.05);
+  
+  --glass-blur: 24px;
+}
+
+@theme {
+  --font-inter: var(--font-inter);
+  --font-body: var(--font-inter);
+  --font-display: var(--font-inter);
+
+  /* COLORS - Mapping to our variables */
+  --color-bg-app: var(--bg-app);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-bg-input: var(--bg-input);
+  
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+  
+  --color-border-main: var(--border-main);
+  --color-border-muted: var(--border-muted);
+  
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-50: var(--brand-50);
+
+  --animate-fade: fade 0.4s ease-out;
+  --animate-slide-in: slide-in 0.3s ease-out;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-glow: glow 4s ease-in-out infinite;
+
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-5px) rotate(-2deg); }
+    66% { transform: translateY(-2px) rotate(2deg); }
+  }
+
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(127, 86, 217, 0.4)); }
+    50% { filter: drop-shadow(0 0 20px rgba(127, 86, 217, 0.7)); }
+  }
+}
+
+@layer base {
+  body {
+    @apply font-body bg-bg-app text-text-main antialiased transition-colors duration-300;
+  }
+}
+
+/* Unsplash Background Support */
+.bg-unsplash {
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.glass-blur {
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* Transition improvements */
+* {
+  @apply transition-colors duration-200;
+}
+
+
+/* CKEditor Custom Styles - Themed */
+.themed-ckeditor {
+  --ck-color-base-background: var(--bg-input);
+  --ck-color-base-border: var(--border-main);
+  --ck-color-base-text: var(--text-main);
+  --ck-color-toolbar-background: var(--bg-sidebar);
+  --ck-color-toolbar-border: var(--border-main);
+  --ck-color-button-default-hover-background: var(--bg-card-hover);
+  --ck-color-button-default-active-background: var(--brand-600);
+  --ck-color-button-on-background: var(--brand-600);
+  --ck-color-button-on-color: var(--text-inverse);
+  
+  --ck-color-list-background: var(--bg-card);
+  --ck-color-panel-background: var(--bg-card);
+  --ck-color-panel-border: var(--border-main);
+}
+
+.themed-ckeditor .ck-editor__editable {
+  min-height: 200px;
+  background-color: var(--bg-input) !important;
+  color: var(--text-main) !important;
+  border-bottom-left-radius: 1rem !important;
+  border-bottom-right-radius: 1rem !important;
+  border: 1px solid var(--border-main) !important;
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.05) !important;
+}
+
+.themed-ckeditor .ck-editor__top {
+  border-top-left-radius: 1rem !important;
+  border-top-right-radius: 1rem !important;
+}
+
+.themed-ckeditor .ck.ck-toolbar {
+  background-color: var(--bg-sidebar) !important;
+  border-color: var(--border-main) !important;
+  border-top-left-radius: 1rem !important;
+  border-top-right-radius: 1rem !important;
+  padding: 0.5rem !important;
+}
+
+.themed-ckeditor .ck.ck-toolbar__items {
+  flex-wrap: wrap;
+}
+
+.themed-ckeditor .ck.ck-button {
+  color: var(--text-main) !important;
+  cursor: pointer;
+}
+
+.themed-ckeditor .ck.ck-button .ck-icon {
+  color: var(--text-main) !important;
+}
+
+.themed-ckeditor .ck.ck-button:hover {
+  background: var(--bg-card-hover) !important;
+}
+
+.themed-ckeditor .ck.ck-button.ck-on {
+  background: var(--brand-600) !important;
+  color: var(--text-inverse) !important;
+}
+
+.themed-ckeditor .ck.ck-placeholder::before {
+  color: var(--text-muted) !important;
+  opacity: 0.6;
+}
+
+.themed-ckeditor .ck.ck-list__item .ck-button:hover {
+  background: var(--brand-600) !important;
+  color: var(--text-inverse) !important;
+}
+
+.body-editor .themed-ckeditor .ck-editor__editable {
+  min-height: 450px;
+}
+

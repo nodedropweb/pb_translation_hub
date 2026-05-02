@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.5
+    environment:
+      MYSQL_ROOT_PASSWORD: drupal_root
+      MYSQL_DATABASE: pb_translation_hub
+      MYSQL_USER: pb_hub
+      MYSQL_PASSWORD: drupal
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+    environment:
+      - DB_HOST=db
+      - DB_USER=pb_hub
+      - DB_PASSWORD=drupal
+      - DB_NAME=pb_translation_hub
+      - DB_CONNECTION_LIMIT=50
+      - PORT=3001
+    volumes:
+      - ./server/data:/app/data
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+    ports:
+      # Exposes the frontend + proxy API on port 5173. You can change this port easily.
+      - "5173:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  db_data:
