@@ -13,6 +13,8 @@
 
 ## 🇺🇸 English
 
+![Project Browser Translation Hub Dashboard](./readme-shot-en.png)
+
 ### What is this?
 The **Project Description Browser** is the central server hub designed to bridge the language gap in the Drupal ecosystem. While the Drupal Project Browser allows users to discover modules directly within their site, much of the data remains in English. This Hub acts as a translation server that provides localized data to the **Project Browser Localizer** Drupal module. 
 
@@ -83,6 +85,8 @@ Then run `docker compose up -d` again to apply the change without data loss.
 ---
 
 ## 🇩🇪 Deutsch
+
+![Project Browser Translation Hub Oberfläche](./readme-shot-de.png)
 
 ### Was ist das?
 Der **Project Description Browser** ist der zentrale Übersetzungs-Hub, der die Sprachbarriere im Drupal-Ökosystem überbrückt. Er liefert die lokalisierten Daten für das Drupal-Modul **Project Browser Localizer**. 
