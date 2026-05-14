@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -65,7 +66,7 @@ const METADATA_DIR = path.join(DATA_DIR, 'metadata');
 const TRANSLATIONS_DIR = path.join(DATA_DIR, 'translations');
 const LANGUAGES_FILE = path.join(__dirname, 'languages.json');
 const STATUS_FILE = path.join(DATA_DIR, 'status.json');
-const UNSPLASH_ACCESS_KEY = 'z9UkfFm44OVpiQfYrNl1CV9lfTLJEdGD9EGyrYurgr8';
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
 // Ensure directories exist
 fs.ensureDirSync(METADATA_DIR);
