@@ -36,6 +36,31 @@ The Hub includes a built-in help center with a 100% GDPR-compliant YouTube widge
 ### Stale Detection
 Every translation stores a `source_hash` (MD5) of the original English content. During a sync, if the Hub detects that the content on Drupal.org has changed, the hash won't match, and the translation is flagged as **"Stale"** (Veraltet). This alerts translators that they need to update the translation.
 
+### 🤖 AI Auto-Run (Bulk Translation)
+The Hub features a powerful AI Auto-Run engine that can translate hundreds of modules in minutes:
+1. **Selection:** The engine targets the next X missing modules based on your current search and filter settings.
+2. **Cost Estimation:** Before starting, the Hub provides a detailed token and cost estimation (based on Google Gemini pricing).
+3. **Execution:** It processes modules one by one, providing real-time progress updates.
+4. **Safety:** A **Stop** button allows you to interrupt the process at any time, saving the progress made so far.
+
+### ⚡ Keyboard Shortcuts (Productivity)
+The Editor is optimized for professional translators with several power-user shortcuts:
+- `Ctrl + Alt + S`: **Save & Next** (Saves current work and jumps to the next untranslated project).
+- `Ctrl + Alt + K`: **Copy AI Prompt** (Copies a pre-formatted prompt for manual AI use).
+- `Ctrl + Alt + P`: **Toggle Preview** (Switches between Editor and Live Preview).
+- `Ctrl + Alt + O`: **Open Project** (Opens the original project page on Drupal.org).
+- `Ctrl + Alt + D`: **Skip Project** (Jumps to the next project without saving).
+
+---
+
+## 🛠️ Workflow Modes
+
+The Hub supports three specialized workflow modes to focus your efforts:
+
+1. **All Projects:** Shows everything in the system.
+2. **Review Mode:** Shows only projects you have already translated. Perfect for a second pass or proofreading.
+3. **Drupal 11 Focus (Priority):** Filters the list to only show modules that are explicitly compatible with Drupal 11. This ensures that the most relevant modules are translated first.
+
 ---
 
 ## Deployment Guide
@@ -61,7 +86,7 @@ Every translation stores a `source_hash` (MD5) of the original English content. 
    ```
 
 3. **Configure Environment:**
-   - The backend runs on port `3001` by default.
+   - The backend runs on port `9901` by default (chosen to avoid conflicts with Gulp/Browsersync).
    - The frontend (dev) runs on port `5173`.
    - Update `server/index.js` if you have a specific Unsplash API key.
 
@@ -83,7 +108,22 @@ Every translation stores a `source_hash` (MD5) of the original English content. 
 
 7. **Connect Drupal to the Hub:**
    - In your Drupal site, configure the `pb_localizer` module (or relevant configuration) to use your Hub's URL as the API endpoint instead of `https://www.drupal.org`.
-   - Example Mirror URL: `http://your-server-ip:3001`
+   - Example Mirror URL: `http://your-server-ip:9901`
+
+## 🎨 Client Architecture & Modularization
+
+The Translation Hub Client follows a modern, component-based React architecture designed for "snackability" and maintainability.
+
+### Key Directories
+- **`src/views/`**: Top-level route components (Dashboard, Editor, Profile, etc.).
+- **`src/components/`**: Atomic and molecular UI components, split into `layout`, `shared`, and `ui`.
+- **`src/context/`**: State management using the React Context API (Auth, Theme, Language, etc.).
+- **`src/utils/`**: Shared constants, helpers, and API configuration.
+
+### Design Principles
+- **Aesthetic Excellence**: High-end Glassmorphism UI with dynamic Unsplash integration.
+- **Accessibility**: Support for multiple languages (i18n ready) and keyboard shortcuts.
+- **Performance**: Optimized rendering with conditional loading and efficient state propagation.
 
 ---
 

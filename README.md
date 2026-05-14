@@ -1,32 +1,49 @@
 # Project Browser Translation Hub
 
-[![Drupal](https://img.shields.io/badge/Drupal-10.x-blue.svg)](https://drupal.org)
+[![Drupal](https://img.shields.io/badge/Drupal-10.x%20%7C%2011.x-blue.svg)](https://drupal.org)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.5+-003545.svg?logo=mariadb&logoColor=white)](https://mariadb.org)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org)
 
-> **EN:** A specialized middleware and editor for translating the Drupal Project Browser ecosystem.
-> 
-> **DE:** Ein spezialisiertes Middleware- und Editor-Tool zur Übersetzung des Drupal Project Browser Ökosystems.
+> [!NOTE]
+> **Living Documentation:** This repository is managed as part of the PB Translation Ecosystem. 
+> Last Scan: 2026-05-08
+
+---
+
+## 🏛 Ecosystem Architecture
+
+```mermaid
+graph TD
+    subgraph "Drupal Side"
+        A[Project Browser] -- "TranslatedDrupalDotOrgSource" --> B[pb_translator module]
+    end
+    subgraph "Hub Side (Shadow API)"
+        B -- "JSON Request" --> C[Node.js Server]
+        C -- "Query" --> D[(MariaDB)]
+        E[AI Worker] -- "Gemini API" --> C
+        F[React Admin] -- "Editor UI" --> C
+    end
+```
 
 ---
 
 ## 🇺🇸 English
 
-![Project Browser Translation Hub Dashboard](./readme-shot-en.png)
-
 ### What is this?
 The **Project Description Browser** is the central server hub designed to bridge the language gap in the Drupal ecosystem. While the Drupal Project Browser allows users to discover modules directly within their site, much of the data remains in English. This Hub acts as a translation server that provides localized data to the **Project Browser Localizer** Drupal module. 
 
-Built on the philosophy of **"Language is Trust"** (backed by CSA Research showing 72% of users prefer native-language interfaces), this Hub syncs data from Drupal.org, allows translators to provide localized content via a high-end editor, and serves it as a "Shadow API".
-
 ### Key Features
-- **Central Translation Hub:** Serves localized JSON data to the Project Browser Localizer module.
-- **Shadow API:** Intercepts live data and overlays it with local translations.
-- **Stale Detection:** Automatically detects when the original English source on Drupal.org has changed.
-- **Privacy-First Design:** Includes a 100% GDPR-compliant help center with a consent-based YouTube widget (no automatic tracking).
-- **Stunning UI:** Modern "Acrylic/Glassy" design with dynamic Unsplash backgrounds.
-- **Productivity First:** Full keyboard shortcut support and AI-assisted prompts for LLMs (Gemini/ChatGPT).
+- **AI-Powered Translation:** Bulk translate modules using Google Gemini with specialized Drupal context prompts and real-time cost estimation.
+- **AI Auto-Run with Stop-Support:** Process large batches of modules with the ability to pause or stop at any time without data loss.
+- **Shadow API:** Intercepts live data from Drupal.org and overlays it with high-quality local translations.
+- **Workflow Management:** Specialized modes for "Reviewing" existing translations and focusing on "Drupal 11" compatible modules.
+- **Robust Search:** Intelligent search engine with auto-trimming and case-insensitive matching across machine names and titles.
+- **Stale Detection:** Automatically tracks English source changes via hashing to alert when updates are needed.
+- **Modern UI:** "Acrylic/Glassy" design with dynamic Unsplash backgrounds and productivity-focused keyboard shortcuts.
+- **Privacy-First:** GDPR-compliant help center with consent-based media loading.
+- **Snackable Architecture:** Modularized React codebase for optimal performance and AI-assisted maintenance.
+- **Unsplash Compliance:** Fully compliant with Unsplash API Technical Guidelines (Hotlinking, Download Tracking, and UTM Attribution).
 
 ### 🐳 Docker Deployment (Recommended)
 The easiest and most performant way to run the PB Translation Hub is via **Docker & Docker Compose**. It solves dependency issues and automatically uses all CPU cores for maximum performance.
@@ -54,7 +71,7 @@ Navigate to the app directory and start everything:
 cd /var/www/drupalcms/pb_translation_hub
 docker compose up -d --build
 ```
-That's it! The app is now accessible at `http://localhost:5173` (or your server IP on port 5173).
+That's it! The app is now accessible at `http://localhost:5173` (Frontend) and the backend API runs on `http://localhost:9901`.
 
 #### 💾 How do Docker "Volumes" work?
 A Docker container is naturally "ephemeral" – if the container is deleted, all modified files inside are lost. To ensure our database and translations are not lost, we use **Volumes** in `docker-compose.yml`.
@@ -91,15 +108,16 @@ Then run `docker compose up -d` again to apply the change without data loss.
 ### Was ist das?
 Der **Project Description Browser** ist der zentrale Übersetzungs-Hub, der die Sprachbarriere im Drupal-Ökosystem überbrückt. Er liefert die lokalisierten Daten für das Drupal-Modul **Project Browser Localizer**. 
 
-Basierend auf der Philosophie **"Sprache ist Vertrauen"** (gestützt durch eine CSA-Studie, die zeigt, dass 72% der Nutzer Interfaces in ihrer Muttersprache bevorzugen), synchronisiert dieser Hub Daten von Drupal.org, ermöglicht deren Übersetzung in einem Premium-Editor und stellt sie als "Shadow API" bereit.
-
 ### Hauptfunktionen
-- **Zentraler Übersetzungs-Hub:** Liefert lokalisierte JSON-Daten an das Project Browser Localizer Modul.
-- **Shadow API:** Fängt Live-Daten ab und überlagert sie mit lokalen Übersetzungen.
-- **Stale Detection:** Erkennt automatisch, wenn sich die englische Originalquelle auf Drupal.org geändert hat.
-- **100% Datenschutzkonform:** Beinhaltet ein DSGVO-konformes Hilfe-Center mit Consent-basiertem YouTube-Widget (kein Tracking ohne Zustimmung).
-- **Premium Design:** Modernes "Acrylic/Glassmorphism"-Design mit dynamischen Unsplash-Hintergründen.
-- **Produktivität:** Volle Unterstützung für Tastaturkürzel und KI-gestützte Prompts für LLMs (Gemini/ChatGPT).
+- **KI-gestützte Übersetzung:** Massenübersetzung von Modulbeschreibungen via Google Gemini mit spezialisierten Drupal-Prompts und Echtzeit-Kostenschätzung.
+- **KI-Auto-Lauf mit Stopp-Funktion:** Verarbeitet große Mengen an Modulen mit der Möglichkeit, den Prozess jederzeit zu unterbrechen, ohne Daten zu verlieren.
+- **Shadow API:** Fängt Live-Daten von Drupal.org ab und überlagert sie mit hochwertigen lokalen Übersetzungen.
+- **Workflow-Management:** Spezialisierte Modi für die "Revision" bestehender Übersetzungen und den Fokus auf "Drupal 11"-kompatible Module.
+- **Intelligente Suche:** Suchmaschine mit automatischer Bereinigung (Trimming) und Case-Insensitive-Abgleich über Titel und Machine-Names.
+- **Stale Detection:** Erkennt automatisch Änderungen an der englischen Originalquelle mittels Hashing.
+- **Premium Design:** Modernes "Acrylic/Glassmorphism"-Design mit dynamischen Unsplash-Hintergründen und Fokus auf Produktivität.
+- **Datenschutz:** DSGVO-konformes Hilfe-Center mit Consent-basiertem Laden von Medien.
+- **Unsplash API Compliance:** Vollständige Einhaltung der Unsplash API Richtlinien (Hotlinking, Download-Tracking und UTM-Attribution).
 
 ### 🐳 Docker Deployment (Empfohlen)
 Die einfachste und performanteste Methode, um den PB Translation Hub zu betreiben, ist über **Docker & Docker Compose**. Das löst Abhängigkeitsprobleme und nutzt automatisch alle CPU-Kerne für höchste Leistung.
@@ -127,7 +145,7 @@ Wechseln Sie in das Verzeichnis der App und starten Sie alles:
 cd /var/www/drupalcms/pb_translation_hub
 docker compose up -d --build
 ```
-Das war's! Die App ist jetzt unter `http://localhost:5173` (bzw. Ihrer Server-IP auf Port 5173) erreichbar.
+Das war's! Die App ist jetzt unter `http://localhost:5173` (Frontend) erreichbar, während die Backend-API auf Port `9901` läuft.
 
 #### 💾 Wie funktionieren die "Volumes" in Docker?
 Ein Docker-Container ist von Natur aus "flüchtig" – wenn der Container gelöscht wird, sind alle darin geänderten Dateien weg. Damit unsere Datenbank und unsere Übersetzungen nicht verloren gehen, nutzen wir in der `docker-compose.yml` sogenannte **Volumes** (virtuelle Laufwerke).
@@ -157,4 +175,4 @@ Anschließend einfach wieder `docker compose up -d` ausführen, um die Änderung
 
 ---
 
-For more details, see [DOCUMENTATION.md](./DOCUMENTATION.md), [DATABASE.md](./DATABASE.md) and [AGENTS.md](./AGENTS.md).
+For more details, see [DOCUMENTATION.md](./DOCUMENTATION.md), [DATA_STRUCTURE.md](./DATA_STRUCTURE.md), [DATABASE.md](./DATABASE.md) and [AGENTS.md](./AGENTS.md).

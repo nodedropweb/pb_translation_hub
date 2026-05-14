@@ -12,8 +12,14 @@
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "^41.4.2",
     "@ckeditor/ckeditor5-react": "^11.1.2",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/outfit": "^5.2.8",
+    "@fontsource/sora": "^5.2.8",
     "@untitledui/icons": "^0.0.22",
+    "@vidstack/react": "^1.12.13",
     "axios": "^1.15.2",
+    "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
@@ -22,7 +28,8 @@
     "react-router-dom": "^7.14.2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
-    "tailwindcss-react-aria-components": "^2.1.0"
+    "tailwindcss-react-aria-components": "^2.1.0",
+    "vidstack": "^1.12.13"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

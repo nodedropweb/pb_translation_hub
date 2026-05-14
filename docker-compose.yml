@@ -21,7 +21,7 @@ services:
       - DB_PASSWORD=drupal
       - DB_NAME=pb_translation_hub
       - DB_CONNECTION_LIMIT=50
-      - PORT=3001
+      - PORT=9901
     volumes:
       - ./server/data:/app/data
     depends_on:

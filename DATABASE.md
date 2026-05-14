@@ -48,6 +48,18 @@ Stores the actual translation work. The `source_hash` is critical for "Stale Det
 
 ---
 
+### 3. Table: `priority_projects`
+This table defines specific lists of projects that should be prioritized in the translation workflow (e.g., "Drupal 11 Focus").
+
+| Field | Type | Null | Key | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `machine_name` | VARCHAR(255) | NO | PRI | NULL | The module machine name. |
+| `list_name` | VARCHAR(50) | NO | PRI | 'drupal11' | Identifier for the priority list. |
+
+**Primary Key:** Composite key of `(machine_name, list_name)`.
+
+---
+
 ## Multi-Language Support
 
 The hub is designed to handle multiple languages. To add a new language:

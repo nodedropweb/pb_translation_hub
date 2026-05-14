@@ -14,7 +14,7 @@ COPY . .
 # Ensure data directory exists
 RUN mkdir -p data
 
-EXPOSE 3001
+EXPOSE 9901
 
 # Start via PM2 cluster mode, utilizing all available CPU cores
 CMD ["pm2-runtime", "index.js", "-i", "max"]

@@ -6,6 +6,7 @@ This guide explains how to deploy the PB Translation Hub on a production Linux s
 
 - **Node.js**: Version 18.x or higher (v20+ recommended)
 - **NPM**: Version 9.x or higher
+- **MariaDB / MySQL**: Version 10.5+
 - **Web Server**: Nginx or Apache2
 - **Persistence**: Ensure the `server/data` directory is on a persistent volume.
 
