@@ -15,7 +15,7 @@ import { ToastContext } from '../context/ToastContext';
 import { LanguageContext } from '../context/LanguageContext';
 
 // Utils
-import { API_BASE, BACKEND_URL } from '../utils/constants';
+import { API_BASE, BACKEND_URL, DEFAULT_AI_PROMPT } from '../utils/constants';
 
 /**
  * @file ProfileView.jsx
@@ -33,7 +33,7 @@ const ProfileView = () => {
     email: user?.email || '',
     google_ai_key: user?.google_ai_key || '',
     ai_batch_limit: user?.ai_batch_limit || 5,
-    ai_prompt: user?.ai_prompt || ''
+    ai_prompt: user?.ai_prompt || DEFAULT_AI_PROMPT
   });
 
   const [passData, setPassData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -159,21 +159,7 @@ const ProfileView = () => {
                 </label>
                 <button 
                   type="button"
-                  onClick={() => setFormData({...formData, ai_prompt: `Translate the following two HTML blocks (summary and main description) from the Drupal Project Browser to {{langcode}}.
-IMPORTANT:
-1. Return ONLY the translation.
-2. Do NOT add any introduction, comments, or explanations (e.g., NO "Here is the translation").
-3. Module names must stay in English.
-4. Links and image URLs must remain unchanged.
-5. Separate the two translated blocks EXACTLY by the string '---'.
-
-Summary:
-{{summary}}
-
----
-
-Main Description:
-{{body}}`})}
+                  onClick={() => setFormData({...formData, ai_prompt: DEFAULT_AI_PROMPT})}
                   className="text-[10px] font-black text-amber-500 hover:text-amber-600 transition-all uppercase tracking-tighter"
                 >
                   {isGerman ? 'ZURÜCKSETZEN' : 'RESET TO DEFAULT'}
@@ -184,12 +170,24 @@ Main Description:
                 className="w-full px-5 py-4 rounded-xl border focus:ring-4 outline-none transition-all glass-blur bg-bg-input border-border-main text-text-main focus:ring-amber-500/20 focus:border-amber-500 font-mono text-sm leading-relaxed"
                 value={formData.ai_prompt}
                 onChange={(e) => setFormData({...formData, ai_prompt: e.target.value})}
-                placeholder="Translate to {{langcode}}..."
+                placeholder={DEFAULT_AI_PROMPT}
               />
-              <div className="flex gap-4 mt-2">
-                <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{langcode}}"}</span>
-                <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{summary}}"}</span>
-                <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{body}}"}</span>
+              <div className="flex flex-wrap items-center gap-4 mt-2">
+                <div className="flex gap-2">
+                  <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{langcode}}"}</span>
+                  <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{summary}}"}</span>
+                  <span className="text-[10px] px-2 py-1 rounded bg-bg-app border border-border-main text-text-muted font-mono">{"{{body}}"}</span>
+                </div>
+                <p className="text-[10px] text-text-muted italic flex-1 min-w-[200px]">
+                  {targetLanguage?.code === 'de' && <>💡 <strong>Tipp:</strong> Die Platzhalter in geschweiften Klammern sind Markierungen. Bitte lass diese Begriffe im Prompt stehen, damit der Hub weiß, wo er die echten Daten einsetzen soll.</>}
+                  {targetLanguage?.code === 'fr' && <>💡 <strong>Conseil :</strong> Les espaces réservés entre accolades sont des marqueurs. Veuillez conserver ces termes dans votre invite afin que le Hub sache où insérer les données réelles.</>}
+                  {targetLanguage?.code?.startsWith('pt') && <>💡 <strong>Dica:</strong> Os marcadores entre chaves são importantes. Por favor, mantenha estes termos no seu prompt para que o Hub saiba onde inserir os dados reais.</>}
+                  {targetLanguage?.code === 'ja' && <>💡 <strong>ヒント:</strong> 中括弧内のプレースホルダーはマーカーです。ハブが実際のデータをどこに挿入すればよいか判断できるよう、これらの用語はプロンプトに残しておいてください。</>}
+                  {targetLanguage?.code === 'zh-hans' && <>💡 <strong>提示：</strong> 花括号中的占位符是标记。请在提示词中保留这些术语，以便中心知道在哪里插入实际数据。</>}
+                  {['de', 'fr', 'pt', 'ja', 'zh-hans'].every(c => !targetLanguage?.code?.startsWith(c)) && (
+                    <>💡 <strong>Tip:</strong> The placeholders in curly braces are markers. Please keep these terms in your prompt so the Hub knows where to insert the actual data.</>
+                  )}
+                </p>
               </div>
             </div>
 

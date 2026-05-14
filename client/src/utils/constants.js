@@ -20,3 +20,19 @@ export const LANGUAGES = [
   { code: 'es', name: 'Spanish' },
   { code: 'it', name: 'Italian' }
 ];
+
+export const DEFAULT_AI_PROMPT = `Translate the following two HTML blocks (summary and main description) from the Drupal Project Browser to {{langcode}}.
+IMPORTANT:
+1. Return ONLY the translation.
+2. Do NOT add any introduction, comments, or explanations (e.g., NO "Here is the translation").
+3. Module names must stay in English.
+4. Links and image URLs must remain unchanged.
+5. Separate the two translated blocks EXACTLY by the string '---'.
+
+Summary:
+{{summary}}
+
+---
+
+Main Description:
+{{body}}`;
