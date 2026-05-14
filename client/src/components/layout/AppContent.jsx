@@ -172,11 +172,11 @@ const AppContent = () => {
                </button>
               </div>
               {bgPhotographer && (
-                <div className="mb-4 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] xl:text-xs 2xl:text-sm text-text-muted leading-relaxed opacity-90 hover:opacity-100 transition-all flex flex-wrap items-center gap-2 shadow-inner">
+                <div className="attribution-box mb-4 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] xl:text-xs 2xl:text-sm text-text-muted leading-relaxed opacity-90 hover:opacity-100 transition-all flex flex-wrap items-center gap-2 shadow-inner">
                   <Camera size={14} className="text-brand-500 shrink-0" />
                   <span className="font-medium">{isGerman ? 'Foto von' : 'Photo by'}</span>
                   <a 
-                    href={bgPhotographer.link}
+                    href={bgPhotographer.link?.includes('utm_source') ? bgPhotographer.link : `${bgPhotographer.link}${bgPhotographer.link?.includes('?') ? '&' : '?'}utm_source=pb_translation_hub&utm_medium=referral`}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="underline decoration-brand-500/30 hover:decoration-brand-500 hover:text-brand-500 font-black transition-all"

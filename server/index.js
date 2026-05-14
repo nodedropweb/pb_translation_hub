@@ -11,6 +11,7 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { registerUnsplashRoutes } = require('./unsplash');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pb-hub-super-secret-key-2026';
 
@@ -66,7 +67,6 @@ const METADATA_DIR = path.join(DATA_DIR, 'metadata');
 const TRANSLATIONS_DIR = path.join(DATA_DIR, 'translations');
 const LANGUAGES_FILE = path.join(__dirname, 'languages.json');
 const STATUS_FILE = path.join(DATA_DIR, 'status.json');
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
 // Ensure directories exist
 fs.ensureDirSync(METADATA_DIR);
@@ -76,6 +76,9 @@ fs.ensureDirSync(path.join(__dirname, 'uploads'));
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- Unsplash Service ---
+registerUnsplashRoutes(app);
 
 // --- Sync State ---
 let syncStatus = {
@@ -1218,63 +1221,6 @@ app.post('/api/user/avatar', authenticateToken, uploadAvatar.single('avatar'), a
   }
 });
 
-app.get('/api/unsplash/random-bg', async (req, res) => {
-  const { query = 'nature,forest,dark' } = req.query;
-  try {
-    const response = await axios.get('https://api.unsplash.com/photos/random', { 
-      params: { 
-        query, 
-        orientation: 'landscape', 
-        client_id: UNSPLASH_ACCESS_KEY 
-      },
-      timeout: 5000 // 5 second timeout
-    });
-    
-    const photo = response.data;
-    
-    // Unsplash requires UTM parameters on all links back to their site
-    const utmParams = '?utm_source=pb_translation_hub&utm_medium=referral';
-    
-    res.json({ 
-      url: photo.urls.regular, 
-      source: 'unsplash',
-      photographer: {
-        name: photo.user.name,
-        username: photo.user.username,
-        link: `${photo.user.links.html}${utmParams}`
-      },
-      unsplash_link: `https://unsplash.com/${utmParams}`,
-      download_location: photo.links.download_location
-    });
-  } catch (error) {
-    console.warn('Unsplash API failed (possibly Rate Limit). Using fallback image.');
-    
-    // Fallback logic using Picsum Photos
-    const seed = Buffer.from(query).toString('base64').substring(0, 10);
-    const fallbackUrl = `https://picsum.photos/seed/${seed}/1920/1080`;
-    
-    res.json({ 
-      url: fallbackUrl, 
-      source: 'picsum',
-      error: error.response?.status === 403 ? 'Rate limit exceeded' : 'API error'
-    });
-  }
-});
-
-app.post('/api/unsplash/track-download', async (req, res) => {
-  const { download_location } = req.body;
-  if (!download_location) return res.status(400).json({ error: 'Missing download_location' });
-  
-  try {
-    await axios.get(download_location, {
-      params: { client_id: UNSPLASH_ACCESS_KEY }
-    });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Unsplash download tracking failed:', error.message);
-    res.status(500).json({ error: 'Tracking failed' });
-  }
-});
 
 // --- AI Translation Service ---
 app.post('/api/ai/translate-bulk', authenticateToken, async (req, res) => {

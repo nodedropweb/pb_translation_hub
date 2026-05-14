@@ -123,14 +123,21 @@ The Translation Hub Client follows a modern, component-based React architecture 
 
 ### Key Directories
 - **`src/views/`**: Top-level route components (Dashboard, Editor, Profile, etc.).
-- **`src/components/`**: Atomic and molecular UI components, split into `layout`, `shared`, and `ui`.
+- **`src/components/`**: Atomic and molecular UI components, split into `layout`, `shared`, and `ui` (including reusable modal overlays).
 - **`src/context/`**: State management using the React Context API (Auth, Theme, Language, etc.).
 - **`src/utils/`**: Shared constants, helpers, and API configuration.
 
 ### Design Principles
-- **Aesthetic Excellence**: High-end Glassmorphism UI with dynamic Unsplash integration.
+- **Aesthetic Excellence (Unified Glassmorphism)**: The application features a standardized, high-end Glassmorphic UI with dynamic, theme-agnostic styling. All visual variations (like 'Glassy' or 'Nature' themes) are driven globally via CSS variables in `index.css`, avoiding hardcoded, theme-conditional logic within individual components.
 - **Accessibility**: Support for multiple languages (i18n ready) and keyboard shortcuts.
 - **Performance**: Optimized rendering with conditional loading and efficient state propagation.
+- **Modern Overlays**: Instead of dedicated pages, supplementary interfaces (like the Help Center) utilize a reusable, fully responsive, glassmorphic `Modal` component with custom entrance animations for a premium feel.
+
+### 📸 Unsplash API Compliance
+All integrations with the Unsplash API strictly adhere to their mandatory guidelines:
+- **UTM Referral Tracking**: Every link to an Unsplash image or photographer profile must include `?utm_source=pb_translation_hub&utm_medium=referral`.
+- **Photographer Attribution**: Clear and visible attribution to the photographer is required on any view displaying Unsplash imagery.
+- **API Security**: All Unsplash access keys are secured via server-side `.env` variables and are never exposed to the frontend client.
 
 ---
 

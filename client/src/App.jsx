@@ -122,7 +122,7 @@ const App = () => {
     
     axios.get(`${API_BASE}/languages`).then(res => setLanguages(res.data));
     
-    if ((theme === 'glassy' || theme === 'nature') && !bgImage) {
+    if (!bgImage) {
       fetchNewBg();
     }
   }, []);
