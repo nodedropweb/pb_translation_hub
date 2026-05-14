@@ -10,10 +10,10 @@ async function migrate() {
   console.log('Starting migration to MariaDB...');
   
   const connection = await mysql.createConnection({
-    socketPath: '/var/run/mysqld/mysqld.sock',
-    user: 'root',
-    password: '',
-    database: 'pb_translation_hub'
+    host: process.env.DB_HOST || 'db',
+    user: process.env.DB_USER || 'pb_hub',
+    password: process.env.DB_PASSWORD || 'drupal',
+    database: process.env.DB_NAME || 'pb_translation_hub'
   });
 
   try {
