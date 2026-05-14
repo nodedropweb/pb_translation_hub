@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mariadb:10.5
@@ -15,15 +13,14 @@ services:
   server:
     build:
       context: ./server
+    env_file:
+      - ./server/.env
     environment:
       - DB_HOST=db
-      - DB_USER=pb_hub
-      - DB_PASSWORD=drupal
-      - DB_NAME=pb_translation_hub
-      - DB_CONNECTION_LIMIT=50
       - PORT=9901
     volumes:
       - ./server/data:/app/data
+      - ./server/uploads:/app/uploads
     depends_on:
       - db
     restart: unless-stopped

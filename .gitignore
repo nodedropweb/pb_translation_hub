@@ -20,6 +20,8 @@ client/build/
 server/data/metadata/
 server/data/translations/
 server/data/status.json
+server/uploads/
+data.zip
 
 # Logs and PIDs
 server/*.log
@@ -33,3 +35,5 @@ client/*.pid
 .env.development.local
 .env.test.local
 .env.production.local
+server/.env
+client/.env

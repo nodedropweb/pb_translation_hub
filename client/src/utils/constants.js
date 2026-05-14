@@ -3,8 +3,8 @@
  * Global constants and configuration for the Project Browser Translation Hub.
  */
 
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (API_BASE.startsWith('/') ? API_BASE : '');
 
 export const THEMES = [
   { id: 'light', name: 'Light', nameDe: 'Hell', icon: 'Sun', keywords: 'minimalist, white, clean' },

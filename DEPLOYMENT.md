@@ -1,178 +1,89 @@
 # Deployment Guide: PB Translation Hub
 
-This guide explains how to deploy the PB Translation Hub on a production Linux server (Debian, Ubuntu, or Fedora).
+This guide explains how to deploy the PB Translation Hub on a production Linux server using Docker.
 
 ## 1. Prerequisites
 
 - **Node.js**: Version 18.x or higher (v20+ recommended)
 - **NPM**: Version 9.x or higher
-- **MariaDB / MySQL**: Version 10.5+
-- **Web Server**: Nginx or Apache2
-- **Persistence**: Ensure the `server/data` directory is on a persistent volume.
+- **Docker**: Version 24+ with **Docker Compose**
+- **SSH Access**: To the target production server
+- **Unsplash API Key**: Required for background imagery and photographer attribution.
 
 ---
 
-## 2. Server Preparation
+## 2. Docker Deployment (Recommended)
 
-### Debian / Ubuntu
+This is the fastest and most reliable way to deploy the Hub.
+
+### Step 1: Initial Sync & Prep
+Synchronize your local codebase to the server using `rsync`. This preserves your existing database and volumes on the server while updating the code.
+
 ```bash
-sudo apt update
-sudo apt install -y nodejs npm git nginx
+# Run this from your local machine
+rsync -avz --progress \
+  --exclude 'node_modules' \
+  --exclude '.git' \
+  --exclude 'server/data' \
+  --exclude 'server/uploads' \
+  --exclude 'client/node_modules' \
+  ./ user@your-server.com:/path/to/app/
 ```
 
-### Fedora
+### Step 2: Environment Configuration
+Ensure you have a `.env` file in the `server/` directory on the remote host. The `docker-compose.yml` is configured to load this file automatically.
+
+**Required `.env` variables**:
+- `UNSPLASH_ACCESS_KEY`, `UNSPLASH_SECRET_KEY`
+- `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `JWT_SECRET`
+
+### Step 3: Start the Containers
+SSH into your server and start the application:
+
 ```bash
-sudo dnf install -y nodejs npm git nginx
+ssh user@your-server.com "cd /path/to/app && docker compose build && docker compose up -d"
 ```
 
 ---
 
-## 3. Installation
+## 3. Web Server Configuration (Nginx Reverse Proxy)
 
-1. **Clone the repository**:
-   ```bash
-   git clone <your-repo-url> /var/www/pb-translation-hub
-   cd /var/www/pb-translation-hub
-   ```
-
-2. **Backend Setup**:
-   ```bash
-   cd server
-   npm install
-   ```
-
-3. **Frontend Production Build**:
-   ```bash
-   cd ../client
-   npm install
-   # Create a .env file for the frontend build if your production URL is different
-   echo "VITE_API_BASE=/api" > .env.production
-   npm run build
-   ```
-
----
-
-## 4. Process Management (Systemd)
-
-Create a service file to keep the backend running and auto-restart on failure.
-
-**File**: `/etc/systemd/system/pb-hub-backend.service`
-
-```ini
-[Unit]
-Description=PB Translation Hub Backend
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/var/www/pb-translation-hub/server
-ExecStart=/usr/bin/node index.js
-Restart=on-failure
-Environment=PORT=3001
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Enable and Start**:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable pb-hub-backend
-sudo systemctl start pb-hub-backend
-```
-
----
-
-## 5. Web Server Configuration (Reverse Proxy)
-
-### Option A: Nginx (Recommended)
-
-**File**: `/etc/nginx/sites-available/pb-hub`
+When using Docker, the frontend is served on port `5173`. Configure Nginx to proxy requests to the container:
 
 ```nginx
 server {
     listen 80;
     server_name your-hub-domain.com;
 
-    # Frontend Static Files
-    root /var/www/pb-translation-hub/client/dist;
-    index index.html;
-
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://localhost:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
-    # Backend API Proxy
-    location /api {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Direct access for Drupal PB Localizer (e.g. /de/admin_toolbar.json)
-    location ~ ^/(de|en|fr|es|it)/.+\.json$ {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host $host;
-    }
+    # Ensure large uploads (avatars) are allowed
+    client_max_body_size 10M;
 }
-```
-
-### Option B: Apache2
-
-**Enable modules**:
-```bash
-sudo a2enmod proxy proxy_http rewrite
-```
-
-**File**: `/etc/apache2/sites-available/pb-hub.conf`
-
-```apache
-<VirtualHost *:80>
-    ServerName your-hub-domain.com
-    DocumentRoot /var/www/pb-translation-hub/client/dist
-
-    <Directory /var/www/pb-translation-hub/client/dist>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-        
-        # SPA Routing
-        RewriteEngine On
-        RewriteBase /
-        RewriteRule ^index\.html$ - [L]
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteCond %{REQUEST_FILENAME} !-d
-        RewriteRule . /index.html [L]
-    </Directory>
-
-    # Backend Proxy
-    ProxyPreserveHost On
-    ProxyPass /api http://localhost:3001/api
-    ProxyPassReverse /api http://localhost:3001/api
-
-    # Drupal Module Access
-    ProxyPassMatch "^/(de|en|fr|es|it)/(.+)$" "http://localhost:3001/$1/$2"
-</VirtualHost>
 ```
 
 ---
 
-## 6. Security Hardening
+## 4. Troubleshooting
 
-1. **Firewall**: Ensure only ports 80/443 are open to the public. Port 3001 should remain local.
-2. **SSL**: Use Certbot for Let's Encrypt:
-   ```bash
-   sudo apt install certbot python3-certbot-nginx
-   sudo certbot --nginx -d your-hub-domain.com
-   ```
+### Unsplash API not working?
+Check the server logs to see the exact error:
+```bash
+docker compose logs server | tail -n 50
+```
+Common issues include incorrect `UNSPLASH_ACCESS_KEY` or reaching the Sandbox rate limit (50 req/hr).
 
-## 7. Configuration for Drupal
+### Avatars not persisting?
+Ensure the volume mount for `/app/uploads` is correctly defined in `docker-compose.yml`.
 
+---
+
+## 5. Connecting Drupal to the Hub
 Once the hub is live, connect your Drupal sites via Drush:
 ```bash
 drush config:set pb_localizer.settings translation_mirror_url "https://your-hub-domain.com" --yes

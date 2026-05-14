@@ -54,7 +54,7 @@ const LoginView = () => {
               className={`w-full px-5 py-4 rounded-xl border focus:ring-4 outline-none transition-all glass-blur bg-bg-input border-border-main text-text-main focus:ring-brand-500/20 focus:border-brand-500`}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder={isGerman ? 'Benutzername' : 'Username'}
             />
           </div>
           <div className="space-y-2">

@@ -69,7 +69,12 @@ function registerUnsplashRoutes(app) {
       });
       
     } catch (error) {
-      console.warn('Unsplash API unavailable. Triggering PicSum fallback.');
+      if (error.response) {
+        console.error(`Unsplash API Error (${error.response.status}):`, error.response.data);
+      } else {
+        console.error('Unsplash API Request Failed:', error.message);
+      }
+      console.warn('Triggering PicSum fallback.');
       
       // 2. Fallback: Picsum Photos (Theme-specific seed based on query)
       const seed = Buffer.from(query || 'default').toString('base64').substring(0, 10);

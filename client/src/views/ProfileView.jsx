@@ -74,14 +74,51 @@ const ProfileView = () => {
     }
   };
 
+  const fileInputRef = React.useRef(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE}/user/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUser({ ...user, avatar_url: res.data.avatarUrl });
+      showToast(isGerman ? 'Avatar aktualisiert!' : 'Avatar updated!');
+    } catch (err) {
+      showToast(isGerman ? 'Upload fehlgeschlagen.' : 'Upload failed.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-12 max-w-7xl mx-auto animate-fade space-y-12">
       <div className="flex items-center gap-6 mb-4">
         <div className="relative group">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/*"
+          />
           <div className="w-24 h-24 rounded-[2rem] bg-brand-600 flex items-center justify-center text-white shadow-2xl shadow-brand-600/30 overflow-hidden">
             {user?.avatar_url ? <img src={`${BACKEND_URL}${user.avatar_url}`} className="w-full h-full object-cover" /> : <User size={48} />}
           </div>
-          <button className="absolute -bottom-2 -right-2 p-3 bg-white text-brand-600 rounded-2xl shadow-xl border border-brand-100 hover:scale-110 active:scale-95 transition-all">
+          <button 
+            onClick={handleAvatarClick}
+            className="absolute -bottom-2 -right-2 p-3 bg-white text-brand-600 rounded-2xl shadow-xl border border-brand-100 hover:scale-110 active:scale-95 transition-all"
+          >
             <Camera size={18} />
           </button>
         </div>

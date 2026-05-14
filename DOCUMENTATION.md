@@ -66,56 +66,30 @@ The Hub supports three specialized workflow modes to focus your efforts:
 ## Deployment Guide
 
 ### Requirements
-- **Node.js** (v18 or higher)
-- **NPM**
-- **MariaDB** (v10.5 or higher)
-- **Git** (to clone the hub)
-- **Apache/Nginx** (optional, for reverse proxying)
+- **Docker** (v24 or higher) with **Docker Compose**
+- **SSH Access** to the production server
+- **rsync** for codebase synchronization
 
 ### Step-by-Step Deployment
-1. **Clone the repository:**
+1. **Sync Codebase:**
+   Use `rsync` to push the code to your server while preserving existing data:
    ```bash
-   git clone <repository-url> pb_translation_hub
-   cd pb_translation_hub
+   rsync -avz --progress --exclude 'node_modules' --exclude '.git' --exclude 'server/data' --exclude 'server/uploads' ./ user@your-server.com:/path/to/app/
    ```
 
-2. **Install Dependencies:**
+2. **Configure Environment:**
+   Ensure a `.env` file exists in the `server/` directory on the server with your Unsplash keys and database credentials.
+
+3. **Start Containers:**
    ```bash
-   cd client && npm install
-   cd ../server && npm install
+   ssh user@your-server.com "cd /path/to/app && docker compose build && docker compose up -d"
    ```
 
-3. **Configure Environment:**
-   - The backend uses environment variables for sensitive configuration.
-   - Create a `.env` file in the `server/` directory (based on the provided `server/.env.example`).
-   - **Key Variables:**
-     - `UNSPLASH_APP_ID`: Your Unsplash Application ID.
-     - `UNSPLASH_ACCESS_KEY`: Your Unsplash Access Key.
-     - `UNSPLASH_SECRET_KEY`: Your Unsplash Secret Key.
-     - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: Your MariaDB connection details.
-     - `JWT_SECRET`: A secure string for signing user session tokens.
-   - The backend runs on port `9901` by default.
-   - The frontend (dev) runs on port `5173`.
-
-4. **Start the Hub:**
+4. **Connect Drupal to the Hub:**
+   In your Drupal site, set the Hub URL as the API endpoint:
    ```bash
-   chmod +x hubctl.sh
-   ./hubctl.sh start
+   drush config:set pb_localizer.settings translation_mirror_url "https://your-hub-domain.com" --yes
    ```
-
-5. **Perform Initial Sync:**
-   - Go to the Dashboard in the UI.
-   - Click **"Full Sync"**. This will take some time as it pulls ~40,000 module entries from Drupal.org.
-
-6. **Add Single Modules Manually:**
-   - If a module is missing or newly created on Drupal.org, use the **"Add Single Module"** feature on the Dashboard.
-   - Enter the `machine_name` (from the Drupal.org URL, e.g., `doc_to_html`).
-   - The Hub will fetch the data, resolve images, and automatically persist it to both the MariaDB `projects` table and the `server/data/metadata/` directory.
-   - Once added, the module is immediately available for translation.
-
-7. **Connect Drupal to the Hub:**
-   - In your Drupal site, configure the `pb_localizer` module (or relevant configuration) to use your Hub's URL as the API endpoint instead of `https://www.drupal.org`.
-   - Example Mirror URL: `http://your-server-ip:9901`
 
 ## 🎨 Client Architecture & Modularization
 
