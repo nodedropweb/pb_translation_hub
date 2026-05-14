@@ -157,8 +157,14 @@ const Dashboard = ({ isGerman }) => {
               <div className="mt-4 p-4 rounded-2xl border flex items-center justify-between bg-brand-500/10 border-brand-500/20">
                 <div className="flex items-center gap-3">
                   <Clock size={18} className="text-brand-500" />
-                  <span className="text-sm font-medium">
-                    {isGerman ? 'Zuletzt bearbeitet:' : 'Last reviewed:'} <code className="font-bold text-brand-600">{user.last_reviewed_project}</code>
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    {isGerman ? 'Zuletzt im Review-Prozess bearbeitet:' : 'Last project in review process:'} 
+                    <code className="font-bold text-brand-600">{user.last_reviewed_project}</code>
+                    <Tooltip text={isGerman 
+                      ? "Setze deine Arbeit an dem Modul fort, das du zuletzt in dieser Sprache bearbeitet oder für das Review geöffnet hast." 
+                      : "Continue working on the module you last edited or opened for review in this language."}>
+                      <HelpCircle size={14} className="text-text-muted hover:text-brand-500 transition-colors cursor-help" />
+                    </Tooltip>
                   </span>
                 </div>
                 <button 
