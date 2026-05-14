@@ -98,6 +98,7 @@ Then run `docker compose up -d` again to apply the change without data loss.
 | **Status** | `./hubctl.sh status` |
 | **Build Frontend** | `cd client && npm run build` |
 | **Install Dependencies** | `npm install` (in `client` & `server`) |
+| **Configuration** | Create `server/.env` based on `server/.env.example` |
 
 ---
 

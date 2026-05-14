@@ -86,9 +86,16 @@ The Hub supports three specialized workflow modes to focus your efforts:
    ```
 
 3. **Configure Environment:**
-   - The backend runs on port `9901` by default (chosen to avoid conflicts with Gulp/Browsersync).
+   - The backend uses environment variables for sensitive configuration.
+   - Create a `.env` file in the `server/` directory (based on the provided `server/.env.example`).
+   - **Key Variables:**
+     - `UNSPLASH_APP_ID`: Your Unsplash Application ID.
+     - `UNSPLASH_ACCESS_KEY`: Your Unsplash Access Key.
+     - `UNSPLASH_SECRET_KEY`: Your Unsplash Secret Key.
+     - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: Your MariaDB connection details.
+     - `JWT_SECRET`: A secure string for signing user session tokens.
+   - The backend runs on port `9901` by default.
    - The frontend (dev) runs on port `5173`.
-   - Update `server/index.js` if you have a specific Unsplash API key.
 
 4. **Start the Hub:**
    ```bash

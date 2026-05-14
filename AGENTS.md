@@ -22,6 +22,7 @@ This document provides a technical map of the Project Browser Translation Hub to
   - `index.js`: Core Hub logic. Handles sync, API endpoints, and MariaDB integration.
   - `migrate_to_mysql.js`: Migration utility for legacy JSON data.
   - `languages.json`: Supported target languages.
+  - `.env`: Environment variables (ignored by git). See `.env.example`.
 - **`/server/data` (Persistence Layer)**: 
   - `/metadata`: JSON backups of original Drupal.org module data.
   - `/translations/{langcode}`: JSON backups of local translations.
