@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="AI-assisted translation editor for Project Browser module metadata.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="PB Translation Hub">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>PB Translation Hub</title>
+  <link rel="manifest" href="manifest.json">
+
+</head>
+  <style>
+    body {
+      background-color: #0D1B2E;
+      margin: 0;
+      overflow: hidden;
+    }
+    #preloader {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+      font-family: system-ui, -apple-system, sans-serif;
+      transition: opacity 0.5s ease-out;
+    }
+    #preloader-logo {
+      width: 160px;
+      height: 160px;
+      animation: logoIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+    }
+    #preloader-title {
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      margin-top: 28px;
+      opacity: 0;
+      animation: fadeUp 0.5s ease-out 0.3s forwards;
+    }
+    #preloader-sub {
+      color: #6BA3C8;
+      font-size: 13px;
+      letter-spacing: 1.2px;
+      margin-top: 6px;
+      opacity: 0;
+      animation: fadeUp 0.5s ease-out 0.45s forwards;
+    }
+    #preloader-bar-wrap {
+      margin-top: 40px;
+      width: 120px;
+      height: 3px;
+      background: #1E3A5F;
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out 0.6s forwards;
+    }
+    #preloader-bar {
+      height: 100%;
+      width: 30%;
+      background: #4A90D9;
+      border-radius: 4px;
+      animation: slide 1.4s ease-in-out infinite;
+    }
+    @keyframes logoIn {
+      0%   { opacity: 0; transform: scale(0.7); }
+      100% { opacity: 1; transform: scale(1.0); }
+    }
+    @keyframes fadeUp {
+      0%   { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slide {
+      0%   { margin-left: -30%; }
+      100% { margin-left: 130%; }
+    }
+  </style>
+
+  <div id="preloader">
+    <img id="preloader-logo" src="assets/assets/images/logo.png" alt="PB Translation Hub">
+    <div id="preloader-title">PB Translation Hub</div>
+    <div id="preloader-sub">Project Browser Localizer</div>
+    <div id="preloader-bar-wrap"><div id="preloader-bar"></div></div>
+  </div>
+
+  <!-- ── CKEditor 5 Classic build (GPL 2+) ──────────────────────────────── -->
+  <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+  <!-- ── CKEditor dark theme (applied to div-based instances in main DOM) ── -->
+  <style>
+    .cke-host { box-sizing: border-box; }
+    .cke-host *,
+    .cke-host *::before,
+    .cke-host *::after { box-sizing: border-box; }
+    .cke-host .ck.ck-editor          { display:flex; flex-direction:column; height:100%; }
+    .cke-host .ck.ck-editor__main    { flex:1; overflow-y:auto; }
+    .cke-host .ck.ck-toolbar {
+      background:#1A1F26!important; border-color:#2D3748!important;
+      border-radius:0!important; padding:4px 8px!important;
+    }
+    .cke-host .ck.ck-toolbar .ck-toolbar__separator { background:#2D3748!important; }
+    .cke-host .ck.ck-button        { color:#CBD5E0!important; border-radius:6px!important; }
+    .cke-host .ck.ck-button:hover,
+    .cke-host .ck.ck-button.ck-on  { background:#2D3748!important; color:#fff!important; }
+    .cke-host .ck.ck-icon          { color:inherit!important; }
+    .cke-host .ck.ck-dropdown__panel,
+    .cke-host .ck.ck-list          { background:#1A1F26!important; border-color:#2D3748!important; }
+    .cke-host .ck.ck-list__item .ck-button       { color:#CBD5E0!important; }
+    .cke-host .ck.ck-list__item .ck-button:hover { background:#2D3748!important; }
+    .cke-host .ck-editor__editable_inline {
+      background:#0F1115!important; border:none!important;
+      box-shadow:none!important; color:#E2E8F0;
+      font-size:14px; line-height:1.65; min-height:140px;
+      padding:12px 16px!important;
+    }
+    .cke-host .ck-editor__editable_inline:focus { outline:none!important; }
+    .cke-host .ck-content p            { margin:0 0 .75em; }
+    .cke-host .ck-content a            { color:#7C3AED; }
+    .cke-host .ck-content code         { background:rgba(104,211,145,.12); color:#68D391;
+                                         padding:2px 5px; border-radius:4px; font-size:.9em; }
+    .cke-host .ck-content pre          { background:rgba(0,0,0,.35); padding:12px;
+                                         border-radius:6px; overflow-x:auto; }
+    .cke-host .ck-content blockquote   { border-left:3px solid #6366F1; margin:0;
+                                         padding-left:16px; color:#A0AEC0; font-style:italic; }
+    .cke-host .ck-content ul,
+    .cke-host .ck-content ol           { padding-left:1.5em; margin:0 0 .75em; }
+    .cke-host .ck.ck-balloon-panel     { background:#1A1F26!important; border-color:#2D3748!important; }
+  </style>
+
+  <!-- ── CKEditor JS bridge (called by Flutter via dart:js) ─────────────── -->
+  <script>
+    window._ckBridge = {
+      instances: {},
+
+      // id        – unique integer per editor instance
+      // toolbar   – JSON string of toolbar items array
+      // onReady   – called when the editor is initialised
+      // onChange  – called with the current HTML on every content change
+      init: function(id, toolbar, onReady, onChange) {
+        var el = document.getElementById('cke_editor_' + id);
+        if (!el) { console.error('[CKBridge] no element for id=' + id); return; }
+        var items = JSON.parse(toolbar);
+        ClassicEditor.create(el, {
+          toolbar: { items: items },
+          language: 'en',
+          ui: { poweredBy: { display: false } },
+        }).then(function(editor) {
+          window._ckBridge.instances[id] = editor;
+          onReady();
+          editor.model.document.on('change:data', function() {
+            onChange(editor.getData());
+          });
+        }).catch(function(err) { console.error('[CKBridge]', err); });
+      },
+
+      setData: function(id, html) {
+        var editor = window._ckBridge.instances[id];
+        if (editor && editor.getData() !== html) editor.setData(html);
+      },
+
+      destroy: function(id) {
+        var editor = window._ckBridge.instances[id];
+        if (editor) { editor.destroy(); delete window._ckBridge.instances[id]; }
+      }
+    };
+
+    var _preloaderStart = Date.now();
+    var _minDisplay = 2200; // ms — Mindestanzeigezeit für den Splash
+
+    window.addEventListener('flutter-first-frame', function() {
+      var preloader = document.getElementById('preloader');
+      if (!preloader) return;
+      var elapsed = Date.now() - _preloaderStart;
+      var remaining = Math.max(0, _minDisplay - elapsed);
+      setTimeout(function() {
+        preloader.style.opacity = '0';
+        setTimeout(function() { preloader.remove(); }, 500);
+      }, remaining);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

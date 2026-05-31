@@ -1,179 +1,125 @@
-# Project Browser Translation Hub
+# PB Translation Hub
 
 [![Drupal](https://img.shields.io/badge/Drupal-10.x%20%7C%2011.x-blue.svg)](https://drupal.org)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
-[![MariaDB](https://img.shields.io/badge/MariaDB-10.5+-003545.svg?logo=mariadb&logoColor=white)](https://mariadb.org)
-[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org)
+[![Flutter](https://img.shields.io/badge/Flutter-stable-54C5F8.svg)](https://flutter.dev)
+[![MariaDB](https://img.shields.io/badge/MariaDB-10.5+-003545.svg)](https://mariadb.org)
 
-> [!NOTE]
-> **Living Documentation:** This repository is managed as part of the PB Translation Ecosystem. 
-> Last Scan: 2026-05-08
+A self-hosted translation server that provides localized Drupal Project Browser metadata to the [Project Browser Localizer](https://drupal.org/project/pb_localizer) Drupal module.
 
 ---
 
-## 🏛 Ecosystem Architecture
+## Architecture
 
-```mermaid
-graph TD
-    subgraph "Drupal Side"
-        A[Project Browser] -- "TranslatedDrupalDotOrgSource" --> B[pb_translator module]
-    end
-    subgraph "Hub Side (Shadow API)"
-        B -- "JSON Request" --> C[Node.js Server]
-        C -- "Query" --> D[(MariaDB)]
-        E[AI Worker] -- "Gemini API" --> C
-        F[React Admin] -- "Editor UI" --> C
-    end
+```
+┌─────────────────────────────────────────────┐
+│                  Drupal Site                │
+│  Project Browser → pb_localizer module      │
+│           │ JSON request                    │
+└───────────┼─────────────────────────────────┘
+            │
+┌───────────▼─────────────────────────────────┐
+│              PB Translation Hub             │
+│                                             │
+│  Flutter Admin UI  ←→  Node.js Server       │
+│       :5173               :9901             │
+│                            │                │
+│                      ┌─────▼──────┐         │
+│                      │  MariaDB   │         │
+│                      └────────────┘         │
+│                       + JSON backups        │
+└─────────────────────────────────────────────┘
+            │
+┌───────────▼─────────────────────────────────┐
+│             drupal.org JSON:API              │
+│   Source of truth for module metadata       │
+└─────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🇺🇸 English
+## Features
 
-### What is this?
-The **Project Description Browser** is the central server hub designed to bridge the language gap in the Drupal ecosystem. While the Drupal Project Browser allows users to discover modules directly within their site, much of the data remains in English. This Hub acts as a translation server that provides localized data to the **Project Browser Localizer** Drupal module. 
+- **AI Bulk Translation** — translate thousands of modules via Google Gemini with cost estimation and stop-any-time support
+- **Shadow API** — serves translated module metadata as a drop-in replacement for the Drupal.org JSON:API
+- **Human Review Queue** — side-by-side split diff (original above, corrected below), one-click production approval; accessible only to users with the `reviewer` or `admin` role
+- **Role-Based Access Control** — `translator` users work exclusively in the editor; `reviewer` and `admin` users have access to the review queue
+- **User Management** — admin panel for activating pending users (with role selection), managing active users (deactivate / delete), and a 4-step self-registration flow
+- **Stale Detection** — MD5-based detection of upstream English changes that invalidate translations
+- **Intelligent Search** — SQL-scored search (exact > prefix > contains) with status filters (Priority, Review, Stale, Translated)
+- **Single-project Sync** — instant refresh of one module's metadata from Drupal.org without a full sync
+- **Sync Progress** — live progress bar showing total module count fetched from the first Drupal.org API response
+- **DB Migration System** — numbered SQL migrations in `server/migrations/`, automatically applied on server start
+- **Confetti Celebrations** — optional animated confetti on save/approve (toggle in settings), with 900 ms delay before navigation so the effect is visible
+- **Splash Screen** — branded HTML preloader with minimum 2200 ms display time
+- **Glassmorphism UI** — dark-mode-first Flutter interface with dynamic Unsplash backgrounds and multiple color themes
+- **Bilingual Filter Labels** — each dashboard filter shows the German label (bold, 13 px) and the English label (smaller, 10 px) stacked
+- **Keyboard-first workflow** — `Ctrl+Alt+S` save & next, `Ctrl+Enter` approve, and more
+- **GDPR-compliant help center** — consent-gated video embeds, no external requests without user action
 
-### Key Features
-- **AI-Powered Translation:** Bulk translate modules using Google Gemini with specialized Drupal context prompts and real-time cost estimation.
-- **AI Auto-Run with Stop-Support:** Process large batches of modules with the ability to pause or stop at any time without data loss.
-- **Shadow API:** Intercepts live data from Drupal.org and overlays it with high-quality local translations.
-- **Workflow Management:** Specialized modes for "Reviewing" existing translations and focusing on "Drupal 11" compatible modules.
-- **Robust Search:** Intelligent search engine with auto-trimming and case-insensitive matching across machine names and titles.
-- **Stale Detection:** Automatically tracks English source changes via hashing to alert when updates are needed.
-- **Modern UI:** "Acrylic/Glassy" design with dynamic Unsplash backgrounds and productivity-focused keyboard shortcuts.
-- **Privacy-First:** GDPR-compliant help center with consent-based media loading.
-- **Snackable Architecture:** Modularized React codebase for optimal performance and AI-assisted maintenance.
-- **Unsplash Compliance:** Fully compliant with Unsplash API Technical Guidelines (Hotlinking, Download Tracking, and UTM Attribution).
+---
 
-### 🐳 Docker Deployment (Recommended)
-The easiest and most performant way to run the PB Translation Hub is via **Docker & Docker Compose**. It solves dependency issues and automatically uses all CPU cores for maximum performance.
+## Getting Started
 
-#### Step 1: Install Docker on Ubuntu (For Beginners)
-If Docker is not yet installed on your Ubuntu server, run these commands:
+### Requirements
+- Docker + Docker Compose (recommended)
+- *Or:* Node.js ≥ 18, MariaDB ≥ 10.5, Flutter stable SDK
+
+### Docker (recommended)
 ```bash
-# Remove old versions (if any)
-sudo apt-get remove docker docker-engine docker.io containerd runc
-
-# Update package lists
-sudo apt-get update
-
-# Install Docker & Docker Compose
-sudo apt-get install -y docker.io docker-compose-plugin
-
-# Add your user to the docker group (to avoid typing 'sudo' every time)
-sudo usermod -aG docker $USER
-# Important: Log out and log back in for this to take effect!
-```
-
-#### Step 2: Start the App
-Navigate to the app directory and start everything:
-```bash
-cd /var/www/drupalcms/pb_translation_hub
+cd /var/www/pb_translation_hub
 docker compose up -d --build
 ```
-That's it! The app is now accessible at `http://localhost:5173` (Frontend) and the backend API runs on `http://localhost:9901`.
+App available at `http://localhost:5173`. Backend API at `http://localhost:9901`.
 
-#### 💾 How do Docker "Volumes" work?
-A Docker container is naturally "ephemeral" – if the container is deleted, all modified files inside are lost. To ensure our database and translations are not lost, we use **Volumes** in `docker-compose.yml`.
-
-- **Database Volume (`db_data:/var/lib/mysql`):** Docker creates an internal, secure storage area on your Ubuntu system. All MariaDB database entries land in this persistent volume. Whether you stop, update, or delete the container – your database remains safe forever.
-- **File Volume (`./server/data:/app/data`):** We use a "Bind Mount" here. We link the regular folder `server/data` (in this project directory) to the path `/app/data` inside the running Node.js container. *Why?* The Hub additionally saves all translations as `.json` files. Because we "bind" this folder directly to your server, you can view, copy, SCP, or commit these JSON backups to Git normally using Ubuntu.
-
-#### ⚙️ Changing Ports
-If port 5173 is already in use on your server, simply open `docker-compose.yml` with an editor (e.g., `nano docker-compose.yml`) and change the entry under `client`:
-```yaml
-  client:
-    ports:
-      - "8080:80"  # Change 5173 to 8080 or any free port
+### Manual dev startup
+```bash
+./hubctl.sh start
 ```
-Then run `docker compose up -d` again to apply the change without data loss.
+Use `./hubctl.sh stop | restart | status | logs` to manage services.
 
-### 🛠️ Manual Commands (Without Docker)
-
-| Action | Command |
-| :--- | :--- |
-| **Start** | `./hubctl.sh start` |
-| **Stop** | `./hubctl.sh stop` |
-| **Restart** | `./hubctl.sh restart` |
-| **Status** | `./hubctl.sh status` |
-| **Build Frontend** | `cd client && npm run build` |
-| **Install Dependencies** | `npm install` (in `client` & `server`) |
-| **Configuration** | Create `server/.env` based on `server/.env.example` |
+See [FLUTTER_DOCUMENTATION.md](./FLUTTER_DOCUMENTATION.md) for Flutter-specific dev instructions.
 
 ---
 
-## 🇩🇪 Deutsch
+## Configuration
 
-![Project Browser Translation Hub Oberfläche](./readme-shot-de.png)
+Copy `server/.env.example` to `server/.env` and set:
 
-### Was ist das?
-Der **Project Description Browser** ist der zentrale Übersetzungs-Hub, der die Sprachbarriere im Drupal-Ökosystem überbrückt. Er liefert die lokalisierten Daten für das Drupal-Modul **Project Browser Localizer**. 
-
-### Hauptfunktionen
-- **KI-gestützte Übersetzung:** Massenübersetzung von Modulbeschreibungen via Google Gemini mit spezialisierten Drupal-Prompts und Echtzeit-Kostenschätzung.
-- **KI-Auto-Lauf mit Stopp-Funktion:** Verarbeitet große Mengen an Modulen mit der Möglichkeit, den Prozess jederzeit zu unterbrechen, ohne Daten zu verlieren.
-- **Shadow API:** Fängt Live-Daten von Drupal.org ab und überlagert sie mit hochwertigen lokalen Übersetzungen.
-- **Workflow-Management:** Spezialisierte Modi für die "Revision" bestehender Übersetzungen und den Fokus auf "Drupal 11"-kompatible Module.
-- **Intelligente Suche:** Suchmaschine mit automatischer Bereinigung (Trimming) und Case-Insensitive-Abgleich über Titel und Machine-Names.
-- **Stale Detection:** Erkennt automatisch Änderungen an der englischen Originalquelle mittels Hashing.
-- **Premium Design:** Modernes "Acrylic/Glassmorphism"-Design mit dynamischen Unsplash-Hintergründen und Fokus auf Produktivität.
-- **Datenschutz:** DSGVO-konformes Hilfe-Center mit Consent-basiertem Laden von Medien.
-- **Unsplash API Compliance:** Vollständige Einhaltung der Unsplash API Richtlinien (Hotlinking, Download-Tracking und UTM-Attribution).
-
-### 🐳 Docker Deployment (Empfohlen)
-Die einfachste und performanteste Methode, um den PB Translation Hub zu betreiben, ist über **Docker & Docker Compose**. Das löst Abhängigkeitsprobleme und nutzt automatisch alle CPU-Kerne für höchste Leistung.
-
-#### Schritt 1: Docker unter Ubuntu installieren (für Anfänger)
-Wenn Docker noch nicht auf Ihrem Ubuntu-Server installiert ist, führen Sie diese Befehle im Terminal aus:
-```bash
-# Alte Versionen entfernen (falls vorhanden)
-sudo apt-get remove docker docker-engine docker.io containerd runc
-
-# Paketquellen aktualisieren
-sudo apt-get update
-
-# Docker & Docker Compose installieren
-sudo apt-get install -y docker.io docker-compose-plugin
-
-# Den eigenen Nutzer zur Docker-Gruppe hinzufügen (damit man nicht immer 'sudo' tippen muss)
-sudo usermod -aG docker $USER
-# Wichtig: Danach einmal abmelden und wieder anmelden!
+```ini
+UNSPLASH_ACCESS_KEY=...
+UNSPLASH_SECRET_KEY=...
+DB_HOST=127.0.0.1
+DB_USER=pb_hub
+DB_PASSWORD=...
+DB_NAME=pb_translation_hub
+JWT_SECRET=...
+GEMINI_API_KEY=...
 ```
-
-#### Schritt 2: App starten
-Wechseln Sie in das Verzeichnis der App und starten Sie alles:
-```bash
-cd /var/www/drupalcms/pb_translation_hub
-docker compose up -d --build
-```
-Das war's! Die App ist jetzt unter `http://localhost:5173` (Frontend) erreichbar, während die Backend-API auf Port `9901` läuft.
-
-#### 💾 Wie funktionieren die "Volumes" in Docker?
-Ein Docker-Container ist von Natur aus "flüchtig" – wenn der Container gelöscht wird, sind alle darin geänderten Dateien weg. Damit unsere Datenbank und unsere Übersetzungen nicht verloren gehen, nutzen wir in der `docker-compose.yml` sogenannte **Volumes** (virtuelle Laufwerke).
-
-- **Datenbank-Volume (`db_data:/var/lib/mysql`):** Docker erstellt hierbei einen internen, sicheren Speicherbereich (`db_data`) auf Ihrem Ubuntu-System. Alle MariaDB-Datenbank-Einträge landen in diesem persistenten Docker-Volume. Egal ob Sie den Container stoppen, updaten oder löschen – Ihre Datenbank bleibt sicher erhalten.
-- **Datei-Volume (`./server/data:/app/data`):** Hier nutzen wir ein sogenanntes "Bind Mount". Das bedeutet, wir verknüpfen den ganz normalen Ordner `server/data` (der sich in diesem Projekt-Verzeichnis befindet) mit dem Pfad `/app/data` innerhalb des laufenden Node.js-Containers. *Warum machen wir das so?* Der Hub speichert zur Sicherheit alle Übersetzungen zusätzlich als `.json`-Dateien ab. Da wir diesen Ordner direkt nach außen auf den Server "binden" (durchschleifen), können Sie die JSON-Backups jederzeit ganz normal im Ubuntu-Dateimanager ansehen, kopieren, per SCP herunterladen oder in Git einchecken. 
-
-#### ⚙️ Ports ändern
-Falls der Port 5173 auf Ihrem Server bereits belegt ist, öffnen Sie einfach die Datei `docker-compose.yml` mit einem Editor (z.B. `nano docker-compose.yml`) und ändern ganz unten den Eintrag unter `client`:
-```yaml
-  client:
-    ports:
-      - "8080:80"  # Ändern Sie 5173 zu 8080 oder jedem beliebigen freien Port
-```
-Anschließend einfach wieder `docker compose up -d` ausführen, um die Änderung ohne Datenverlust anzuwenden.
-
-### 🛠️ Manuelle Commands / Befehle (ohne Docker)
-
-| Action | Command |
-| :--- | :--- |
-| **Start** | `./hubctl.sh start` |
-| **Stop** | `./hubctl.sh stop` |
-| **Restart** | `./hubctl.sh restart` |
-| **Status** | `./hubctl.sh status` |
-| **Build Frontend** | `cd client && npm run build` |
-| **Install Dependencies** | `npm install` (in `client` & `server`) |
 
 ---
 
-For more details, see [DOCUMENTATION.md](./DOCUMENTATION.md), [DATA_STRUCTURE.md](./DATA_STRUCTURE.md), [DATABASE.md](./DATABASE.md) and [AGENTS.md](./AGENTS.md).
+## Ports
+
+| Service | Port |
+|---|---|
+| Flutter frontend (dev) | 5173 |
+| Flutter frontend (Docker) | 5173 → nginx:80 |
+| Node.js backend | 9901 |
+
+To change the Docker host port, edit `docker-compose.yml` under the `client:` service.
+
+---
+
+## Documentation
+
+| File | Contents |
+|---|---|
+| [FLUTTER_DOCUMENTATION.md](./FLUTTER_DOCUMENTATION.md) | Flutter client deep-dive: screens, Quill editors, image loading, CORS, Android, themes, Docker build |
+| [AGENTS.md](./AGENTS.md) | AI agent / developer technical reference: layout, DB schema, API endpoints, widget patterns |
+| [DATABASE.md](./DATABASE.md) | MariaDB schema, migration system, backup strategy |
+| [DATA_STRUCTURE.md](./DATA_STRUCTURE.md) | JSON data shapes for projects and translations |
+| [DOCUMENTATION.md](./DOCUMENTATION.md) | Architecture, workflow, and feature overview |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Production deployment with Docker + rsync, rolling restart, DB backup |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
+| [CHANGELOG.md](./CHANGELOG.md) | Version history and change log |

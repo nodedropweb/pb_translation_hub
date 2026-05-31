@@ -1,0 +1,32 @@
+[Unit]
+Description=PB Translation Hub (Docker Compose)
+Documentation=https://pb.drupaltutorials.de
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/joachim/pb_translation_hub
+
+# Starten: Container bauen falls nötig, dann hochfahren
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+
+# Stoppen: Container sauber herunterfahren
+ExecStop=/usr/bin/docker compose down
+
+# Nach Fehler: automatisch neu starten
+Restart=on-failure
+RestartSec=10s
+
+# Timeout beim Start erhöht (Flutter-Build dauert)
+TimeoutStartSec=600
+
+# Logs ins systemd Journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pb-translation-hub
+
+[Install]
+WantedBy=multi-user.target

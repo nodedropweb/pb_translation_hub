@@ -1,4 +1,25 @@
+# Dependencies (installed inside image)
 node_modules
+
+# Live data (mounted as Docker volume)
 data/
+uploads/
+
+# Sensitive config (injected via env_file)
 .env
+
+# Runtime logs and PIDs
 *.log
+*.pid
+
+# Dev/debug scripts (not needed in production image)
+scratch/
+check_pass.js
+webform_data.json
+migrate_to_mysql.js
+sync_translations.js
+sync_translations_db.js
+cleanup_is_reviewed.js
+
+# Test/migration artifacts
+data.zip

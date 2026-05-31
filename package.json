@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "description": "Standalone translation hub for Drupal Project Browser",
   "scripts": {
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "dev:server": "cd server && node index.js",
-    "dev:client": "cd client && npm run dev",
-    "dev": "npm run dev:server & npm run dev:client"
+    "test": "playwright test"
   },
   "author": "",
-  "license": "GPL-2.0-or-later"
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "puppeteer-core": "^25.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
 }

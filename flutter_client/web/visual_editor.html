@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #14171C;
+      overflow: hidden;
+    }
+    #editor {
+      width: 100%;
+      height: 100%;
+      background-color: #14171C;
+      border: none !important;
+    }
+    .ql-container.ql-snow {
+      border: none !important;
+      height: 100%;
+    }
+    .ql-editor {
+      color: #E2E8F0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 16px !important;
+      min-height: 100%;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .ql-editor.ql-blank::before {
+      color: #4A5568 !important;
+      font-style: normal !important;
+      left: 16px !important;
+    }
+    a { color: #6366F1; text-decoration: underline; }
+    h2, h3 { color: #FFFFFF; font-weight: bold; margin-top: 16px; margin-bottom: 8px; }
+    blockquote {
+      border-left: 3px solid #6366F1;
+      padding-left: 12px;
+      color: #A0AEC0;
+      font-style: italic;
+      margin: 12px 0;
+    }
+    ul, ol { padding-left: 20px; }
+    hr { border: 0; border-top: 1px solid #2D3748; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+  <script>
+    let isUpdating = false;
+    const urlParams = new URLSearchParams(window.location.search);
+    const editorType = urlParams.get('type') || 'editor';
+
+    const quill = new Quill('#editor', {
+      theme: 'snow',
+      modules: {
+        toolbar: false
+      },
+      placeholder: 'Schreibe hier die visuelle Übersetzung...'
+    });
+
+    // Make editor accessible for translation extension hooks
+    const editorEl = quill.root;
+    editorEl.setAttribute('role', 'textbox');
+    editorEl.setAttribute('aria-multiline', 'true');
+    editorEl.setAttribute('spellcheck', 'true');
+    editorEl.setAttribute('g-editable', 'true');
+    editorEl.classList.add('editable', 'wysiwyg-editor');
+
+    function syncToParent() {
+      if (isUpdating) return;
+      window.parent.postMessage(JSON.stringify({
+        type: editorType + '-change',
+        html: editorEl.innerHTML
+      }), '*');
+    }
+
+    quill.on('text-change', syncToParent);
+    editorEl.addEventListener('blur', syncToParent);
+
+    window.addEventListener('message', (event) => {
+      if (event.data && typeof event.data === 'object') {
+        if (event.data.type === 'setHtml') {
+          isUpdating = true;
+          quill.root.innerHTML = event.data.html || '';
+          if (event.data.lang) {
+            document.documentElement.setAttribute('lang', event.data.lang);
+          }
+          isUpdating = false;
+        } else if (event.data.type === 'exec') {
+          quill.focus();
+          const command = event.data.command;
+          const value = event.data.value || null;
+          const currentFormat = quill.getFormat();
+
+          if (command === 'bold') {
+            quill.format('bold', !currentFormat.bold);
+          } else if (command === 'italic') {
+            quill.format('italic', !currentFormat.italic);
+          } else if (command === 'formatBlock' && value === '<h2>') {
+            quill.format('header', currentFormat.header === 2 ? false : 2);
+          } else if (command === 'formatBlock' && value === '<h3>') {
+            quill.format('header', currentFormat.header === 3 ? false : 3);
+          } else if (command === 'createLink') {
+            quill.format('link', value);
+          } else if (command === 'insertUnorderedList') {
+            quill.format('list', currentFormat.list === 'bullet' ? false : 'bullet');
+          } else if (command === 'insertOrderedList') {
+            quill.format('list', currentFormat.list === 'ordered' ? false : 'ordered');
+          } else if (command === 'formatBlock' && value === '<blockquote>') {
+            quill.format('blockquote', !currentFormat.blockquote);
+          } else if (command === 'insertHorizontalRule') {
+            let range = quill.getSelection();
+            if (range) {
+              quill.clipboard.dangerouslyPasteHTML(range.index, '<hr>');
+            }
+          }
+        }
+      }
+    });
+
+    // Notify parent ready
+    window.parent.postMessage(JSON.stringify({ type: editorType + '-ready' }), '*');
+  </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api_client.dart';
+import '../screens/dashboard/widgets/project_card.dart';
+import 'language_provider.dart';
+
+class ProjectState {
+  final bool isLoading;
+  final List<Project> projects;
+  final int totalItems;
+  final String? error;
+
+  ProjectState({
+    this.isLoading = false,
+    this.projects = const [],
+    this.totalItems = 0,
+    this.error,
+  });
+
+  ProjectState copyWith({
+    bool? isLoading,
+    List<Project>? projects,
+    int? totalItems,
+    String? error,
+  }) {
+    return ProjectState(
+      isLoading: isLoading ?? this.isLoading,
+      projects: projects ?? this.projects,
+      totalItems: totalItems ?? this.totalItems,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class ProjectNotifier extends Notifier<ProjectState> {
+  final ApiClient _api = ApiClient();
+  
+  // Keep track of current query parameters
+  String _activeFilter = 'missing';
+  String _searchQuery = '';
+  int _currentPage = 1;
+  int _limit = 50;
+
+  @override
+  ProjectState build() {
+    // Watch target language so project list is reactive to language changes
+    ref.watch(languageProvider);
+    // Initial fetch deferred using Future.microtask to prevent reading uninitialized state
+    Future.microtask(() => _fetchProjects());
+    return ProjectState(isLoading: true);
+  }
+
+  void setFilter(String filter, {bool force = false}) {
+    if (!force && _activeFilter == filter) return;
+    _activeFilter = filter;
+    _currentPage = 1;
+    _fetchProjects();
+    
+    // Refresh filter counts whenever the active filter changes, to keep counts accurate!
+    final langcode = ref.read(languageProvider).targetLanguage.code;
+    Future.microtask(() {
+      ref.read(filterCountsProvider.notifier).fetchCounts(langcode);
+    });
+  }
+
+  void setSearch(String search) {
+    if (_searchQuery == search) return;
+    _searchQuery = search;
+    _currentPage = 1;
+    _fetchProjects();
+  }
+
+  void nextPage() {
+    final maxPage = (state.totalItems / _limit).ceil();
+    if (_currentPage >= maxPage) return;
+    _currentPage++;
+    _fetchProjects();
+  }
+
+  void prevPage() {
+    if (_currentPage <= 1) return;
+    _currentPage--;
+    _fetchProjects();
+  }
+
+  void goToPage(int page) {
+    final maxPage = (state.totalItems / _limit).ceil();
+    if (page < 1 || page > maxPage) return;
+    _currentPage = page;
+    _fetchProjects();
+  }
+
+  void setLimit(int limit) {
+    if (_limit == limit) return;
+    _limit = limit;
+    _currentPage = 1;
+    _fetchProjects();
+  }
+
+  String get activeFilter => _activeFilter;
+  int get currentPage => _currentPage;
+  int get limit => _limit;
+  String get searchQuery => _searchQuery;
+
+  Future<void> _fetchProjects() async {
+    // We shouldn't mutate state to isLoading if we already have projects? 
+    // Usually it's better to show a loading indicator without clearing the list, 
+    // but for simplicity we'll just set isLoading to true.
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final offset = (_currentPage - 1) * _limit;
+      final response = await _api.dio.get(
+        '/projects',
+        queryParameters: {
+          'search': _searchQuery,
+          'langcode': ref.read(languageProvider).targetLanguage.code,
+          'filter': _activeFilter,
+          'offset': offset,
+          'limit': _limit,
+        },
+      );
+
+      final rawData = response.data['data'] as List<dynamic>;
+      final meta = response.data['meta'];
+
+      final List<Project> parsedProjects = rawData.map((p) {
+        final attributes = p['attributes'] ?? {};
+        final projectMeta = p['meta'] ?? {};
+        final translation = projectMeta['translation'] ?? {};
+        
+        final title = translation['title'] ?? attributes['title'] ?? 'Unknown';
+        
+        // Try to get translation summary first, fallback to original body summary
+        String summary = translation['summary'] ?? '';
+        if (summary.isEmpty && attributes['body'] != null) {
+          summary = attributes['body']['summary'] ?? '';
+        }
+        if (summary.isEmpty) {
+          summary = 'Keine Zusammenfassung verfügbar.';
+        }
+
+        return Project(
+          machineName: attributes['field_project_machine_name'] ?? '',
+          title: title,
+          summary: _stripHtml(summary),
+          status: projectMeta['translation_status'] ?? 'missing',
+          logoUrl: projectMeta['logo_url'] as String?,
+        );
+      }).toList();
+
+      state = state.copyWith(
+        isLoading: false,
+        projects: parsedProjects,
+        totalItems: meta['count'] ?? 0,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Fehler beim Laden der Projekte: $e',
+      );
+    }
+  }
+
+  String _stripHtml(String htmlString) {
+    final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
+    return htmlString.replaceAll(exp, '').trim();
+  }
+}
+
+final projectProvider = NotifierProvider<ProjectNotifier, ProjectState>(() {
+  return ProjectNotifier();
+});
+
+class FilterCounts {
+  final int all;
+  final int priority;
+  final int missing;
+  final int review;
+  final int released;
+  final int stale;
+  final int translated;
+  final int ignored;
+
+  FilterCounts({
+    this.all = 0,
+    this.priority = 0,
+    this.missing = 0,
+    this.review = 0,
+    this.released = 0,
+    this.stale = 0,
+    this.translated = 0,
+    this.ignored = 0,
+  });
+
+  factory FilterCounts.fromJson(Map<String, dynamic> json) {
+    return FilterCounts(
+      all: json['all'] ?? 0,
+      priority: json['priority'] ?? 0,
+      missing: json['missing'] ?? 0,
+      review: json['review'] ?? 0,
+      released: json['released'] ?? 0,
+      stale: json['stale'] ?? 0,
+      translated: json['translated'] ?? 0,
+      ignored: json['ignored'] ?? 0,
+    );
+  }
+}
+
+class FilterCountsNotifier extends Notifier<FilterCounts> {
+  final ApiClient _api = ApiClient();
+
+  @override
+  FilterCounts build() {
+    // Watch language to trigger rebuilds automatically
+    final langcode = ref.watch(languageProvider).targetLanguage.code;
+    
+    // We run the fetch asynchronously so it doesn't block the build cycle
+    Future.microtask(() => fetchCounts(langcode));
+    
+    return FilterCounts();
+  }
+
+  Future<void> fetchCounts(String langcode) async {
+    try {
+      final response = await _api.dio.get(
+        '/projects/filter-counts',
+        queryParameters: {'langcode': langcode},
+      );
+      state = FilterCounts.fromJson(response.data);
+    } catch (e) {
+      // Ignore or log error
+    }
+  }
+}
+
+final filterCountsProvider = NotifierProvider<FilterCountsNotifier, FilterCounts>(() {
+  return FilterCountsNotifier();
+});

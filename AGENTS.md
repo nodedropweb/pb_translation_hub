@@ -1,112 +1,366 @@
-# Developer & Agent Guidance (AGENTS.md)
+# AGENTS.md — Developer & AI Agent Reference
 
-This document provides a technical map of the Project Browser Translation Hub to assist AI agents and developers in extending or debugging the application.
+Technical map of the PB Translation Hub for developers and AI coding agents.
 
-## Core Stack
-- **Frontend:** React (Vite)
-- **Backend:** Node.js (Express)
-- **Database:** MariaDB (Primary Storage)
-- **Legacy/Backup:** Flat JSON files in `data/`
+---
 
-## Directory Structure & Responsibilities
+## Stack
 
-- **`/client`**: React (Vite) Frontend. Modularized for scalability and AI efficiency.
-  - `src/App.jsx`: Main entry point. Wraps the app in Context Providers.
-  - `src/components/layout/AppContent.jsx`: Main UI shell including Sidebar, TopBar, and Routing.
-  - `src/views/`: Individual page views (Dashboard, Editor, Settings, etc.).
-  - `src/components/`: Reusable components split into `layout`, `shared`, and `ui`.
-  - `src/context/`: Centralized state management (Auth, Language, Theme, Toast, Workflow).
-  - `src/utils/`: Global constants (`constants.js`) and helper functions (`helpers.js`).
-  - `src/index.css`: Global styles and theme definitions (Glassmorphism, Liquid, etc.).
-- **`/server`**: Node.js (Express) Backend.
-  - `index.js`: Core Hub logic. Handles sync, API endpoints, and MariaDB integration.
-  - `migrate_to_mysql.js`: Migration utility for legacy JSON data.
-  - `languages.json`: Supported target languages.
-  - `.env`: Environment variables (ignored by git). See `.env.example`.
-- **`/server/data` (Persistence Layer)**: 
-  - `/metadata`: JSON backups of original Drupal.org module data.
-  - `/translations/{langcode}`: JSON backups of local translations.
-  - *Note:* The DB is the primary source of truth; JSON files act as a portable backup.
+| Layer | Technology |
+|---|---|
+| Frontend | Flutter (Dart) — web, desktop, and tablet |
+| Backend | Node.js (Express) |
+| Database | MariaDB (primary) + JSON file backups |
+| AI | Google Gemini (bulk translation) |
+| Production serving | Nginx (Docker, port 5173) |
 
-## Database Schema (MariaDB)
+---
 
-### 1. Table `projects`
-- `machine_name` (PK): Unique module identifier.
-- `title`: Original English title.
-- `data`: Full JSON metadata blob.
+## Repository Layout
 
-### 2. Table `translations`
-- `machine_name`, `langcode` (Composite PK): Links to project and language.
-- `title`, `summary`, `body`: Localized content.
-- `screenshot_alts`: JSON blob for image descriptions.
-- `source_hash`: MD5 hash of original content for stale detection.
+```
+pb_translation_hub/
+├── server/
+│   ├── index.js             # Express app entry; loads routes, starts migrations
+│   ├── db_migrate.js        # DB migration runner (auto-called on startup)
+│   ├── migrations/          # Numbered SQL migration files
+│   │   ├── 001_initial_schema.sql
+│   │   ├── 002_users_deepl_key.sql
+│   │   ├── 003_users_registration_fields.sql
+│   │   └── 004_users_requested_role.sql
+│   ├── routes/
+│   │   ├── auth.js          # Login, register, registration-status
+│   │   ├── projects.js      # Project list, search, single-project sync
+│   │   ├── translations.js  # Save/load translations
+│   │   ├── ai.js            # Bulk translation, cost estimation
+│   │   ├── sync.js          # Full sync from Drupal.org
+│   │   ├── admin.js         # User management (pending, active, deactivate, delete)
+│   │   └── categories.js    # Category management
+│   ├── migrate_to_mysql.js  # One-time JSON → MariaDB migration
+│   ├── languages.json       # Supported target language list
+│   ├── watch_stale.sh       # Shell script to watch for stale translations
+│   ├── data/
+│   │   ├── metadata/        # JSON snapshots of Drupal.org module data
+│   │   └── translations/    # Per-language JSON translation backups
+│   └── .env                 # Secrets (not committed; see .env.example)
+├── flutter_client/
+│   ├── lib/
+│   │   ├── main.dart        # App entry, ProviderScope wrapper
+│   │   ├── router.dart      # GoRouter declarations + role guards
+│   │   ├── models/          # Data transfer objects
+│   │   ├── providers/       # Riverpod state providers
+│   │   │   ├── auth_provider.dart
+│   │   │   ├── theme_provider.dart
+│   │   │   ├── language_provider.dart
+│   │   │   ├── project_provider.dart
+│   │   │   └── sync_provider.dart
+│   │   ├── services/        # ApiClient (Dio), TokenStorage, LogService
+│   │   ├── theme/           # AppTheme, ThemeAttributes
+│   │   ├── utils/           # html_sanitizer.dart, translation_prompt.dart
+│   │   ├── widgets/         # Shared widgets
+│   │   │   ├── glass_container.dart
+│   │   │   ├── module_logo.dart
+│   │   │   ├── page_transition.dart      # Animated route transition
+│   │   │   ├── splash_screen.dart        # Branded splash (min 2200 ms)
+│   │   │   ├── consent_youtube_player.dart
+│   │   │   ├── ckeditor_field.dart
+│   │   │   ├── search_with_autocomplete.dart
+│   │   │   └── sync_progress_bar.dart
+│   │   └── screens/
+│   │       ├── auth/
+│   │       │   ├── login_screen.dart
+│   │       │   └── register_screen.dart  # 4-step registration wizard
+│   │       ├── dashboard/
+│   │       │   ├── dashboard_screen.dart
+│   │       │   └── widgets/
+│   │       │       ├── project_card.dart
+│   │       │       └── dashboard_filters.dart  # Bilingual DE+EN filter labels
+│   │       ├── editor/
+│   │       │   ├── editor_screen.dart
+│   │       │   ├── _editor_build_methods.dart
+│   │       │   ├── _editor_quill_bridge.dart
+│   │       │   └── widgets/
+│   │       │       ├── cost_calculator_dialog.dart
+│   │       │       ├── editor_html_toolbar.dart
+│   │       │       └── screenshot_alts_section.dart
+│   │       ├── review/
+│   │       │   ├── review_list_screen.dart  # Shows translated titles/summaries
+│   │       │   ├── review_screen.dart       # Optimistic navigation, split diff
+│   │       │   └── widgets/
+│   │       │       ├── review_diff_view.dart  # Original (red) / Corrected (green)
+│   │       │       └── review_sidebar.dart    # StatefulWidget with source toggle
+│   │       ├── layout/
+│   │       │   └── app_layout.dart  # Sidebar logo: 44×44; Topbar mini: 34×34
+│   │       ├── categories/
+│   │       │   └── categories_screen.dart
+│   │       ├── profile/
+│   │       │   └── profile_screen.dart
+│   │       ├── help/
+│   │       │   ├── help_screen.dart
+│   │       │   └── crwb_study_screen.dart
+│   │       └── settings/
+│   │           └── settings_screen.dart  # Includes confetti toggle
+│   ├── web/
+│   │   └── index.html       # HTML preloader / splash, flutter-first-frame listener
+│   ├── Dockerfile
+│   └── nginx.conf
+├── hubctl.sh
+├── deploy.sh                # rsync + rolling restart + optional --db-backup
+├── docker-compose.yml
+└── server/.env.example
+```
 
-## Core Services & Workflows
+---
 
-### 1. Sync Service (`syncProjects`)
-- **Location:** `server/index.js`
-- **Logic:** Paginated fetch from `https://www.drupal.org/jsonapi/index/project_modules`.
-- **Storage:** Updates both MariaDB and local JSON files.
+## Database Schema
 
-### 2. Shadow API Endpoint (`/api/projects`)
-- **Logic:** 
-  1. Uses SQL joins to efficiently filter by status (missing/translated).
-  2. Applies search scoring directly in SQL (Exact > Prefix > Includes).
-  3. Merges local translations on-the-fly from the `translations` table.
+### `projects`
+| Column | Type | Notes |
+|---|---|---|
+| `machine_name` | VARCHAR(255) PK | Unique module identifier |
+| `title` | VARCHAR(255) | Original English title |
+| `data` | LONGTEXT (JSON) | Full Drupal.org metadata blob |
+| `changed` | BIGINT | Unix timestamp of last Drupal.org change |
+| `updated_at` | TIMESTAMP | Set on every sync |
 
-### 3. Single Project Sync (`/api/sync/project/:machine_name`)
-- **Logic:**
-  1. Fetches a single JSON:API entry from Drupal.org.
-  2. Resolves and flattens image relationships.
-  3. Persists the result to MariaDB (`projects` table) and File System.
-  4. Instant availability as it bypasses the need for a full index rebuild.
+### `translations`
+| Column | Type | Notes |
+|---|---|---|
+| `machine_name` | VARCHAR(255) PK | FK → projects |
+| `langcode` | VARCHAR(10) PK | e.g. `de`, `fr` |
+| `title` | VARCHAR(255) | Translated title |
+| `summary` | TEXT | Translated summary (HTML) |
+| `body` | LONGTEXT | Translated body (HTML) |
+| `screenshot_alts` | TEXT (JSON) | Image alt-text map |
+| `source_hash` | VARCHAR(32) | MD5 of English source for stale detection |
+| `is_reviewed` | TINYINT(1) | 0 = in review queue; 1 = approved for production |
+| `reviewed_by` | VARCHAR(50) | Username of the reviewer |
+| `updated_at` | TIMESTAMP | Last save time |
 
-### 4. AI Bulk Translation Service (`/api/ai/translate-bulk`)
-- **Logic:** 
-  1. Accepts an array of `machineNames` and a `langcode`.
-  2. Orchestrates the Gemini AI to translate title, summary, and body.
-  3. Automatically strips absolute URLs to maintain relative path integrity.
-  4. Supports **Cancellation** via a frontend-side `isCancelledRef` which breaks the request loop.
+### `users`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INT AUTO_INCREMENT PK | Internal ID |
+| `username` | VARCHAR(50) UNIQUE | Login name |
+| `password` | VARCHAR(255) | bcrypt hash |
+| `name` | VARCHAR(100) | Display name |
+| `email` | VARCHAR(100) | Email address |
+| `role` | VARCHAR(20) default `'user'` | `'admin'` or `'user'` |
+| `user_type` | ENUM('translator','reviewer') default `'translator'` | Determines review queue access |
+| `requested_role` | VARCHAR(20) | Role requested during registration |
+| `target_languages` | LONGTEXT (JSON) | Array of target languages e.g. `["de","fr"]` |
+| `is_active` | TINYINT(1) default `0` | 0 = pending activation; 1 = active |
+| `avatar_url` | VARCHAR(255) | Relative path under `/uploads/avatars/` |
+| `google_ai_key` | VARCHAR(255) | Personal Gemini API key |
+| `deepl_api_key` | VARCHAR(255) | Personal DeepL API key |
+| `ai_batch_limit` | INT default `5` | Max modules per AI bulk run |
+| `ai_prompt` | TEXT | Custom AI translation prompt |
+| `last_reviewed_project` | VARCHAR(255) | Most recently reviewed module |
+| `created_at` | TIMESTAMP | Registration time |
 
-### 5. Workflow Engine (Priority & Review)
-- **Priority Mode:** Filters projects against the `priority_projects` table (e.g., Drupal 11 focus).
-- **Review Mode:** Specifically filters for projects where a translation exists but needs verification.
-- **Stale Tracking:** Comparison of `source_hash` in `translations` vs current content hash.
+**Access logic:**
 
-## Adding New Features
+| `role` | `user_type` | Review Queue | Admin Panel |
+|---|---|---|---|
+| `admin` | — | Yes | Yes |
+| `user` | `reviewer` | Yes | No |
+| `user` | `translator` | No | No |
 
-### To add a new View:
-1. Create a new component in `client/src/views/`.
-2. Add the route to `client/src/components/layout/AppContent.jsx`.
+### `schema_migrations`
+| Column | Type | Notes |
+|---|---|---|
+| `version` | VARCHAR(20) PK | Numeric version string, e.g. `003` |
+| `filename` | VARCHAR(255) | Migration filename |
+| `applied_at` | TIMESTAMP | Execution time |
 
-### To add a new UI Theme:
-1. Open `client/src/index.css`.
-2. Define a new `.theme-name` class with CSS variables for `--primary`, `--bg-app`, `--bg-card`, etc.
-3. Add the theme configuration to `THEMES` in `client/src/utils/constants.js`.
+### `priority_projects`
+| Column | Type | Notes |
+|---|---|---|
+| `machine_name` | VARCHAR(255) PK | Module identifier |
+| `list_name` | VARCHAR(50) PK | e.g. `drupal11` |
 
-### To add a new API Endpoint:
-1. Add the route to `server/index.js`.
-2. Use the `db` connection pool for MariaDB queries.
-3. Restart the server using `./hubctl.sh restart`.
+### `ignored_projects`
+| Column | Type | Notes |
+|---|---|---|
+| `machine_name` | VARCHAR(255) PK | Module identifier |
+| `langcode` | VARCHAR(10) PK | Language code |
 
-## 📸 Unsplash API Compliance
+### `site_settings`
+| Column | Type | Notes |
+|---|---|---|
+| `setting_key` | VARCHAR(100) PK | Setting name |
+| `setting_value` | TEXT | Value |
 
-To maintain our Production rate limit, all Unsplash integrations must follow these rules:
+Known keys: `registration_enabled` (`'1'` / `'0'`).
 
-1. **Hotlinking:** Always use the `photo.urls` (e.g., `regular`) directly for `<img>` tags or CSS backgrounds. Do not proxy or re-host images.
-2. **Download Tracking:** When a background is set, the app MUST trigger the `photo.links.download_location` endpoint. In this app, the frontend calls `/api/unsplash/track-download` which proxies the request to Unsplash.
-3. **Attribution:** All links to Unsplash or photographers MUST include UTM parameters:
-   - `utm_source=pb_translation_hub`
-   - `utm_medium=referral`
+---
 
-## 🤖 Snackable Codebase
-The codebase is intentionally fragmented into small, specialized files (< 500 lines where possible). This ensures:
-- **Low Context Overhead:** Agents only need to read a few files to understand a feature.
-- **Precise Edits:** Reduced risk of breaking unrelated logic.
-- **Fast Build Times:** Efficient HMR and faster IDE performance.
+## Server Routes
+
+### Authentication (`routes/auth.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/auth/login` | Login; returns JWT |
+| `POST` | `/auth/register` | Create new (inactive) user account |
+| `GET` | `/auth/registration-status` | Returns `{ enabled: true/false }` |
+
+### Projects (`routes/projects.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/projects` | Filtered, paginated project list; SQL-scored search |
+| `GET` | `/api/projects/:machineName` | Single project with translation and suggestions |
+| `POST` | `/api/sync/project/:machineName` | Single-project refresh from Drupal.org |
+
+### Translations (`routes/translations.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/translations/:machineName` | Save translation (title, summary, body) |
+| `POST` | `/api/translations/:machineName/review` | Approve translation (sets `is_reviewed = 1`) |
+| `GET` | `/api/translations/:machineName/suggestions` | List suggestions |
+| `POST` | `/api/translations/:machineName/suggestions` | Save new suggestion |
+
+### AI (`routes/ai.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/ai/translate-bulk` | Bulk translation; max 150 modules per request |
+| `POST` | `/api/ai/estimate-cost` | Token and cost estimate before bulk run |
+| `POST` | `/api/ai/translate-single` | Single-module AI translation |
+
+### Sync (`routes/sync.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/sync/start` | Start full sync from Drupal.org |
+| `GET` | `/api/sync/status` | Sync progress (current page, total fetched from API first-page response) |
+| `POST` | `/api/sync/stop` | Stop running sync |
+
+### Admin (`routes/admin.js`)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/admin/users/pending` | List users with `is_active = 0` |
+| `POST` | `/admin/users/:id/activate` | Activate user; body `{ user_type }` assigns role |
+| `GET` | `/admin/users/active` | List users with `is_active = 1` |
+| `PATCH` | `/admin/users/:id/deactivate` | Deactivate (ban) an active user |
+| `DELETE` | `/admin/users/:id` | Permanently delete a user |
+
+### Other
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/image-proxy` | Proxy external image (`?url=<encoded>`); up to 5 redirects |
+| `POST` | `/api/unsplash/track-download` | Unsplash download tracking (API compliance) |
+| `GET` | `/api/unsplash/random` | Fetch a random Unsplash background |
+| `GET` | `/uploads/:path` | Serve uploaded files (avatars) |
+
+---
+
+## Key Backend Services
+
+### `db_migrate.js`
+Called at server startup before any routes are registered. Reads all `.sql` files in `server/migrations/` sorted by numeric prefix. Skips versions already in `schema_migrations`. Runs each pending migration in a transaction. Exits the process with code 1 on failure.
+
+### `syncProjects`
+Paginated fetch from `https://www.drupal.org/jsonapi/index/project_modules`. Includes a 100 ms inter-page delay — do not remove it (rate-limit compliance). The `total` count is read from the first API response (`meta.count`) and stored in `syncProvider` for accurate progress display. Writes to both MariaDB and `server/data/metadata/`.
+
+### `GET /api/projects`
+SQL-backed filtered list. Uses joins to resolve status (`missing` / `translated` / `stale`). In-SQL search scoring: exact > prefix > contains. Translators and reviewers both see the same list; the router guards control who can open the review screen.
+
+### `POST /api/ai/translate-bulk`
+Accepts `{ machineNames, langcode }`. Capped at 150 modules per call. The `receiveTimeout` on the Dio client for this route is set to 10 minutes. Orchestrates Gemini translation for title, summary, and body. Saves results as **Suggestions** (not live translations). Supports cancellation via per-request abort signals.
+
+### Performance: `res.json()` before file write
+For translation save endpoints, the JSON response is sent to the client immediately after the DB write completes. The file-system JSON backup (`fs.writeJson`) runs asynchronously in the background. This keeps the API response fast without sacrificing data durability.
+
+---
+
+## Flutter Client Guidelines
+
+### Role guards in router.dart
+The GoRouter in `lib/router.dart` checks the user's `user_type` from `authProvider` for all `/review*` routes. Users with `user_type == 'translator'` are redirected to `/` with a toast message. Admins bypass the check.
+
+### Theme attributes — never hardcode colors
+```dart
+final themeState = ref.watch(themeProvider);
+final attrs = AppTheme.getAttributes(themeState.themeId);
+// Use: attrs.brand600, attrs.bgCard, attrs.textMain, attrs.borderMain, etc.
+```
+
+### Adding a new screen
+1. Create `lib/screens/<domain>/<screen>_screen.dart`.
+2. Register the route in `lib/router.dart`.
+3. Add role guard if the screen requires reviewer/admin access.
+4. Do not use `const` on widgets that consume `attrs` values.
+
+### All network images must use the server proxy
+Never pass an external URL directly to `Image.network()` or `CachedNetworkImage`.
+Always route through the proxy:
+```dart
+ApiClient.proxyImageUrl('https://git.drupalcode.org/project/token/-/avatar')
+```
+Use `CachedNetworkImage` (never bare `Image.network`).
+Use `RepaintBoundary` around full-screen background images.
+
+### Module logos: always use `ModuleLogo`
+For project card logo banners, use `lib/widgets/module_logo.dart`:
+```dart
+ModuleLogo(
+  machineName: project.machineName,
+  logoUrl: project.logoUrl,
+  fallbackLogoUrl: 'https://git.drupalcode.org/project/project_browser/-/avatar',
+  accentColor: attrs.brand600,
+  bgColor: attrs.bgCard,
+)
+```
+
+### WYSIWYG editors (Quill via HtmlElementView)
+- Use `q.scroll.observer.disconnect()` **before** setting `q.root.innerHTML` to prevent Quill's mutation observer from stripping `<table>` and `<img>` elements.
+- Re-connect with `q.scroll.observer.observe(...)` immediately after.
+- Images must be routed through the image proxy.
+- Strip proxy URLs before saving with `_stripProxyUrls(html)`.
+
+### Confetti pattern
+```dart
+// In initState:
+_confettiController = ConfettiController(duration: const Duration(seconds: 2));
+
+// On success (check setting first):
+if (confettiEnabled) _confettiController.play();
+await Future.delayed(const Duration(milliseconds: 900));
+// then navigate
+```
+
+---
+
+## Ports
+
+| Service | Dev port | Production |
+|---|---|---|
+| Backend (Node.js) | 9901 | 9901 (internal Docker) |
+| Frontend (Flutter) | 5173 | 5173 → nginx:80 (Docker) |
+
+Use `./hubctl.sh start` for local development — it manages both ports.
+
+---
+
+## Unsplash API Compliance
+
+1. **Hotlinking** — always use `photo.urls.regular` directly in `<img>` or CSS backgrounds. Do not re-host.
+2. **Download tracking** — call `POST /api/unsplash/track-download` when a background is selected.
+3. **Attribution links** — always include `?utm_source=pb_translation_hub&utm_medium=referral`.
+
+---
 
 ## Guardrails
-- **Database:** Always use the `db` pool for MariaDB access.
-- **Redundancy:** When saving data, ensure it's written to both DB and File System if possible to maintain backup integrity.
-- **Port Conflicts:** Backend defaults to 3001, Frontend to 5173.
-- **Drupal.org Rate Limiting:** The sync service includes a `100ms` delay between pages. Do not remove this without reason.
+
+- All DB queries must use the `db` connection pool (prepared statements via `mysql2`).
+- When saving data, write to **both** MariaDB and the file-system JSON backup.
+- The `server/data/` directory is the portable backup layer — keep it in sync.
+- Do not skip the 100 ms sync delay between Drupal.org pages.
+- Review-related endpoints must check `user_type != 'translator'` before proceeding; return HTTP 403 otherwise.
+- Bulk translation is capped at 150 modules per request; do not raise this limit without also extending the Dio `receiveTimeout`.
+- DB migrations must use `ADD COLUMN IF NOT EXISTS` and `CREATE TABLE IF NOT EXISTS` — never `DROP` or `RENAME` without explicit coordination.

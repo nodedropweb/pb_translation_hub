@@ -1,6 +1,6 @@
 services:
   db:
-    image: mariadb:10.5
+    image: mariadb:11.8
     environment:
       MYSQL_ROOT_PASSWORD: drupal_root
       MYSQL_DATABASE: pb_translation_hub
@@ -8,6 +8,14 @@ services:
       MYSQL_PASSWORD: drupal
     volumes:
       - db_data:/var/lib/mysql
+      # Beim ersten Start (leeres Volume) wird der Export automatisch eingespielt.
+      - ./server/data/db_export.sql.gz:/docker-entrypoint-initdb.d/db_export.sql.gz:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   server:
@@ -22,14 +30,15 @@ services:
       - ./server/data:/app/data
       - ./server/uploads:/app/uploads
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   client:
     build:
-      context: ./client
+      context: ./flutter_client
     ports:
-      # Exposes the frontend + proxy API on port 5173. You can change this port easily.
+      # Exposes the frontend + proxy API on port 5173.
       - "5173:80"
     depends_on:
       - server

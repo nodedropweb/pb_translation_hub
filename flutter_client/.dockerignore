@@ -1,0 +1,23 @@
+# Build artifacts (generated inside Docker image)
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# IDE files
+.idea/
+.vscode/
+
+# Mobile/Desktop platform directories (not needed for web build)
+android/
+ios/
+macos/
+windows/
+linux/
+
+# Test utilities
+bin/test_diff.dart
+
+# Local properties
+android/local.properties
