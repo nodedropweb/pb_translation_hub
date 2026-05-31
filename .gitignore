@@ -50,3 +50,4 @@ scratch/
 test-results/
 tests/*.png
 server/scratch/
+.claude/
