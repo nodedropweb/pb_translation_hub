@@ -11,6 +11,53 @@ Dates are in `YYYY-MM-DD` format.
 
 ---
 
+## [2.2.0] — 2026-06-02
+
+### Added
+
+#### DeepL Integration
+- **`POST /ai/deepl-translate`** — translates a single module's summary and body via the DeepL API using the authenticated user's personal `deepl_api_key`. Automatically selects `api-free.deepl.com` for keys ending in `:fx` and `api.deepl.com` for Pro keys. Sends `tag_handling: 'html'` to preserve markup. Saves the result as both a `translations` record and a `translation_suggestions` row (type `'deepl'`).
+- **`GET /ai/deepl-usage`** — proxies a call to `GET /v2/usage` on the DeepL API with the user's key. Returns `character_count`, `character_limit`, and (for Pro accounts) per-product breakdowns and billing period timestamps. Used by the sidebar usage widget.
+- **DeepL sidebar widget** (`_DeeplUsageWidget`) — shown in the navigation sidebar whenever the logged-in user has a `deepl_api_key` stored in their profile. Displays a colour-coded progress bar (green → amber → red at 70 %/90 %) plus formatted character counts. Has a manual refresh button. For unlimited keys, shows "unbegrenzt / unlimited" instead of a bar.
+- **`server/migrations/006_suggestion_type_deepl.sql`** — extends the `suggestion_type` ENUM on `translation_suggestions` from `('ai','manual')` to `('ai','manual','deepl')`. This migration caused the original 500 error ("Data truncated") and is now applied automatically on server start.
+- **DeepL button in Editor** — joins the existing Gemini and DeepL buttons in the translation pane header. Disabled while any other AI translation is in progress.
+- **`User-Agent: PBTranslationHub/1.0`** header added to all DeepL API requests (`/v2/translate` and `/v2/usage`) as required by the DeepL API guidelines.
+
+#### Review Screen — Tablet Layout
+- **`_buildReviewHeaderTablet`** — new responsive header variant for screen widths between 600 dp and 1099 dp (covers the BEYNIVAN M986-EEA tablet at ~1000 dp landscape). Identical one-row layout to the desktop header, but keyboard-shortcut hints (`Strg+→`, `Strg+Enter`) are omitted from button labels to prevent overflow.
+
+#### Editor — Off-Canvas Source Pane
+- **Clipboard/Prompt button** added to the "Englische Quelle" off-canvas drawer header, identical to the PROMPT button already present in the Review Screen header. Copies `buildTranslationPrompt(…)` with the current English source text.
+
+#### Translation Prompt Improvements
+- Labels `"Summary:"` and `"Main Description:"` removed from the copied clipboard text; the two blocks are now separated by a blank line and a bare `---` separator. The AI instruction still explains that the first block is the summary and the second is the body.
+- Explicit rule added: **do not wrap output in markdown code fences** (no triple backtick html blocks). Fixes Gemini/Deepseek returning fenced code blocks instead of raw HTML.
+
+#### Ignored Modules — Bulk Unignore
+- **`DELETE /projects/ignore-all`** — new server endpoint (auth required). Deletes all rows from `ignored_projects` and returns `{success, count}`.
+- **Dashboard "Alle wieder einreihen" button** — appears only when the "Ignoriert" filter is active. Opens a language-aware confirmation dialog (DE/EN). On confirm, calls the bulk-unignore endpoint and switches the filter to "all".
+- **Editor "Einreihen" button** — shown in the editor header whenever `meta.is_ignored === true` for the current module. Calls `DELETE /projects/:name/ignore` for the single module.
+
+#### Login Screen — Image Slideshow
+- **Manual image slider** with `‹`/`›` navigation arrows, animated progress dots, and crossfade transitions. Each `›` click either shows the next cached slide or fetches a new image from `/unsplash/random-bg`.
+- **Auto-play toggle** button above the dots; starts/stops a 6-second auto-advance timer (uses the same lazy-fetch mechanism to avoid unnecessary API calls).
+- **Mandatory Unsplash attribution** shown bottom-left for every API-sourced image: photographer name and "Unsplash" both link with `?utm_source=pb_translation_hub&utm_medium=referral` to comply with Unsplash API terms and maintain Production-tier access (50,000 requests/hour).
+
+#### Themes
+- **Pearl theme** (`'pearl'`) — clean flat design with solid lavender background (`#ECE8F9`, 100 % opaque overlay), pure white cards, minimal blur (`glassBlur: 1.0`), and soft purple accent (`#8B7FD4`). Replaces the former "Hell/Light" theme.
+- **Stage theme** (`'stage'`) — concert/event aesthetic: dark smaragd-teal background (`#0C2222`), warm orange accent (`#F58620`), 80 % teal overlay. Background keyword: `concert,neon,stage,festival,dark`.
+- **"Hell/Light" button** in the sidebar and Settings now maps to `pearl` (the internal theme ID). Users who had `light` saved in `SharedPreferences` are automatically migrated to `pearl` on next load.
+
+#### Review List Screen — Toolbar
+- **"Aktualisieren / Refresh"** and **"Freigaben zurücksetzen / Reset published"** moved from floating icon buttons in the page header into the search toolbar. Both are now `OutlinedButton.icon` with visible labels and loading spinners.
+
+### Fixed
+- **DeepL 500 error** — inserting a suggestion with `suggestion_type = 'deepl'` truncated the ENUM column. Fixed by migration 006.
+- **Light-theme readability** — `GlassContainer` sections in the Study and Help screens used `Colors.white.withValues(alpha: 0.04)` backgrounds (invisible on light). All hardcoded near-transparent white containers replaced with `attrs.bgCard`.
+- **Keyboard-chip visibility** in Help screen (Shortcut section) — `Colors.white.withOpacity(0.1)` backgrounds replaced with `attrs.bgInput` / `attrs.borderMain`.
+
+---
+
 ## [2.1.0] — 2026-06-02
 
 ### Added

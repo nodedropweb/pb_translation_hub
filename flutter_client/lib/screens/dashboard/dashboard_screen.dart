@@ -31,6 +31,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ── Manual module-add state ──────────────────────────────────────────────
   bool _showManualAdd = false;
   bool _syncingManual = false;
+  bool _unignoringAll = false;
   late final TextEditingController _manualNameController;
 
   @override
@@ -43,6 +44,79 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void dispose() {
     _manualNameController.dispose();
     super.dispose();
+  }
+
+  // ── Unignore all ────────────────────────────────────────────────────────
+
+  Future<void> _handleUnignoreAll(bool isGerman) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final attrs = AppTheme.getAttributes(
+            ref.read(themeProvider).themeId);
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1F26),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: attrs.borderMain)),
+          title: Text(
+            isGerman ? 'Alle ignorieren aufheben?' : 'Unignore all modules?',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            isGerman
+                ? 'Alle ignorierten Module werden wieder in die aktive Liste aufgenommen und stehen erneut zur Übersetzung bereit.'
+                : 'All ignored modules will be returned to the active list and will be available for translation again.',
+            style: TextStyle(color: attrs.textMuted),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+                  style: TextStyle(color: attrs.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: attrs.brand600),
+              child: Text(isGerman ? 'Alle einreihen' : 'Unignore all'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _unignoringAll = true);
+    try {
+      final api = ApiClient();
+      await api.dio.delete('/projects/ignore-all');
+      if (mounted) {
+        final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isGerman
+              ? 'Alle ignorierten Module wurden wieder eingereiht.'
+              : 'All ignored modules have been unignored.'),
+          backgroundColor: attrs.brand600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+        ref.read(projectProvider.notifier).setFilter('all', force: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isGerman
+              ? 'Fehler beim Einreihen der Module.'
+              : 'Failed to unignore modules.'),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _unignoringAll = false);
+    }
   }
 
   // ──────────────────────────────── Sync helpers ───────────────────────────
@@ -294,6 +368,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           // ── Filter buttons ────────────────────────────────────────────────
           const DashboardFilters(),
+
+          // ── "Unignore all" action bar — only shown when filter = ignored ──
+          if (activeFilter == 'ignored') ...[
+            const SizedBox(height: 12),
+            Builder(builder: (context) {
+              final isGerman =
+                  ref.read(languageProvider).targetLanguage.code == 'de';
+              final attrs2 = AppTheme.getAttributes(themeState.themeId);
+              return Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _unignoringAll
+                        ? null
+                        : () => _handleUnignoreAll(isGerman),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      side: BorderSide(color: attrs2.brand600),
+                      foregroundColor: attrs2.brand600,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: _unignoringAll
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: attrs2.brand600))
+                        : const Icon(LucideIcons.eyeOff, size: 14),
+                    label: Text(
+                      isGerman
+                          ? 'Alle wieder einreihen'
+                          : 'Unignore all modules',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
 
           const SizedBox(height: 16),
 

@@ -194,45 +194,17 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                 ],
               ),
               
-              // Reset all published button
-              Tooltip(
-                message: isGerman
-                    ? 'Alle veröffentlichten Übersetzungen zurück in Review setzen'
-                    : 'Reset all published translations to review state',
-                child: _isResettingAll
-                    ? const Padding(
-                        padding: EdgeInsets.all(12.0),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.orange),
-                        ),
-                      )
-                    : IconButton(
-                        icon: const Icon(LucideIcons.rotateCcw,
-                            color: Colors.orange),
-                        onPressed: _resetAllPublished,
-                      ),
-              ),
-              const SizedBox(width: 4),
-
-              // Refresh button
-              IconButton(
-                icon: Icon(LucideIcons.refreshCw, color: attrs.brand600),
-                onPressed: () => _fetchReviewProjects(search: _searchQuery),
-                tooltip: isGerman ? 'Aktualisieren' : 'Refresh list',
-              ),
             ],
           ),
           const SizedBox(height: 32),
 
-          // Search and pipeline summary bar
+          // Search + action toolbar
           GlassContainer(
             border: Border.all(color: attrs.borderMain),
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                // Search field
                 Expanded(
                   child: TextFormField(
                     onChanged: _onSearchChanged,
@@ -258,9 +230,60 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                     style: TextStyle(color: attrs.textMain),
                   ),
                 ),
-                const SizedBox(width: 24),
-                
-                // Stat badge
+                const SizedBox(width: 12),
+
+                // Refresh button
+                OutlinedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () => _fetchReviewProjects(search: _searchQuery),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                    side: BorderSide(color: attrs.borderMain),
+                    foregroundColor: attrs.textMain,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _isLoading
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: attrs.brand600))
+                      : Icon(LucideIcons.refreshCw,
+                          size: 15, color: attrs.brand600),
+                  label: Text(
+                    isGerman ? 'Aktualisieren' : 'Refresh',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Reset all published button
+                OutlinedButton.icon(
+                  onPressed: _isResettingAll ? null : _resetAllPublished,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                    side: const BorderSide(color: Colors.orange),
+                    foregroundColor: Colors.orange,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _isResettingAll
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.orange))
+                      : const Icon(LucideIcons.rotateCcw, size: 15),
+                  label: Text(
+                    isGerman ? 'Freigaben zurücksetzen' : 'Reset published',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Count badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   decoration: BoxDecoration(
@@ -274,12 +297,12 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                       const SizedBox(width: 8),
                       Text(
                         _searchQuery.isNotEmpty
-                          ? (isGerman
-                              ? 'Treffer: ${_reviewProjects.length} / $_totalCount'
-                              : 'Results: ${_reviewProjects.length} / $_totalCount')
-                          : (isGerman
-                              ? 'Wartend: $_totalCount'
-                              : 'Pending: $_totalCount'),
+                            ? (isGerman
+                                ? 'Treffer: ${_reviewProjects.length} / $_totalCount'
+                                : 'Results: ${_reviewProjects.length} / $_totalCount')
+                            : (isGerman
+                                ? 'Wartend: $_totalCount'
+                                : 'Pending: $_totalCount'),
                         style: TextStyle(
                           color: attrs.brand600,
                           fontWeight: FontWeight.bold,

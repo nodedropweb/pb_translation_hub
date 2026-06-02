@@ -56,19 +56,19 @@ String buildTranslationPrompt({
 }) {
   final langName = promptLangName(langcode);
 
-  return '''Translate the following two HTML blocks (summary and main description) from the Drupal Project Browser to $langName.
+  return '''Translate the following two HTML blocks from the Drupal Project Browser to $langName.
+The first block is the short description (summary), the second block is the full description (body).
 IMPORTANT:
-1. Return ONLY the translated HTML — no introduction, no comments, no explanations (e.g. NO "Here is the translation").
-2. Your output MUST be valid HTML. Keep ALL HTML tags (<p>, <a>, <ul>, <li>, <strong>, <em>, <code>, <pre>, <img>, etc.) exactly as they are in the source. Translate only the visible text content inside the tags.
-3. All hyperlinks (<a href="...">) and image URLs (<img src="...">) MUST remain completely unchanged.
-4. Module names, package names and technical identifiers must stay in English.
-5. Separate the two translated blocks EXACTLY by the string '---' on its own line.
+1. Return ONLY the translated HTML — no introduction, no comments, no explanations, no labels (do NOT write "Summary:", "Body:", "Here is the translation", etc.).
+2. Do NOT wrap your output in markdown code fences (no triple backtick html, no triple backtick, no code blocks). Output raw HTML only.
+3. Your output MUST be valid HTML. Keep ALL HTML tags (<p>, <a>, <ul>, <li>, <strong>, <em>, <code>, <pre>, <img>, etc.) exactly as they are in the source. Translate only the visible text content inside the tags.
+4. All hyperlinks (<a href="...">) and image URLs (<img src="...">) MUST remain completely unchanged.
+5. Module names, package names and technical identifiers must stay in English.
+6. Separate the two translated blocks EXACTLY by the string '---' on its own line (nothing else on that line).
 
-Summary:
 $sourceSummary
 
 ---
 
-Main Description:
 $sourceBody''';
 }

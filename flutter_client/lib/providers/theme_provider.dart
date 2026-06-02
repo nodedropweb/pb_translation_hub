@@ -63,7 +63,9 @@ class ThemeNotifier extends Notifier<ThemeState> {
 
   Future<void> _loadInitialState() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTheme = prefs.getString('pb-theme') ?? 'glassy';
+    // Migrate legacy 'light' to 'pearl'
+    final raw = prefs.getString('pb-theme') ?? 'glassy';
+    final savedTheme = raw == 'light' ? 'pearl' : raw;
     final savedFont = prefs.getString('pb-fontStyle') ?? 'inter';
     final savedConfetti = prefs.getBool('pb-confettiEnabled') ?? true;
     final savedLargeUi = prefs.getBool('pb-largeUi') ?? false;
@@ -123,9 +125,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     
     // Choose search keywords based on selected theme
     String keywords = 'abstract,dark,glass';
-    if (state.themeId == 'light') {
-      keywords = 'minimalist,white,clean';
-    } else if (state.themeId == 'dark') {
+    if (state.themeId == 'dark') {
       keywords = 'midnight,stars,dark';
     } else if (state.themeId == 'nature') {
       keywords = 'forest,mountains,river,nature';
@@ -133,6 +133,10 @@ class ThemeNotifier extends Notifier<ThemeState> {
       keywords = 'liquid,color,flow';
     } else if (state.themeId == 'glassy') {
       keywords = 'glassmorphism,abstract,blurry';
+    } else if (state.themeId == 'pearl') {
+      keywords = 'lavender,minimal,clean,purple,soft';
+    } else if (state.themeId == 'stage') {
+      keywords = 'concert,neon,stage,festival,dark';
     }
 
     try {
@@ -162,8 +166,10 @@ class ThemeNotifier extends Notifier<ThemeState> {
       
       // Theme-specific fallback images
       String fallbackUrl = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1920&auto=format&fit=crop';
-      if (state.themeId == 'light') {
-        fallbackUrl = 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop';
+      if (state.themeId == 'pearl') {
+        fallbackUrl = 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=1920&auto=format&fit=crop';
+      } else if (state.themeId == 'stage') {
+        fallbackUrl = 'https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=1920&auto=format&fit=crop';
       } else if (state.themeId == 'nature') {
         fallbackUrl = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1920&auto=format&fit=crop';
       } else if (state.themeId == 'liquid') {

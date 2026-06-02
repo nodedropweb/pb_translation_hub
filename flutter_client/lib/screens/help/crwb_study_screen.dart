@@ -187,6 +187,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
       borderRadius: 32,
       border: Border.all(color: attrs.borderMain),
       padding: const EdgeInsets.all(48),
+      backgroundColor: attrs.bgCard,
       child: Column(
         children: [
           // Publisher badge
@@ -542,7 +543,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: attrs.bgCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: attrs.borderMain),
       ),
@@ -1375,7 +1376,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: attrs.bgCard,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: attrs.borderMain),
               ),
@@ -1610,6 +1611,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
       borderRadius: 20,
       border: Border.all(color: attrs.borderMain),
       padding: const EdgeInsets.all(28),
+      backgroundColor: attrs.bgCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1676,6 +1678,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
       borderRadius: 28,
       border: Border.all(color: attrs.borderMain),
       padding: const EdgeInsets.all(40),
+      backgroundColor: attrs.bgCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1829,7 +1832,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: attrs.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: attrs.borderMain),
       ),

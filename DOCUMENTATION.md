@@ -44,14 +44,51 @@ The Hub includes a built-in help center with a 100% GDPR-compliant YouTube widge
 
 Every translation stores a `source_hash` (MD5) of the original English content. During a sync, if the Hub detects that the content on Drupal.org has changed, the hash will not match, and the translation is flagged as **"Stale"**. This alerts translators that the translation needs updating.
 
-### AI Auto-Run (Bulk Translation)
+### AI Translation Backends
 
-The Hub features a powerful AI Auto-Run engine that can translate hundreds of modules in minutes:
+The Hub supports three machine-translation backends. Each user can configure their own API keys in their profile — keys are **never shared** between users. Every API call uses exclusively the key of the authenticated user (`req.user.id` from the verified JWT).
 
-1. **Selection:** The engine targets the next X missing modules based on your current search and filter settings. The limit is capped at 150 per run to ensure server stability.
-2. **Cost Estimation:** Before starting, the Hub provides a detailed token and cost estimation based on Google Gemini pricing.
-3. **Drafting:** AI translations are saved as **Suggestions**, ensuring they do not overwrite manual work without a second look.
-4. **Safety:** A **Stop** button allows you to interrupt the process at any time, saving the progress made so far.
+#### Google Gemini (Bulk Auto-Run)
+
+The Gemini engine can translate hundreds of modules in minutes:
+
+1. **Selection:** Targets the next X missing modules based on your current search and filter settings. Capped at 150 per run.
+2. **Cost Estimation:** Before starting, the Hub provides a token and cost estimate based on Google Gemini pricing.
+3. **Drafting:** AI translations are saved as **Suggestions** (`suggestion_type = 'ai'`), not overwriting manual work without review.
+4. **Safety:** A **Stop** button interrupts the process, saving progress so far.
+
+#### DeepL
+
+Per-module translation using the [DeepL API](https://developers.deepl.com/docs).
+
+- **Endpoint:** `POST /ai/deepl-translate` (authenticated)
+- **Key resolution:** Keys ending in `:fx` automatically use `api-free.deepl.com`; all others use `api.deepl.com`.
+- **HTML preservation:** `tag_handling: 'html'` is passed so all markup (`<p>`, `<a>`, `<ul>`, etc.) is preserved.
+- **Saved as:** `suggestion_type = 'deepl'` in `translation_suggestions`.
+- **Key isolation:** The user's own `deepl_api_key` column is read from the DB at request time. No global/admin key fallback exists.
+
+##### DeepL Usage Widget
+
+A compact usage widget appears in the navigation sidebar for any user who has a DeepL key configured. It calls `GET /ai/deepl-usage` → proxied to `GET /v2/usage` on the DeepL API.
+
+| Field shown | Source |
+|---|---|
+| Character count / limit | `character_count` / `character_limit` |
+| Progress bar (colour-coded) | green < 70 %, amber < 90 %, red ≥ 90 % |
+| Per-product breakdown | `products[]` (Pro accounts only) |
+| "Unlimited" label | when `character_limit ≥ 1 000 000 000 000` (DeepL sentinel value) |
+
+Free-plan responses only contain `character_count` and `character_limit`; Pro responses include `api_key_character_count`, `api_key_character_limit`, billing period timestamps, and per-product data.
+
+#### Manual Clipboard Prompt
+
+Users without an API key can copy a pre-built prompt (English source + translation instructions) to the clipboard and paste it into any AI tool (ChatGPT, Gemini web, Deepseek, etc.). The prompt is available in:
+
+- The **Review Screen** header ("PROMPT" button)
+- The **Editor** off-canvas source pane (clipboard icon)
+- The **Editor** translation pane header (clipboard icon)
+
+The prompt instructs the AI to return **raw HTML only** — no markdown code fences, no labels. Two HTML blocks (summary and body) are separated by a bare `---` line.
 
 ### Human Review & Suggestion Engine
 
@@ -85,6 +122,21 @@ Administrators manage the user lifecycle from the admin panel:
 - **Active Users:** Admins can deactivate (ban) or permanently delete active users.
 - **Reviewer Badge:** If a user requested the `reviewer` role during registration, a badge is shown next to their name in the pending list.
 
+### Themes
+
+The Flutter client ships with six visual themes. The active theme is persisted in `SharedPreferences` under the key `pb-theme`.
+
+| ID | Label | Style | Accent |
+|---|---|---|---|
+| `pearl` | Hell / Light | Solid lavender background, pure white flat cards, minimal blur | Soft purple `#8B7FD4` |
+| `dark` | Dunkel / Dark | Semi-transparent dark glass | Violet `#8B5CF6` |
+| `glassy` | Glasig / Glassy | Deep blue glassmorphism | Cyan `#009CDE` |
+| `nature` | Natur / Nature | Forest dark with heavy blur | Emerald `#10B981` |
+| `liquid` | Flüssig / Liquid | Dark navy with neon accents | Sky blue `#0EA5E9` |
+| `stage` | Bühne / Stage | Dark smaragd-teal, concert aesthetic | Warm orange `#F58620` |
+
+Backgrounds for all except `pearl` (which uses a 100 % opaque overlay) are fetched from the Unsplash API via `GET /unsplash/random-bg` with theme-specific keywords and cached in `SharedPreferences`. The `pearl` theme fully covers the background image by design to achieve a clean flat look.
+
 ### Self-Registration Flow
 
 New users register through a 4-step wizard:
@@ -92,7 +144,7 @@ New users register through a 4-step wizard:
 1. **Account** — username, email, password
 2. **Role** — choose `translator` or `reviewer` (stored as `requested_role`)
 3. **Languages** — select target translation languages
-4. **API Keys** — optionally provide a personal Google Gemini API key
+4. **API Keys** — optionally provide a personal Google Gemini key and/or DeepL key
 
 Registration can be disabled globally via `site_settings.registration_enabled = '0'`.
 

@@ -90,6 +90,27 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         const SizedBox(height: 8),
         // Zeile 2: Aktions-Buttons
         Row(children: [
+          if (_isIgnored) ...[
+            Tooltip(
+              message: ref.read(languageProvider).targetLanguage.code == 'de'
+                  ? 'Modul wieder einreihen'
+                  : 'Unignore module',
+              child: _isUnignoring
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.teal))
+                  : IconButton(
+                      icon: const Icon(LucideIcons.eye,
+                          color: Colors.teal, size: 18),
+                      onPressed: _unignoreModule,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+            ),
+            const SizedBox(width: 8),
+          ],
           if (_isReviewMode) ...[
             Tooltip(
               message: 'Zurück in Review setzen',
@@ -272,6 +293,39 @@ extension EditorBuildMethodsExt on _EditorScreenState {
           const SizedBox(width: 16),
         ],
 
+        // "Unignore" button — shown when module is ignored
+        if (_isIgnored) ...[
+          Builder(builder: (ctx) {
+            final isGerman =
+                ref.read(languageProvider).targetLanguage.code == 'de';
+            return Tooltip(
+              message: isGerman
+                  ? 'Modul wieder in die aktive Liste aufnehmen'
+                  : 'Return module to active list',
+              child: OutlinedButton.icon(
+                onPressed: _isUnignoring ? null : _unignoreModule,
+                icon: _isUnignoring
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.teal))
+                    : const Icon(LucideIcons.eye, size: 14),
+                label: Text(isGerman ? 'Einreihen' : 'Unignore'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.teal,
+                  side: const BorderSide(color: Colors.teal, width: 1),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            );
+          }),
+          const SizedBox(width: 8),
+        ],
+
         // "Un-publish" button
         if (_isReviewMode) ...[
           Tooltip(
@@ -432,6 +486,37 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                       ),
                     ),
                     const SizedBox(width: 8),
+                    // ── Prompt copy ──────────────────────────────────────
+                    Builder(builder: (context) {
+                      final lang = ref.watch(languageProvider);
+                      final isGerman = lang.targetLanguage.code == 'de';
+                      return Tooltip(
+                        message: isGerman
+                            ? 'Quelltext + Übersetzungsprompt kopieren'
+                            : 'Copy source + translation prompt',
+                        child: IconButton(
+                          icon: const Icon(LucideIcons.clipboard,
+                              size: 16, color: Colors.white54),
+                          onPressed: () {
+                            final prompt = buildTranslationPrompt(
+                              langcode: lang.targetLanguage.code,
+                              sourceSummary: _englishSummary,
+                              sourceBody: _englishBody,
+                            );
+                            Clipboard.setData(ClipboardData(text: prompt));
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(
+                              content: Text(isGerman
+                                  ? 'Prompt in die Zwischenablage kopiert 📋'
+                                  : 'Prompt copied to clipboard 📋'),
+                              backgroundColor: Colors.teal,
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ));
+                          },
+                        ),
+                      );
+                    }),
                     IconButton(
                       icon: Icon(
                           _showSourceCode

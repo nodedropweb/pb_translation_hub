@@ -517,6 +517,15 @@ class _SidebarContent extends StatelessWidget {
           const SizedBox(height: 8),
         ],
 
+        // ── DeepL Usage ─────────────────────────────────────────────────────
+        if (authState.user?.deeplApiKey != null) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: _DeeplUsageWidget(attrs: attrs, isGerman: isGerman),
+          ),
+          const SizedBox(height: 8),
+        ],
+
         // ── Benutzer-Karte ──────────────────────────────────────────────────
         if (authState.user != null) ...[
           Padding(
@@ -684,7 +693,7 @@ class _SidebarContent extends StatelessWidget {
                       crossAxisSpacing: 6,
                       childAspectRatio: 2.2,
                       children: [
-                        _themeBtn(ref, 'light',
+                        _themeBtn(ref, 'pearl',
                             isGerman ? 'Hell' : 'Light',
                             LucideIcons.sun,
                             themeState.themeId, attrs),
@@ -703,6 +712,10 @@ class _SidebarContent extends StatelessWidget {
                         _themeBtn(ref, 'liquid',
                             isGerman ? 'Flüssig' : 'Liquid',
                             LucideIcons.zap,
+                            themeState.themeId, attrs),
+                        _themeBtn(ref, 'stage',
+                            isGerman ? 'Bühne' : 'Stage',
+                            LucideIcons.music2,
                             themeState.themeId, attrs),
                       ],
                     ),
@@ -834,6 +847,199 @@ class _SidebarContent extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── DeepL Usage Widget ────────────────────────────────────────────────────────
+
+class _DeeplUsageWidget extends ConsumerStatefulWidget {
+  final ThemeAttributes attrs;
+  final bool isGerman;
+
+  const _DeeplUsageWidget({required this.attrs, required this.isGerman});
+
+  @override
+  ConsumerState<_DeeplUsageWidget> createState() => _DeeplUsageWidgetState();
+}
+
+class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
+  Map<String, dynamic>? _data;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final res = await ApiClient().dio.get('/ai/deepl-usage');
+      if (mounted) setState(() { _data = res.data as Map<String, dynamic>; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _error = '—'; _loading = false; });
+    }
+  }
+
+  String _fmt(dynamic n) {
+    if (n == null) return '?';
+    final num = (n is int) ? n : int.tryParse(n.toString()) ?? 0;
+    if (num >= 1000000000) return '∞'; // DeepL sentinel for "no limit"
+    if (num >= 1000000) return '${(num / 1000000).toStringAsFixed(1)}M';
+    if (num >= 1000) return '${(num / 1000).toStringAsFixed(0)}K';
+    return num.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final attrs = widget.attrs;
+    final isGerman = widget.isGerman;
+
+    final count = _data?['character_count'] as int?;
+    final limit = _data?['character_limit'] as int?;
+    // sentinel: DeepL returns 1 000 000 000 000 for "unlimited"
+    final isUnlimited = limit != null && limit >= 1000000000000;
+    final progress = (count != null && limit != null && !isUnlimited && limit > 0)
+        ? (count / limit).clamp(0.0, 1.0)
+        : 0.0;
+    final pct = (progress * 100).toStringAsFixed(1);
+
+    // Colour: green → amber → red
+    final barColor = progress > 0.9
+        ? Colors.redAccent
+        : progress > 0.7
+            ? Colors.amber
+            : Colors.teal;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: attrs.bgCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: attrs.borderMain),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(LucideIcons.activity, size: 13, color: Colors.teal),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isGerman ? 'DEEPL VERBRAUCH' : 'DEEPL USAGE',
+                  style: TextStyle(
+                    fontSize: 9, fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5, color: attrs.textMuted,
+                  ),
+                ),
+              ),
+              // Refresh button
+              SizedBox(
+                width: 22, height: 22,
+                child: _loading
+                    ? Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 1.5, color: Colors.teal),
+                      )
+                    : IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(LucideIcons.refreshCw,
+                            size: 12, color: attrs.textMuted),
+                        onPressed: _fetch,
+                        tooltip: isGerman ? 'Aktualisieren' : 'Refresh',
+                      ),
+              ),
+            ],
+          ),
+
+          if (_error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              isGerman ? 'Nicht verfügbar' : 'Unavailable',
+              style: TextStyle(color: attrs.textMuted, fontSize: 10),
+            ),
+          ] else if (!_loading && _data != null) ...[
+            const SizedBox(height: 8),
+
+            // Count / Limit text
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _fmt(count),
+                  style: TextStyle(
+                    color: barColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  isUnlimited
+                      ? (isGerman ? 'unbegrenzt' : 'unlimited')
+                      : '/ ${_fmt(limit)}',
+                  style: TextStyle(color: attrs.textMuted, fontSize: 10),
+                ),
+              ],
+            ),
+
+            if (!isUnlimited) ...[
+              const SizedBox(height: 6),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 5,
+                  backgroundColor: attrs.borderMain,
+                  valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$pct % ${isGerman ? "verbraucht" : "used"}',
+                style: TextStyle(color: attrs.textMuted, fontSize: 9),
+              ),
+            ],
+
+            // Pro: per-product breakdown
+            if (_data!.containsKey('products')) ...[
+              const SizedBox(height: 8),
+              ...(_data!['products'] as List<dynamic>).map((p) {
+                final type = (p['product_type'] as String?) ?? '';
+                final c = p['api_key_character_count'] as int? ?? 0;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        type == 'translate'
+                            ? (isGerman ? 'Übersetzen' : 'Translate')
+                            : 'Write',
+                        style: TextStyle(color: attrs.textMuted, fontSize: 9),
+                      ),
+                      Text(
+                        _fmt(c),
+                        style: TextStyle(
+                            color: attrs.textMain,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ],
       ),
     );
   }

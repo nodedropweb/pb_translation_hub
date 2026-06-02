@@ -324,6 +324,7 @@ Main Description:
             headers: {
               'Authorization': `DeepL-Auth-Key ${apiKey}`,
               'Content-Type':  'application/json',
+              'User-Agent':    'PBTranslationHub/1.0',
             },
           }
         );
@@ -385,6 +386,41 @@ Main Description:
       }
       console.error('[DeepL] Translation error:', error.message);
       res.status(500).json({ error: 'DeepL Übersetzung fehlgeschlagen.' });
+    }
+  });
+
+  // ── DeepL usage & quota ─────────────────────────────────────────────────────
+
+  router.get('/ai/deepl-usage', authenticateToken, async (req, res) => {
+    try {
+      const [uRows] = await db.execute('SELECT deepl_api_key FROM users WHERE id = ?', [req.user.id]);
+      const user = uRows[0];
+
+      if (!user || !user.deepl_api_key) {
+        return res.status(400).json({ error: 'Kein DeepL API-Key im Profil hinterlegt.' });
+      }
+
+      const apiKey = user.deepl_api_key;
+      const apiBase = apiKey.endsWith(':fx')
+        ? 'https://api-free.deepl.com'
+        : 'https://api.deepl.com';
+
+      const usageRes = await axios.get(`${apiBase}/v2/usage`, {
+        headers: {
+          'Authorization': `DeepL-Auth-Key ${apiKey}`,
+          'User-Agent': 'PBTranslationHub/1.0',
+        },
+      });
+
+      res.json(usageRes.data);
+    } catch (error) {
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 403) return res.status(400).json({ error: 'Ungültiger DeepL API-Key.' });
+        return res.status(502).json({ error: `DeepL API Fehler (${status})` });
+      }
+      console.error('[DeepL] Usage error:', error.message);
+      res.status(500).json({ error: 'Konnte DeepL-Nutzung nicht abrufen.' });
     }
   });
 

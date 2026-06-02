@@ -608,7 +608,7 @@ class HelpScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: attrs.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: attrs.borderMain),
       ),
@@ -706,9 +706,9 @@ class HelpScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isAccent ? attrs.brand600.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+        color: isAccent ? attrs.brand600.withOpacity(0.2) : attrs.bgInput,
         border: Border.all(
-          color: isAccent ? attrs.brand600.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+          color: isAccent ? attrs.brand600.withOpacity(0.2) : attrs.borderMain,
         ),
         borderRadius: BorderRadius.circular(4),
       ),
@@ -732,7 +732,7 @@ class HelpScreen extends ConsumerWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: attrs.bgInput,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: attrs.borderMain),
             ),

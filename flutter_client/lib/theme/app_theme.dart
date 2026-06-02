@@ -32,19 +32,6 @@ class ThemeAttributes {
 
 class AppTheme {
   static final Map<String, ThemeAttributes> themes = {
-    'light': ThemeAttributes(
-      bgSidebar: const Color(0xCCFFFFFF),
-      bgCard: const Color(0xB3FFFFFF),
-      bgInput: const Color(0x80F1F5F9),
-      textMain: const Color(0xFF0F172A),
-      textMuted: const Color(0xFF475569),
-      borderMain: const Color(0x1A000000),
-      brand600: const Color(0xFF7F56D9),
-      brand700: const Color(0xFF6941C6),
-      overlayColor: const Color(0x4DFFFFFF),
-      glassBlur: 16.0,
-      brightness: Brightness.light,
-    ),
     'dark': ThemeAttributes(
       bgSidebar: const Color(0xBF0F1114),
       bgCard: const Color(0xA6191C20),
@@ -96,6 +83,35 @@ class AppTheme {
       overlayColor: const Color(0x73060A14),
       glassBlur: 24.0,
       brightness: Brightness.dark,
+    ),
+    'pearl': ThemeAttributes(
+      // Weiß-Lavendel — inspiriert vom Clean-SaaS-Design mit festem Hintergrund
+      // overlayColor ist 100 % deckend → Hintergrundbild vollständig versteckt
+      bgSidebar:    const Color(0xFFFCFAFF), // nahezu weißes Lavendel — opake Sidebar
+      bgCard:       const Color(0xFFFFFFFF), // reines Weiß — „Papier"-Karten
+      bgInput:      const Color(0xFFF0ECFB), // zartes Lavendel für Eingabefelder
+      textMain:     const Color(0xFF1C1A2E), // tiefes Indigo-Anthrazit
+      textMuted:    const Color(0xFF6B6A8E), // mittleres Lila-Grau
+      borderMain:   const Color(0xFFE2DCF8), // weiches Lavendel-Border
+      brand600:     const Color(0xFF8B7FD4), // sanftes Mittel-Lila
+      brand700:     const Color(0xFF7566C4), // tieferes Lila
+      overlayColor: const Color(0xFFECE8F9), // 100 % deckend → Lavender-Festfarbe
+      glassBlur:    1.0,  // minimaler Blur → flacher, cleaner Look wie im Referenz-Design
+      brightness:   Brightness.light,
+    ),
+    'stage': ThemeAttributes(
+      // Dunkles Smaragd-Teal — inspiriert vom Concert/Event-App-Design
+      bgSidebar:    const Color(0xF00C2222), // 94 % dunkles Teal — klare Sidebar
+      bgCard:       const Color(0xCC0F2A28), // 80 % dunkles Teal-Card
+      bgInput:      const Color(0xFF091A1A), // solides sehr dunkles Teal für Inputs
+      textMain:     Colors.white,
+      textMuted:    const Color(0xFF7AA09C), // gedecktes Teal-Grau
+      borderMain:   const Color(0x3326504A), // 20 % Teal-Border
+      brand600:     const Color(0xFFF58620), // warmes Orange — Haupt-Akzent
+      brand700:     const Color(0xFFD97010), // tieferes Orange
+      overlayColor: const Color(0xCC0B1E1C), // 80 % dunkles Teal-Overlay
+      glassBlur:    20.0,
+      brightness:   Brightness.dark,
     ),
   };
 

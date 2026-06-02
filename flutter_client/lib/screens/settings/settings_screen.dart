@@ -833,20 +833,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          ...['light', 'dark', 'glassy', 'nature', 'liquid'].map((themeId) {
+                          ...['pearl', 'dark', 'glassy', 'nature', 'liquid', 'stage'].map((themeId) {
                             final isSel = themeState.themeId == themeId;
                             String tName = themeId.toUpperCase();
-                            if (themeId == 'light') tName = isGerman ? 'HELL' : 'LIGHT';
-                            if (themeId == 'dark') tName = isGerman ? 'DUNKEL' : 'DARK';
+                            if (themeId == 'pearl')  tName = isGerman ? 'HELL (PERLE)' : 'LIGHT (PEARL)';
+                            if (themeId == 'dark')   tName = isGerman ? 'DUNKEL' : 'DARK';
                             if (themeId == 'glassy') tName = isGerman ? 'GLASIG' : 'GLASSY';
                             if (themeId == 'nature') tName = isGerman ? 'NATUR' : 'NATURE';
                             if (themeId == 'liquid') tName = isGerman ? 'FLÜSSIG' : 'LIQUID';
+                            if (themeId == 'stage')  tName = isGerman ? 'BÜHNE' : 'STAGE';
 
                             IconData tIcon = LucideIcons.palette;
-                            if (themeId == 'light') tIcon = LucideIcons.sun;
-                            if (themeId == 'dark') tIcon = LucideIcons.moon;
+                            if (themeId == 'pearl')  tIcon = LucideIcons.sun;
+                            if (themeId == 'dark')   tIcon = LucideIcons.moon;
                             if (themeId == 'nature') tIcon = LucideIcons.droplets;
                             if (themeId == 'liquid') tIcon = LucideIcons.zap;
+                            if (themeId == 'stage')  tIcon = LucideIcons.music2;
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4.0),

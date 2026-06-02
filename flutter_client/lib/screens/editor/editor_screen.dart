@@ -66,6 +66,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _isSaving = false;
   bool _isAiTranslating = false;
   bool _isDeeplTranslating = false;
+  bool _isIgnored = false;
+  bool _isUnignoring = false;
 
   // ── English source data ────────────────────────────────────────────────
   String _englishTitle = '';
@@ -403,6 +405,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _screenshotUrls = meta['screenshot_urls'] ?? [];
       _nextMachineName = meta['next_machine_name'];
       _remainingPriorityCount = meta['filter_count'];
+      _isIgnored = meta['is_ignored'] == true;
 
       for (final c in _screenshotAltControllers.values) {
         c.dispose();
@@ -668,6 +671,39 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           backgroundColor: Colors.redAccent,
         ));
       }
+    }
+  }
+
+  // ── Unignore this module ───────────────────────────────────────────────────
+
+  Future<void> _unignoreModule() async {
+    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    setState(() => _isUnignoring = true);
+    try {
+      await _api.dio.delete('/projects/${widget.machineName}/ignore');
+      if (mounted) {
+        setState(() => _isIgnored = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isGerman
+              ? 'Modul wurde wieder in die aktive Liste aufgenommen.'
+              : 'Module has been returned to the active list.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isGerman
+              ? 'Fehler beim Einreihen des Moduls.'
+              : 'Failed to unignore the module.'),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isUnignoring = false);
     }
   }
 

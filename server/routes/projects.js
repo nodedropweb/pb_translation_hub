@@ -482,6 +482,18 @@ module.exports = (ctx) => {
     }
   });
 
+  // Unignore all ignored projects at once
+  router.delete('/projects/ignore-all', authenticateToken, async (req, res) => {
+    try {
+      const [result] = await db.execute('DELETE FROM ignored_projects');
+      console.log(`[Projects] All ignored projects unignored (${result.affectedRows} rows)`);
+      res.json({ success: true, count: result.affectedRows });
+    } catch (error) {
+      console.error('Unignore-all error:', error);
+      res.status(500).json({ error: 'Failed to unignore all projects' });
+    }
+  });
+
   // ── Public configuration ─────────────────────────────────────────────────
   // Returns URLs for the help screen tutorial videos.
   // Set HELP_VIDEO_DE and HELP_VIDEO_EN in server/.env to enable the video panel.
