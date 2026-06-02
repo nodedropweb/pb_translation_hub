@@ -1,7 +1,8 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+
+import 'log_downloader_stub.dart'
+    if (dart.library.html) 'log_downloader_web.dart';
 
 class LogEntry {
   final DateTime timestamp;
@@ -41,14 +42,13 @@ class LogEntry {
 class LogService {
   static final List<LogEntry> _logs = [];
   static final List<VoidCallback> _listeners = [];
-  static int _maxEntries = -1; // Lazy-initialized
+  static int _maxEntries = 500;
   static bool _loaded = false;
 
   static void _ensureLoaded() {
     if (!_loaded) {
       _loaded = true;
-      _loadMaxEntries();
-      _loadLogs();
+      // Logs are in-memory only. No localStorage persistence.
     }
   }
 
@@ -62,53 +62,15 @@ class LogService {
     return _maxEntries;
   }
 
-  static void _loadLogs() {
-    try {
-      final stored = html.window.localStorage['pb_logs'];
-      if (stored != null) {
-        final decoded = jsonDecode(stored) as List;
-        _logs.clear();
-        for (final item in decoded) {
-          _logs.add(LogEntry.fromJson(item as Map<String, dynamic>));
-        }
-      }
-    } catch (_) {}
-  }
-
-  static void _saveLogs() {
-    try {
-      final encoded = jsonEncode(_logs.map((e) => e.toJson()).toList());
-      html.window.localStorage['pb_logs'] = encoded;
-    } catch (_) {}
-  }
-
-  static void _loadMaxEntries() {
-    try {
-      final stored = html.window.localStorage['pb_log_max_entries'];
-      if (stored != null) {
-        _maxEntries = int.tryParse(stored) ?? 500;
-      } else {
-        _maxEntries = 500;
-      }
-    } catch (_) {
-      _maxEntries = 500;
-    }
-  }
-
   static void setMaxEntries(int limit) {
     _ensureLoaded();
     _maxEntries = limit;
-    try {
-      html.window.localStorage['pb_log_max_entries'] = limit.toString();
-    } catch (_) {}
     _enforceLimit();
-    _saveLogs();
     _notify();
   }
 
   static void _enforceLimit() {
-    final limit = maxEntries;
-    while (_logs.length > limit) {
+    while (_logs.length > _maxEntries) {
       _logs.removeAt(0);
     }
   }
@@ -150,7 +112,6 @@ class LogService {
     );
     _logs.add(entry);
     _enforceLimit();
-    _saveLogs();
     _notify();
   }
 
@@ -162,22 +123,18 @@ class LogService {
     }
   }
 
+  /// Exports logs as a downloadable file (web only) and clears the log.
+  /// On desktop: simply clears the in-memory log.
   static void rotate() {
     _ensureLoaded();
     if (_logs.isEmpty) return;
     try {
       final text = _logs.map((e) => e.toString()).join('\n');
       final bytes = utf8.encode(text);
-      final blob = html.Blob([bytes], 'text/plain');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.document.createElement('a') as html.AnchorElement
-        ..href = url
-        ..style.display = 'none'
-        ..download = 'pb_logs_${DateTime.now().toIso8601String().replaceAll(':', '-')}.txt';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
-      html.Url.revokeObjectUrl(url);
+      downloadLogBytes(
+        bytes,
+        'pb_logs_${DateTime.now().toIso8601String().replaceAll(':', '-')}.txt',
+      );
     } catch (_) {}
     clear();
   }
@@ -185,7 +142,6 @@ class LogService {
   static void clear() {
     _ensureLoaded();
     _logs.clear();
-    _saveLogs();
     _notify();
   }
 }

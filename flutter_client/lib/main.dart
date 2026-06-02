@@ -3,11 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'providers/theme_provider.dart';
+import 'services/token_storage.dart';
 import 'router.dart';
 
 void main() async {
   // Pflicht vor SystemChrome-Aufrufen und async-Initialisierungen.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Token-Cache vorladen — stellt sicher dass der erste API-Request (z.B.
+  // beim AuthProvider-Check) bereits das Token aus dem Cache lesen kann,
+  // ohne auf SharedPreferences zu warten (Race-Condition-Schutz).
+  await TokenStorage.getToken();
 
   // Alle Orientierungen erlauben — das Tablet (M986-EEA) wird
   // sowohl im Portrait als auch im Landscape betrieben.

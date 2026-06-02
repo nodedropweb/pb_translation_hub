@@ -159,10 +159,289 @@
     .cke-host .ck.ck-balloon-panel     { background:#1A1F26!important; border-color:#2D3748!important; }
   </style>
 
-  <!-- ── CKEditor JS bridge (called by Flutter via dart:js) ─────────────── -->
+  <!-- ── Glossary highlight + tooltip CSS — Farben via setTheme() steuerbar ── -->
+  <style>
+    /* Highlighted glossary term — CSS-Variablen für Theme-Anpassung */
+    :root {
+      --ck-hl-bg:     rgba(251, 191, 36, 0.22);
+      --ck-hl-border: #F59E0B;
+    }
+    .ck-content .ck-glossary-highlight {
+      background:    var(--ck-hl-bg);
+      border-bottom: 2px solid var(--ck-hl-border);
+      border-radius: 2px;
+      cursor: help;
+    }
+
+    /* ── Floating tooltip ── */
+    #_ck_glossary_tip {
+      /* Default: dark theme — wird per _ckBridge.setTheme() aktualisiert */
+      --tip-bg:       #1A1D22;
+      --tip-border:   rgba(139,92,246,0.55);
+      --tip-shadow:   rgba(0,0,0,0.65);
+      --tip-brand:    #8B5CF6;
+      --tip-brand-lo: rgba(139,92,246,0.18);
+      --tip-text:     #F8FAFC;
+      --tip-muted:    rgba(255,255,255,0.62);
+      --tip-divider:  rgba(255,255,255,0.08);
+
+      position: fixed;
+      z-index: 2147483647;
+      display: none;
+      min-width: 220px;
+      max-width: 360px;
+      background: var(--tip-bg);
+      border: 1px solid var(--tip-border);
+      border-radius: 12px;
+      padding: 13px 16px 12px;
+      box-shadow: 0 12px 36px var(--tip-shadow), 0 0 0 1px var(--tip-brand-lo);
+      pointer-events: none;
+      font-family: Inter, system-ui, sans-serif;
+      line-height: 1;
+    }
+    #_ck_glossary_tip ._tip-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+    #_ck_glossary_tip ._tip-icon { font-size: 15px; flex-shrink: 0; }
+    #_ck_glossary_tip ._tip-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--tip-brand);
+      opacity: 0.72;
+    }
+    #_ck_glossary_tip ._tip-preferred {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--tip-brand);
+      letter-spacing: -0.2px;
+    }
+    #_ck_glossary_tip ._tip-divider {
+      height: 1px;
+      background: var(--tip-divider);
+      margin: 8px 0;
+    }
+    #_ck_glossary_tip ._tip-explanation {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--tip-muted);
+      white-space: normal;
+    }
+  </style>
+
   <script>
+    // ── Glossary floating tooltip (lives in document.body — always on top) ────
+    (function () {
+      var tip = document.createElement('div');
+      tip.id = '_ck_glossary_tip';
+      tip.innerHTML =
+        '<div class="_tip-header">' +
+          '<span class="_tip-icon">💡</span>' +
+          '<div>' +
+            '<div class="_tip-label">Bevorzugte Übersetzung</div>' +
+            '<div class="_tip-preferred" id="_tip_word"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="_tip-divider"></div>' +
+        '<div class="_tip-explanation" id="_tip_exp"></div>';
+      document.body.appendChild(tip);
+
+      var _tipWord = tip.querySelector('#_tip_word');
+      var _tipExp  = tip.querySelector('#_tip_exp');
+      var _hideTimer = null;
+
+      function showTip(target) {
+        var preferred    = target.getAttribute('data-preferred')    || '';
+        var explanation  = target.getAttribute('data-explanation')  || '';
+        if (!preferred) return;
+
+        _tipWord.textContent = preferred;
+        _tipExp.textContent  = explanation;
+        _tipExp.style.display = explanation ? '' : 'none';
+        tip.querySelector('._tip-divider').style.display = explanation ? '' : 'none';
+
+        tip.style.display = 'block';
+        positionTip(target);
+      }
+
+      function positionTip(target) {
+        var rect  = target.getBoundingClientRect();
+        var tw    = tip.offsetWidth  || 260;
+        var th    = tip.offsetHeight || 80;
+        var vw    = window.innerWidth;
+        var vh    = window.innerHeight;
+        var GAP   = 8;
+
+        // Prefer above; fall back to below if not enough space
+        var top = rect.top - th - GAP;
+        if (top < 4) top = rect.bottom + GAP;
+
+        // Clamp horizontally
+        var left = rect.left;
+        if (left + tw > vw - 4) left = vw - tw - 4;
+        if (left < 4) left = 4;
+
+        tip.style.top  = top  + 'px';
+        tip.style.left = left + 'px';
+      }
+
+      document.addEventListener('mouseover', function (e) {
+        clearTimeout(_hideTimer);
+        var el = e.target;
+        while (el && el !== document.body) {
+          if (el.classList && el.classList.contains('ck-glossary-highlight')) {
+            showTip(el);
+            return;
+          }
+          el = el.parentElement;
+        }
+        _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 80);
+      });
+
+      document.addEventListener('mouseout', function (e) {
+        _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 80);
+      });
+    })();
+
+    // ── Glossary: proper CKEditor plugin using model markers ─────────────────
+    //
+    // Uses editor.conversion.for('editingDowncast').markerToHighlight() so that
+    // highlights only live in the EDITING VIEW — getData() is never polluted.
+    // Markers carry affectsData:false so undo/redo ignores them too.
+
+    var _glossaryMarkerUid = 0;
+
+    /**
+     * Escapes a string for safe use inside a RegExp pattern.
+     */
+    function _ckEscapeRe(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Applies the global glossary to a single editor via model markers.
+     * Runs inside editor.model.change() so CKEditor manages the view update.
+     */
+    function _ckApplyGlossaryMarkers(editor) {
+      var terms = window._ckBridge.globalGlossary;
+      if (!terms || terms.length === 0) return;
+
+      var model  = editor.model;
+      var root   = model.document.getRoot();
+
+      model.change(function(writer) {
+        // Remove all previous glossary markers in this editor
+        var existing = Array.from(model.markers.getMarkersGroup('glossaryTerm'));
+        existing.forEach(function(marker) { writer.removeMarker(marker); });
+
+        // Walk every block-level element that can hold text
+        for (var ri of model.createRangeIn(root)) {
+          if (ri.type !== 'elementStart') continue;
+          var element = ri.item;
+
+          // Skip elements that cannot contain text (e.g. images, tables at root level)
+          try {
+            if (!model.schema.checkChild(element, '$text')) continue;
+          } catch(e) { continue; }
+
+          // Build the plain text content of this element
+          var text = '';
+          for (var ci of model.createRangeIn(element)) {
+            if (ci.type === 'text') text += ci.item.data;
+          }
+          if (!text) continue;
+
+          // Find each glossary term and add a marker
+          for (var t = 0; t < terms.length; t++) {
+            var term = terms[t];
+            if (!term.source_word) continue;
+
+            var pattern = new RegExp(
+              '\\b(' + _ckEscapeRe(term.source_word) + ')\\b', 'gi'
+            );
+            var match;
+            while ((match = pattern.exec(text)) !== null) {
+              try {
+                writer.addMarker(
+                  'glossaryTerm:' + term.id + ':' + (++_glossaryMarkerUid),
+                  {
+                    usingOperation: false,  // not in undo stack
+                    affectsData:    false,  // NEVER appears in getData()
+                    range: writer.createRange(
+                      writer.createPositionAt(element, match.index),
+                      writer.createPositionAt(element, match.index + match[0].length)
+                    )
+                  }
+                );
+              } catch(_) { /* ignore invalid position — e.g. nested inline element */ }
+            }
+          }
+        }
+        console.log('[CKGlossary] Markers applied to editor, terms:', terms.length);
+      });
+    }
+
+    /**
+     * GlossaryHighlightPlugin — registered as extraPlugin in every ClassicEditor.
+     * Registers the editingDowncast converter that turns glossaryTerm markers
+     * into <span class="ck-glossary-highlight" data-tooltip="..."> elements.
+     * These spans are ONLY in the editing view, never in getData() output.
+     */
+    function GlossaryHighlightPlugin(editor) {
+      editor.conversion.for('editingDowncast').markerToHighlight({
+        model: 'glossaryTerm',
+        view: function(data) {
+          // data.markerName = 'glossaryTerm:<termId>:<uid>'
+          var parts    = data.markerName.split(':');
+          var termId   = parseInt(parts[1], 10);
+          var glossary = window._ckBridge.globalGlossary || [];
+          var term     = null;
+          for (var i = 0; i < glossary.length; i++) {
+            if (glossary[i].id == termId) { term = glossary[i]; break; }
+          }
+          if (!term) return { name: 'span', classes: ['ck-glossary-highlight'] };
+
+          return {
+            name:    'span',
+            classes: ['ck-glossary-highlight'],
+            attributes: {
+              'data-preferred':   term.preferred_word || '',
+              'data-explanation': term.explanation    || ''
+            }
+          };
+        }
+      });
+    }
+
+    // ── CKEditor bridge ───────────────────────────────────────────────────────
     window._ckBridge = {
-      instances: {},
+      instances:     {},
+      globalGlossary: [],
+      _glossaryTimers: {},
+
+      /**
+       * Sets the global glossary and re-applies markers to all active editors.
+       * Called from Flutter via dart:js after fetching /api/glossary.
+       */
+      setGlobalGlossary: function(termsJson) {
+        try {
+          window._ckBridge.globalGlossary = JSON.parse(termsJson);
+        } catch(e) {
+          console.warn('[CKGlossary] JSON parse error:', e);
+          return;
+        }
+        var count = window._ckBridge.globalGlossary.length;
+        console.log('[CKGlossary] setGlobalGlossary —', count, 'terms,',
+            Object.keys(window._ckBridge.instances).length, 'editors active');
+
+        Object.keys(window._ckBridge.instances).forEach(function(id) {
+          _ckApplyGlossaryMarkers(window._ckBridge.instances[parseInt(id, 10)]);
+        });
+      },
 
       // id        – unique integer per editor instance
       // toolbar   – JSON string of toolbar items array
@@ -173,24 +452,52 @@
         if (!el) { console.error('[CKBridge] no element for id=' + id); return; }
         var items = JSON.parse(toolbar);
         ClassicEditor.create(el, {
-          toolbar: { items: items },
+          extraPlugins: [ GlossaryHighlightPlugin ],
+          // shouldNotGroupWhenFull: alle Buttons sichtbar, kein 3-Punkte-Menü
+          toolbar: { items: items, shouldNotGroupWhenFull: true },
           language: 'en',
           ui: { poweredBy: { display: false } },
         }).then(function(editor) {
           window._ckBridge.instances[id] = editor;
           onReady();
+
+          // Falls Glossar schon geladen war als Editor fertig wird
+          if (window._ckBridge.globalGlossary.length > 0) {
+            _ckApplyGlossaryMarkers(editor);
+          }
+
           editor.model.document.on('change:data', function() {
             onChange(editor.getData());
+            // Nach jeder Inhaltsänderung Glossar-Marker neu setzen (debounced).
+            // addMarker(affectsData:false) feuert change:data NICHT → kein Loop.
+            clearTimeout(window._ckBridge._glossaryTimers[id]);
+            window._ckBridge._glossaryTimers[id] = setTimeout(function() {
+              if (window._ckBridge.globalGlossary.length > 0) {
+                _ckApplyGlossaryMarkers(editor);
+              }
+            }, 300);
           });
         }).catch(function(err) { console.error('[CKBridge]', err); });
       },
 
       setData: function(id, html) {
         var editor = window._ckBridge.instances[id];
-        if (editor && editor.getData() !== html) editor.setData(html);
+        if (!editor) return;
+        if (editor.getData() === html) {
+          // Inhalt unverändert — Marker trotzdem neu setzen falls Glossar
+          // nach dem letzten setData aktualisiert wurde.
+          if (window._ckBridge.globalGlossary.length > 0) {
+            _ckApplyGlossaryMarkers(editor);
+          }
+          return;
+        }
+        // setData aktualisiert das Modell → change:data feuert
+        // → change:data-Listener setzt Marker nach 300 ms neu.
+        editor.setData(html);
       },
 
       destroy: function(id) {
+        clearTimeout(window._ckBridge._glossaryTimers[id]);
         var editor = window._ckBridge.instances[id];
         if (editor) { editor.destroy(); delete window._ckBridge.instances[id]; }
       }

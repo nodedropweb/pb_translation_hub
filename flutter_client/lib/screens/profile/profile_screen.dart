@@ -1,8 +1,9 @@
-import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -159,49 +160,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     }
   }
 
-  void _pickAndUploadAvatar() {
-    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
-    uploadInput.click();
+  Future<void> _pickAndUploadAvatar() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
 
-    uploadInput.onChange.listen((event) async {
-      final files = uploadInput.files;
-      if (files == null || files.isEmpty) return;
+    if (result == null || result.files.single.bytes == null) return;
 
-      setState(() {
-        _isUploadingAvatar = true;
-        _profileError = null;
-        _profileSuccess = null;
-      });
+    final bytes = result.files.single.bytes!;
+    final filename = result.files.single.name;
 
-      final file = files.first;
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
-      reader.onLoadEnd.listen((loadEvent) async {
-        final bytes = reader.result as Uint8List;
-        
-        try {
-          final formData = FormData.fromMap({
-            'avatar': MultipartFile.fromBytes(bytes, filename: file.name),
-          });
-          
-          final res = await _api.dio.post('/user/avatar', data: formData);
-          if (res.data['success'] == true) {
-            await ref.read(authProvider.notifier).refreshProfile();
-            setState(() {
-              _profileSuccess = 'Profilbild erfolgreich hochgeladen!';
-            });
-          }
-        } catch (e) {
-          setState(() {
-            _profileError = 'Fehler beim Hochladen des Profilbildes.';
-          });
-        } finally {
-          setState(() {
-            _isUploadingAvatar = false;
-          });
-        }
-      });
+    setState(() {
+      _isUploadingAvatar = true;
+      _profileError = null;
+      _profileSuccess = null;
     });
+
+    try {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+
+      final res = await _api.dio.post('/user/avatar', data: formData);
+      if (res.data['success'] == true) {
+        await ref.read(authProvider.notifier).refreshProfile();
+        setState(() {
+          _profileSuccess = 'Profilbild erfolgreich hochgeladen!';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _profileError = 'Fehler beim Hochladen des Profilbildes.';
+      });
+    } finally {
+      setState(() {
+        _isUploadingAvatar = false;
+      });
+    }
   }
 
   @override
@@ -214,38 +210,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       return const Center(child: CircularProgressIndicator());
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(40.0),
+        padding: EdgeInsets.all(isMobile ? 14.0 : 40.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Page Header
             Row(
               children: [
-                Icon(LucideIcons.user, color: attrs.brand600, size: 28),
-                const SizedBox(width: 16),
-                const Text(
-                  'Profil & Einstellungen',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                // Zurück-Button auf Mobile (kein persistent Sidebar-Link)
+                if (isMobile) ...[
+                  IconButton(
+                    icon: Icon(LucideIcons.arrowLeft,
+                        color: attrs.textMuted, size: 22),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Zurück',
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Icon(LucideIcons.user, color: attrs.brand600,
+                    size: isMobile ? 22 : 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Profil & Einstellungen',
+                    style: TextStyle(
+                      fontSize: isMobile ? 18 : 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Verwalte dein Benutzerprofil, deine Übersetzungs-APIs (Gemini & DeepL) und deine Kontosicherheit.',
-              style: TextStyle(color: attrs.textMuted, fontSize: 14),
-            ),
-            const SizedBox(height: 32),
+            if (!isMobile) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Verwalte dein Benutzerprofil, deine Übersetzungs-APIs (Gemini & DeepL) und deine Kontosicherheit.',
+                style: TextStyle(color: attrs.textMuted, fontSize: 14),
+              ),
+            ],
+            SizedBox(height: isMobile ? 16 : 32),
 
             // Profile Header Glass Card
             GlassContainer(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(isMobile ? 14 : 24),
               borderRadius: 20,
               child: Row(
                 children: [
@@ -360,9 +381,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             ),
             const SizedBox(height: 24),
 
-            // Tab content view
+            // Tab content view — auf Mobile mehr Höhe, da Felder mehr Platz brauchen
             SizedBox(
-              height: 580,
+              height: isMobile ? 720 : 580,
               child: TabBarView(
                 controller: _tabController,
                 children: [

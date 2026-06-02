@@ -18,6 +18,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../utils/translation_prompt.dart';
 import '../../utils/html_sanitizer.dart';
+import '../../utils/ck_glossary.dart';
 import '../../widgets/ckeditor_field.dart';
 import 'widgets/cost_calculator_dialog.dart';
 import 'widgets/screenshot_alts_section.dart';
@@ -121,6 +122,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _setupSourceMessageListener();
     _setupKeyDownListener();
     _fetchData();
+    Future.delayed(const Duration(milliseconds: 400), _loadGlossary);
   }
 
   @override
@@ -129,6 +131,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (oldWidget.machineName != widget.machineName) {
       _fetchData();
     }
+  }
+
+  Future<void> _loadGlossary() async {
+    if (!mounted) return;
+    final lang = ref.read(languageProvider).targetLanguage.code;
+    await loadCkEditorGlossary(_api, lang);
   }
 
   @override
@@ -755,6 +763,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     ref.listen(languageProvider, (previous, next) {
       if (previous?.targetLanguage.code != next.targetLanguage.code) {
         _fetchData();
+        _loadGlossary();
       }
     });
 

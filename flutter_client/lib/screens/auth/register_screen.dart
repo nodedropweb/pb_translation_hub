@@ -1,7 +1,7 @@
+import 'dart:convert';
 import 'dart:ui';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -54,9 +54,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   final _googleKeyCtrl = TextEditingController();
   final _deeplKeyCtrl = TextEditingController();
 
-  // Avatar upload
-  html.FileUploadInputElement? _fileInput;
-
   late final AnimationController _progressCtrl;
 
   @override
@@ -93,20 +90,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     }
   }
 
-  void _pickAvatar() {
-    final input = html.FileUploadInputElement()
-      ..accept = 'image/*'
-      ..click();
-    _fileInput = input;
-    input.onChange.listen((_) {
-      final file = input.files?.first;
-      if (file == null) return;
-      final reader = html.FileReader();
-      reader.readAsDataUrl(file);
-      reader.onLoad.listen((_) {
-        setState(() => _avatarDataUrl = reader.result as String?);
-      });
-    });
+  Future<void> _pickAvatar() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.single.bytes == null) return;
+    final bytes = result.files.single.bytes!;
+    // Convert to base64 data URL for preview
+    final b64 = base64Encode(bytes);
+    final ext = result.files.single.extension ?? 'jpg';
+    setState(() => _avatarDataUrl = 'data:image/$ext;base64,$b64');
   }
 
   int get _stepIndex => _Step.values.indexOf(_currentStep);

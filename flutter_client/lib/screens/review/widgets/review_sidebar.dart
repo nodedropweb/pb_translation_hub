@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_container.dart';
 
@@ -194,9 +193,11 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                     _detailRow('Machine Name', widget.machineName, attrs),
                     const Divider(height: 32),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        final url = 'https://drupal.org/project/${widget.machineName}';
-                        html.window.open(url, '_blank');
+                      onPressed: () async {
+                        final uri = Uri.parse('https://drupal.org/project/${widget.machineName}');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(40),

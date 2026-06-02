@@ -433,6 +433,7 @@ app.use('/api', require('./routes/projects')(ctx));
 app.use('/api', require('./routes/categories')(ctx));
 app.use('/api', require('./routes/admin')(ctx));
 app.use('/api', require('./routes/ai')(ctx));
+app.use('/api', require('./routes/glossary')(ctx));
 app.use('/api', require('./routes/translations')(ctx));
 
 // ── Startup: ensure translation files exist on the filesystem ─────────────────

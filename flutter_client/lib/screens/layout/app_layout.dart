@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../services/api_client.dart';
 import '../../services/token_storage.dart';
 import '../../widgets/glass_container.dart';
+import '../../utils/ck_glossary.dart';
 
 // ── Breakpoint ────────────────────────────────────────────────────────────────
 // Unter 750 dp (Portrait-Modus des M986-EEA ~600–800 dp) wechselt das Layout
@@ -30,6 +31,9 @@ class AppLayout extends ConsumerWidget {
 
     final attrs = AppTheme.getAttributes(themeState.themeId);
     final isGerman = langState.targetLanguage.code == 'de';
+
+    // CKEditor-Tooltip und Glossar-Highlight ans aktive Theme anpassen
+    setCkEditorTheme(themeState.themeId);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -364,7 +368,7 @@ class _SidebarContent extends StatelessWidget {
                     GoRouterState.of(context).uri.path == '/',
                 attrs: attrs,
               ),
-              if (ref.watch(authProvider).user?.isReviewer == true)
+              if (ref.watch(authProvider).user?.isReviewer == true) ...[
                 _NavItem(
                   icon: LucideIcons.shieldCheck,
                   label: isGerman ? 'Review Warteschlange' : 'Review Queue',
@@ -373,6 +377,14 @@ class _SidebarContent extends StatelessWidget {
                       '/review-list',
                   attrs: attrs,
                 ),
+                _NavItem(
+                  icon: LucideIcons.bookOpen,
+                  label: isGerman ? 'Glossar' : 'Glossary',
+                  route: '/glossary',
+                  isActive: GoRouterState.of(context).uri.path == '/glossary',
+                  attrs: attrs,
+                ),
+              ],
               _NavItem(
                 icon: LucideIcons.filter,
                 label: isGerman ? 'Kategorien' : 'Categories',

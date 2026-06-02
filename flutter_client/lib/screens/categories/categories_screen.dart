@@ -1,7 +1,7 @@
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+// utf8 is part of dart:convert (already imported above)
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../providers/language_provider.dart';
@@ -111,20 +111,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final langcode = ref.read(languageProvider).targetLanguage.code;
     final isGerman = langcode == 'de';
 
-    // Open a browser file picker restricted to JSON files.
-    final input = html.FileUploadInputElement()..accept = '.json,application/json';
-    input.click();
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      withData: true,
+    );
 
-    await input.onChange.first;
-    final file = input.files?.first;
-    if (file == null) return;
+    if (result == null || result.files.single.bytes == null) return;
 
-    final reader = html.FileReader();
-    reader.readAsText(file);
-    await reader.onLoad.first;
-
-    final raw = reader.result as String?;
-    if (raw == null || raw.isEmpty) {
+    final raw = utf8.decode(result.files.single.bytes!);
+    if (raw.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(isGerman ? 'Datei ist leer.' : 'File is empty.'),

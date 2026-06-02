@@ -47,6 +47,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
+    // Browser-/Systemsprache: Deutsch wenn 'de', sonst Englisch
+    final de = PlatformDispatcher.instance.locale.languageCode == 'de';
 
     return Scaffold(
       body: Stack(
@@ -113,7 +115,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('Bitte melde dich an', style: TextStyle(color: attrs.textMuted),
+                      Text(
+                        de ? 'Bitte melde dich an' : 'Please sign in',
+                        style: TextStyle(color: attrs.textMuted),
                       ),
                       const SizedBox(height: 32),
                       
@@ -138,18 +142,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // Form
                       TextField(
                         controller: _usernameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Benutzername',
-                          prefixIcon: Icon(LucideIcons.user),
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: de ? 'Benutzername' : 'Username',
+                          prefixIcon: const Icon(LucideIcons.user),
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Passwort',
-                          prefixIcon: Icon(LucideIcons.lock),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleLogin(),
+                        decoration: InputDecoration(
+                          labelText: de ? 'Passwort' : 'Password',
+                          prefixIcon: const Icon(LucideIcons.lock),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -172,12 +179,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text('Angemeldet bleiben', style: TextStyle(color: attrs.textMuted, fontSize: 14),
+                          Text(
+                            de ? 'Angemeldet bleiben' : 'Remember me',
+                            style: TextStyle(color: attrs.textMuted, fontSize: 14),
                           ),
                         ],
                       ),
                       const SizedBox(height: 28),
-                      
+
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -185,11 +194,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed: authState.isLoading ? null : _handleLogin,
                           child: authState.isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text('ANMELDEN', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                              : Text(
+                                  de ? 'ANMELDEN' : 'SIGN IN',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _RegistrationLinkButton(),
+                      _RegistrationLinkButton(de: de),
                     ],
                   ),         // Column
                 ),           // GlassContainer
@@ -227,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               fontFamily: 'Inter',
                             ),
                             children: [
-                              const TextSpan(text: 'Foto von '),
+                              TextSpan(text: de ? 'Foto von ' : 'Photo by '),
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
                                 child: MouseRegion(
@@ -235,8 +249,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: GestureDetector(
                                     onTap: () {
                                       final link = themeState.photographer!['link'] ?? '';
-                                      final fullLink = link.contains('utm_source') 
-                                          ? link 
+                                      final fullLink = link.contains('utm_source')
+                                          ? link
                                           : '$link${link.contains('?') ? '&' : '?'}utm_source=pb_translation_hub&utm_medium=referral';
                                       TokenStorage.openUrl(fullLink);
                                     },
@@ -251,7 +265,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              const TextSpan(text: ' auf '),
+                              TextSpan(text: de ? ' auf ' : ' on '),
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
                                 child: MouseRegion(
@@ -289,11 +303,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 // ── Registration link — shown below login button if registration is open ─────
 
 class _RegistrationLinkButton extends ConsumerStatefulWidget {
+  const _RegistrationLinkButton({required this.de});
+  final bool de;
+
   @override
-  ConsumerState<_RegistrationLinkButton> createState() => _RegistrationLinkButtonState();
+  ConsumerState<_RegistrationLinkButton> createState() =>
+      _RegistrationLinkButtonState();
 }
 
-class _RegistrationLinkButtonState extends ConsumerState<_RegistrationLinkButton> {
+class _RegistrationLinkButtonState
+    extends ConsumerState<_RegistrationLinkButton> {
   bool? _registrationEnabled;
 
   @override
@@ -306,7 +325,8 @@ class _RegistrationLinkButtonState extends ConsumerState<_RegistrationLinkButton
     try {
       final api = ApiClient();
       final res = await api.dio.get('/auth/registration-status');
-      if (mounted) setState(() => _registrationEnabled = res.data['enabled'] == true);
+      if (mounted)
+        setState(() => _registrationEnabled = res.data['enabled'] == true);
     } catch (_) {
       if (mounted) setState(() => _registrationEnabled = false);
     }
@@ -316,16 +336,20 @@ class _RegistrationLinkButtonState extends ConsumerState<_RegistrationLinkButton
   Widget build(BuildContext context) {
     if (_registrationEnabled != true) return const SizedBox.shrink();
     final attrs = AppTheme.getAttributes(ref.watch(themeProvider).themeId);
+    final de = widget.de;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('Noch kein Account? ', style: TextStyle(color: attrs.textMuted, fontSize: 13)),
+        Text(
+          de ? 'Noch kein Account? ' : 'No account yet? ',
+          style: TextStyle(color: attrs.textMuted, fontSize: 13),
+        ),
         GestureDetector(
           onTap: () => context.go('/register'),
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: Text(
-              'Jetzt registrieren',
+              de ? 'Jetzt registrieren' : 'Register now',
               style: TextStyle(
                 color: attrs.brand600,
                 fontSize: 13,

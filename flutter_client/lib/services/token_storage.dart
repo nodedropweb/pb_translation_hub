@@ -1,70 +1,60 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
 
 class TokenStorage {
   static const String _key = 'pb-token';
   static const String _rememberKey = 'pb-remember';
 
-  // Save token
-  static Future<void> saveToken(String token, bool remember) async {
-    if (kIsWeb) {
-      if (remember) {
-        html.window.localStorage[_key] = token;
-        html.window.sessionStorage.remove(_key);
-      } else {
-        html.window.sessionStorage[_key] = token;
-        html.window.localStorage.remove(_key);
-      }
-      html.window.localStorage[_rememberKey] = remember.toString();
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, token);
-      await prefs.setBool(_rememberKey, remember);
-    }
+  // ── In-memory cache — avoids SharedPreferences round-trips and prevents
+  //    race conditions where getToken() returns null on the first async tick
+  //    before the prefs instance has been fully initialised.
+  static String? _cachedToken;
+  static bool    _cacheReady = false;
+
+  /// Warms the cache exactly once. Called by [getToken] if not yet loaded.
+  static Future<void> _ensureCache() async {
+    if (_cacheReady) return;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedToken = prefs.getString(_key);
+    _cacheReady  = true;
   }
 
-  // Get token
+  // Save token
+  static Future<void> saveToken(String token, bool remember) async {
+    _cachedToken = token;
+    _cacheReady  = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, token);
+    await prefs.setBool(_rememberKey, remember);
+  }
+
+  // Get token — returns from cache after first load; never returns stale null
   static Future<String?> getToken() async {
-    if (kIsWeb) {
-      final localToken = html.window.localStorage[_key];
-      final sessionToken = html.window.sessionStorage[_key];
-      return localToken ?? sessionToken;
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_key);
-    }
+    await _ensureCache();
+    return _cachedToken;
   }
 
   // Clear token
   static Future<void> clearToken() async {
-    if (kIsWeb) {
-      html.window.localStorage.remove(_key);
-      html.window.sessionStorage.remove(_key);
-      html.window.localStorage.remove(_rememberKey);
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key);
-      await prefs.remove(_rememberKey);
-    }
+    _cachedToken = null;
+    _cacheReady  = true;        // cache is valid — it just holds null now
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
+    await prefs.remove(_rememberKey);
   }
 
   // Get remember status
   static Future<bool> getRemember() async {
-    if (kIsWeb) {
-      final rememberVal = html.window.localStorage[_rememberKey];
-      return rememberVal == 'true';
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_rememberKey) ?? false;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_rememberKey) ?? false;
   }
 
   // Open URL safely
-  static void openUrl(String url) {
-    if (kIsWeb) {
-      print('[Unsplash Attribution] Opening URL: $url');
-      html.window.open(url, '_blank');
+  static void openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }

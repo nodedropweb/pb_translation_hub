@@ -1,5 +1,8 @@
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+
+import 'audio_player_stub.dart'
+    if (dart.library.html) 'audio_player_web.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +60,9 @@ class CrwbStudyScreen extends ConsumerStatefulWidget {
 }
 
 class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
-  html.AudioElement? _audio;
+  // dart:html AudioElement is only used on web (guarded by kIsWeb).
+  // We hold a dynamic reference to avoid importing dart:html in this file.
+  dynamic _audio;
   bool _isPlaying = false;
 
   /// Pick the string for the active language.
@@ -69,20 +74,22 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
   }
 
   void _toggleAudio(String lang) {
+    if (!kIsWeb) return; // Audio playback only supported on web.
+
     if (_isPlaying) {
-      _audio?.pause();
+      AudioWebPlayer.pause(_audio);
       setState(() => _isPlaying = false);
       return;
     }
 
     // Japanese falls back to English audio until a JA recording is available.
     final url = lang == 'de' ? '/audio/crwb_de.mp3' : '/audio/crwb_en.mp3';
-    _audio?.pause();
-    _audio = html.AudioElement(url)
-      ..onEnded.listen((_) {
+    AudioWebPlayer.play(
+      url: url,
+      onEnded: () {
         if (mounted) setState(() => _isPlaying = false);
-      })
-      ..onError.listen((_) {
+      },
+      onError: () {
         if (mounted) {
           setState(() => _isPlaying = false);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -95,14 +102,15 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
             backgroundColor: Colors.orange.shade700,
           ));
         }
-      });
-    _audio!.play();
+      },
+      setAudio: (a) => _audio = a,
+    );
     setState(() => _isPlaying = true);
   }
 
   @override
   void dispose() {
-    _audio?.pause();
+    if (kIsWeb) AudioWebPlayer.pause(_audio);
     super.dispose();
   }
 
@@ -284,6 +292,7 @@ class _CrwbStudyScreenState extends ConsumerState<CrwbStudyScreen> {
   }
 
   Widget _audioChip(ThemeAttributes attrs, String lang) {
+    if (!kIsWeb) return const SizedBox.shrink(); // Audio not available on desktop.
     return GestureDetector(
       onTap: () => _toggleAudio(lang),
       child: MouseRegion(

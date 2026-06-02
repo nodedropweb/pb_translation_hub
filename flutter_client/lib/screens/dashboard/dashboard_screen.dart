@@ -128,6 +128,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final attrs = AppTheme.getAttributes(themeState.themeId);
     final syncStatus = ref.watch(syncProvider);
     final user = ref.watch(authProvider).user;
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
+    if (isMobile) {
+      return _buildMobileDashboard(
+          projectState, activeFilter, attrs, syncStatus, user);
+    }
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
@@ -228,45 +234,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (user?.lastReviewedProject != null) ...[
             const SizedBox(height: 16),
             GlassContainer(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16, vertical: 12),
               borderRadius: 12,
               border: Border.all(color: attrs.brand600.withOpacity(0.3)),
               backgroundColor: attrs.brand600.withOpacity(0.08),
               child: Row(
                 children: [
                   Icon(LucideIcons.clock, size: 16, color: attrs.brand600),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Zuletzt bearbeitet: ',
-                    style: TextStyle(
-                        color: attrs.textMuted,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(children: [
+                        TextSpan(
+                          text: isMobile ? '' : 'Zuletzt: ',
+                          style: TextStyle(
+                              color: attrs.textMuted,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
+                        ),
+                        TextSpan(
+                          text: user!.lastReviewedProject!,
+                          style: TextStyle(
+                              color: attrs.brand600,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                              fontSize: 13),
+                        ),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  Text(
-                    user!.lastReviewedProject!,
-                    style: TextStyle(
-                        color: attrs.brand600,
-                        fontWeight: FontWeight.w900,
-                        fontFamily: 'monospace',
-                        fontSize: 13),
-                  ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () =>
                         context.go('/edit/${user.lastReviewedProject}'),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
                       backgroundColor: attrs.brand600,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 10 : 14, vertical: 8),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(LucideIcons.chevronRight, size: 14),
-                    label: const Text('Weitermachen',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    label: Text(
+                      isMobile ? 'Weiter' : 'Weitermachen',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -281,114 +298,206 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 16),
 
           // ── Search + Sync controls row ────────────────────────────────────
-          Row(
-            children: [
-              // Search with autocomplete (full flex)
-              Expanded(
-                child: SearchWithAutocomplete(
-                  initialValue:
-                      ref.read(projectProvider.notifier).searchQuery,
-                  activeFilter: activeFilter,
-                  onSearchChanged: (val) =>
-                      ref.read(projectProvider.notifier).setSearch(val),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Quick Update (7 days)
-              Tooltip(
-                message: 'Schnelles Update (letzte 7 Tage)',
-                child: OutlinedButton.icon(
-                  onPressed: syncStatus.active ? null : _handleQuickUpdate,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 15),
-                    foregroundColor: attrs.textMain,
-                    side: BorderSide(color: attrs.borderMain),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: Icon(LucideIcons.zap,
-                      size: 16, color: Colors.amber[500]),
-                  label: const Text('Schnell',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Full Sync
-              Tooltip(
-                message: 'Vollständiger Datenbank-Sync von Drupal.org',
-                child: ElevatedButton.icon(
-                  onPressed: syncStatus.active ? null : _handleFullSync,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 15),
-                    backgroundColor: attrs.brand600,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    shadowColor: attrs.brand600.withOpacity(0.2),
-                    elevation: 4,
-                  ),
-                  icon: syncStatus.active
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(LucideIcons.refreshCw, size: 16),
-                  label: const Text('Sync',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Toggle manual module add
-              Tooltip(
-                message: 'Einzelnes Modul manuell von Drupal.org laden',
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      setState(() => _showManualAdd = !_showManualAdd),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 15),
-                    foregroundColor: _showManualAdd
-                        ? attrs.brand600
-                        : attrs.textMain,
-                    side: BorderSide(
-                      color: _showManualAdd
-                          ? attrs.brand600
-                          : attrs.borderMain,
+          if (isMobile) ...[
+            // Mobile: Suchfeld in voller Breite, Sync-Buttons darunter
+            SearchWithAutocomplete(
+              initialValue: ref.read(projectProvider.notifier).searchQuery,
+              activeFilter: activeFilter,
+              onSearchChanged: (val) =>
+                  ref.read(projectProvider.notifier).setSearch(val),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Tooltip(
+                    message: 'Schnelles Update (letzte 7 Tage)',
+                    child: OutlinedButton.icon(
+                      onPressed: syncStatus.active ? null : _handleQuickUpdate,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 13),
+                        foregroundColor: attrs.textMain,
+                        side: BorderSide(color: attrs.borderMain),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: Icon(LucideIcons.zap,
+                          size: 16, color: Colors.amber[500]),
+                      label: const Text('Schnell',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: _showManualAdd
-                        ? attrs.brand600.withOpacity(0.2)
-                        : Colors.transparent,
-                  ),
-                  icon: AnimatedRotation(
-                    turns: _showManualAdd ? 0.125 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(LucideIcons.plus,
-                        size: 16,
-                        color: _showManualAdd
-                            ? attrs.brand600
-                            : attrs.textMuted),
-                  ),
-                  label: Text(
-                    'Modul',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _showManualAdd
-                            ? attrs.brand600
-                            : attrs.textMain),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Tooltip(
+                    message: 'Vollständiger Datenbank-Sync von Drupal.org',
+                    child: ElevatedButton.icon(
+                      onPressed: syncStatus.active ? null : _handleFullSync,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 13),
+                        backgroundColor: attrs.brand600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: syncStatus.active
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(LucideIcons.refreshCw, size: 14),
+                      label: const Text('Sync',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Einzelnes Modul manuell von Drupal.org laden',
+                  child: OutlinedButton(
+                    onPressed: () =>
+                        setState(() => _showManualAdd = !_showManualAdd),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 13),
+                      foregroundColor: _showManualAdd
+                          ? attrs.brand600
+                          : attrs.textMain,
+                      side: BorderSide(
+                        color: _showManualAdd
+                            ? attrs.brand600
+                            : attrs.borderMain,
+                      ),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: _showManualAdd
+                          ? attrs.brand600.withOpacity(0.2)
+                          : Colors.transparent,
+                    ),
+                    child: AnimatedRotation(
+                      turns: _showManualAdd ? 0.125 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(LucideIcons.plus,
+                          size: 18,
+                          color: _showManualAdd
+                              ? attrs.brand600
+                              : attrs.textMuted),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Desktop: Alles in einer Zeile
+            Row(
+              children: [
+                Expanded(
+                  child: SearchWithAutocomplete(
+                    initialValue:
+                        ref.read(projectProvider.notifier).searchQuery,
+                    activeFilter: activeFilter,
+                    onSearchChanged: (val) =>
+                        ref.read(projectProvider.notifier).setSearch(val),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Tooltip(
+                  message: 'Schnelles Update (letzte 7 Tage)',
+                  child: OutlinedButton.icon(
+                    onPressed: syncStatus.active ? null : _handleQuickUpdate,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 15),
+                      foregroundColor: attrs.textMain,
+                      side: BorderSide(color: attrs.borderMain),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: Icon(LucideIcons.zap,
+                        size: 16, color: Colors.amber[500]),
+                    label: const Text('Schnell',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Vollständiger Datenbank-Sync von Drupal.org',
+                  child: ElevatedButton.icon(
+                    onPressed: syncStatus.active ? null : _handleFullSync,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 15),
+                      backgroundColor: attrs.brand600,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      shadowColor: attrs.brand600.withOpacity(0.2),
+                      elevation: 4,
+                    ),
+                    icon: syncStatus.active
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(LucideIcons.refreshCw, size: 16),
+                    label: const Text('Sync',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Einzelnes Modul manuell von Drupal.org laden',
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        setState(() => _showManualAdd = !_showManualAdd),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 15),
+                      foregroundColor: _showManualAdd
+                          ? attrs.brand600
+                          : attrs.textMain,
+                      side: BorderSide(
+                        color: _showManualAdd
+                            ? attrs.brand600
+                            : attrs.borderMain,
+                      ),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: _showManualAdd
+                          ? attrs.brand600.withOpacity(0.2)
+                          : Colors.transparent,
+                    ),
+                    icon: AnimatedRotation(
+                      turns: _showManualAdd ? 0.125 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(LucideIcons.plus,
+                          size: 16,
+                          color: _showManualAdd
+                              ? attrs.brand600
+                              : attrs.textMuted),
+                    ),
+                    label: Text(
+                      'Modul',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _showManualAdd
+                              ? attrs.brand600
+                              : attrs.textMain),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
 
           const SizedBox(height: 8),
 
@@ -469,90 +578,173 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (_showManualAdd) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 14 : 20, vertical: 16),
               decoration: BoxDecoration(
                 color: attrs.bgCard,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: attrs.borderMain),
               ),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.download, size: 18, color: attrs.brand600),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Modul manuell hinzufügen',
+                        Row(children: [
+                          Icon(LucideIcons.download,
+                              size: 18, color: attrs.brand600),
+                          const SizedBox(width: 10),
+                          Text('Modul manuell hinzufügen',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: attrs.textMain)),
+                        ]),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _manualNameController,
+                          style:
+                              TextStyle(color: attrs.textMain, fontSize: 13),
+                          onSubmitted: (_) => _handleManualSync(),
+                          decoration: InputDecoration(
+                            hintText: 'machine_name (z. B. pathauto)',
+                            hintStyle: TextStyle(
+                                color: attrs.textMuted.withOpacity(0.8),
+                                fontSize: 13),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            filled: true,
+                            fillColor: attrs.bgInput,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  BorderSide(color: attrs.borderMain),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  BorderSide(color: attrs.borderMain),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  color: attrs.brand600, width: 2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed:
+                              _syncingManual ? null : _handleManualSync,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: attrs.brand600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 13),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: _syncingManual
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white),
+                                )
+                              : const Icon(LucideIcons.plus, size: 15),
+                          label: const Text('Hinzufügen',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Icon(LucideIcons.download,
+                            size: 18, color: attrs.brand600),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Modul manuell hinzufügen',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: attrs.textMain)),
+                              Text(
+                                  'Direkt von Drupal.org per Machine Name laden.',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: attrs.textMuted)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 240,
+                          height: 42,
+                          child: TextField(
+                            controller: _manualNameController,
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: attrs.textMain)),
-                        Text('Direkt von Drupal.org per Machine Name laden.',
-                            style: TextStyle(
-                                fontSize: 11, color: attrs.textMuted)),
+                                color: attrs.textMain, fontSize: 13),
+                            onSubmitted: (_) => _handleManualSync(),
+                            decoration: InputDecoration(
+                              hintText: 'machine_name (z. B. pathauto)',
+                              hintStyle: TextStyle(
+                                  color: attrs.textMuted.withOpacity(0.8),
+                                  fontSize: 13),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              filled: true,
+                              fillColor: attrs.bgInput,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide:
+                                    BorderSide(color: attrs.borderMain),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide:
+                                    BorderSide(color: attrs.borderMain),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                    color: attrs.brand600, width: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed:
+                              _syncingManual ? null : _handleManualSync,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: attrs.brand600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: _syncingManual
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white),
+                                )
+                              : const Icon(LucideIcons.plus, size: 15),
+                          label: const Text('Hinzufügen',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Input field
-                  SizedBox(
-                    width: 240,
-                    height: 42,
-                    child: TextField(
-                      controller: _manualNameController,
-                      style: TextStyle(color: attrs.textMain, fontSize: 13),
-                      onSubmitted: (_) => _handleManualSync(),
-                      decoration: InputDecoration(
-                        hintText: 'machine_name (z. B. pathauto)',
-                        hintStyle: TextStyle(
-                            color: attrs.textMuted.withOpacity(0.8),
-                            fontSize: 13),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        filled: true,
-                        fillColor: attrs.bgInput,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: attrs.borderMain),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: attrs.borderMain),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              BorderSide(color: attrs.brand600, width: 2),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _syncingManual ? null : _handleManualSync,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: attrs.brand600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: _syncingManual
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(LucideIcons.plus, size: 15),
-                    label: const Text('Hinzufügen',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
-                  ),
-                ],
-              ),
             ),
           ],
 
@@ -650,6 +842,509 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               .ceil())
                       : null,
                   tooltip: 'Letzte Seite',
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────── Mobile Dashboard ──────────────────────
+
+  /// Vollständig scrollbare Dashboard-Ansicht für schmale Displays (< 500dp).
+  /// Verwendet SingleChildScrollView + shrinkWrap GridView statt Expanded.
+  Widget _buildMobileDashboard(
+    ProjectState projectState,
+    String activeFilter,
+    ThemeAttributes attrs,
+    SyncStatus syncStatus,
+    dynamic user,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ─────────────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: attrs.brand600,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(LucideIcons.droplets,
+                    color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Projekt-Beschreibungen',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: attrs.textMain,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'Übersetzung von Drupal Modulen.',
+                      style:
+                          TextStyle(fontSize: 12, color: attrs.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // AI-Button (wenn nicht review/released/translated)
+          if (activeFilter != 'review' &&
+              activeFilter != 'released' &&
+              activeFilter != 'translated') ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showBulkTranslateDialog(
+                    context, ref, activeFilter, attrs),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: attrs.brand600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(LucideIcons.sparkles, size: 16),
+                label: const Text('AI Massen-Übersetzung',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+            ),
+          ],
+
+          // Last reviewed banner
+          if (user?.lastReviewedProject != null) ...[
+            const SizedBox(height: 10),
+            GlassContainer(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              borderRadius: 12,
+              border:
+                  Border.all(color: attrs.brand600.withOpacity(0.3)),
+              backgroundColor: attrs.brand600.withOpacity(0.08),
+              child: Row(children: [
+                Icon(LucideIcons.clock, size: 14, color: attrs.brand600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    user!.lastReviewedProject!,
+                    style: TextStyle(
+                        color: attrs.brand600,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace',
+                        fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () =>
+                      context.go('/edit/${user.lastReviewedProject}'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: attrs.brand600,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(LucideIcons.chevronRight, size: 13),
+                  label: const Text('Weiter',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 11)),
+                ),
+              ]),
+            ),
+          ],
+
+          const SizedBox(height: 14),
+
+          // ── Filter buttons (Wrap, already responsive) ───────────────
+          const DashboardFilters(),
+          const SizedBox(height: 12),
+
+          // ── Search ─────────────────────────────────────────────────
+          SearchWithAutocomplete(
+            initialValue:
+                ref.read(projectProvider.notifier).searchQuery,
+            activeFilter: activeFilter,
+            onSearchChanged: (val) =>
+                ref.read(projectProvider.notifier).setSearch(val),
+          ),
+          const SizedBox(height: 8),
+
+          // ── Sync buttons ───────────────────────────────────────────
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: syncStatus.active ? null : _handleQuickUpdate,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 12),
+                  foregroundColor: attrs.textMain,
+                  side: BorderSide(color: attrs.borderMain),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: Icon(LucideIcons.zap,
+                    size: 15, color: Colors.amber[500]),
+                label: const Text('Schnell',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: syncStatus.active ? null : _handleFullSync,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 12),
+                  backgroundColor: attrs.brand600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: syncStatus.active
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(LucideIcons.refreshCw, size: 14),
+                label: const Text('Sync',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: () =>
+                  setState(() => _showManualAdd = !_showManualAdd),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                foregroundColor: _showManualAdd
+                    ? attrs.brand600
+                    : attrs.textMain,
+                side: BorderSide(
+                    color: _showManualAdd
+                        ? attrs.brand600
+                        : attrs.borderMain),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                backgroundColor: _showManualAdd
+                    ? attrs.brand600.withOpacity(0.2)
+                    : Colors.transparent,
+              ),
+              child: AnimatedRotation(
+                turns: _showManualAdd ? 0.125 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(LucideIcons.plus,
+                    size: 18,
+                    color: _showManualAdd
+                        ? attrs.brand600
+                        : attrs.textMuted),
+              ),
+            ),
+          ]),
+
+          const SizedBox(height: 8),
+
+          // ── Count + per-page ───────────────────────────────────────
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: attrs.bgCard,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: attrs.borderMain),
+              ),
+              child: Row(children: [
+                Text('Gefunden: ',
+                    style: TextStyle(
+                        color: attrs.textMuted,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
+                Text('${projectState.totalItems}',
+                    style: TextStyle(
+                        color: attrs.brand600,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14)),
+                Text(' Module',
+                    style: TextStyle(
+                        color: attrs.textMuted,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
+              ]),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              decoration: BoxDecoration(
+                color: attrs.bgInput,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: attrs.borderMain),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: ref.watch(projectProvider.notifier).limit,
+                  dropdownColor: attrs.bgCard,
+                  icon: Icon(LucideIcons.chevronDown,
+                      color: attrs.textMuted, size: 14),
+                  onChanged: (val) {
+                    if (val != null) {
+                      ref
+                          .read(projectProvider.notifier)
+                          .setLimit(val);
+                    }
+                  },
+                  items: [50, 100, 250, 500].map((v) {
+                    return DropdownMenuItem<int>(
+                      value: v,
+                      child: Text('$v / Seite',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ]),
+
+          const SizedBox(height: 8),
+          const SyncProgressBar(),
+
+          // ── Manual module add ──────────────────────────────────────
+          if (_showManualAdd) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: attrs.bgCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: attrs.borderMain),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    Icon(LucideIcons.download,
+                        size: 16, color: attrs.brand600),
+                    const SizedBox(width: 8),
+                    Text('Modul hinzufügen',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: attrs.textMain)),
+                  ]),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _manualNameController,
+                    style: TextStyle(
+                        color: attrs.textMain, fontSize: 13),
+                    onSubmitted: (_) => _handleManualSync(),
+                    decoration: InputDecoration(
+                      hintText: 'machine_name (z. B. pathauto)',
+                      hintStyle: TextStyle(
+                          color: attrs.textMuted.withOpacity(0.8),
+                          fontSize: 13),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      filled: true,
+                      fillColor: attrs.bgInput,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            BorderSide(color: attrs.borderMain),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            BorderSide(color: attrs.borderMain),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            color: attrs.brand600, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed:
+                        _syncingManual ? null : _handleManualSync,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: attrs.brand600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 13),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: _syncingManual
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Icon(LucideIcons.plus, size: 15),
+                    label: const Text('Hinzufügen',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // ── Project grid (shrinkWrap — scrolled by outer SCV) ──────
+          if (projectState.isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      color: attrs.brand600)),
+            )
+          else if (projectState.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                  child: Text(projectState.error!,
+                      style:
+                          const TextStyle(color: Colors.redAccent))),
+            )
+          else if (projectState.projects.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                  child: Text('Keine Projekte gefunden.',
+                      style:
+                          TextStyle(color: attrs.textMuted))),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate:
+                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 420,
+                childAspectRatio: 0.82,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: projectState.projects.length,
+              itemBuilder: (context, index) => ProjectCard(
+                project: projectState.projects[index],
+                attrs: attrs,
+                filter: activeFilter,
+                search:
+                    ref.read(projectProvider.notifier).searchQuery,
+              ),
+            ),
+
+          // ── Pagination ─────────────────────────────────────────────
+          if (!projectState.isLoading &&
+              projectState.totalItems >
+                  ref.watch(projectProvider.notifier).limit) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(LucideIcons.chevronsLeft,
+                      color: Colors.white, size: 20),
+                  onPressed:
+                      ref.watch(projectProvider.notifier).currentPage >
+                              1
+                          ? () => ref
+                              .read(projectProvider.notifier)
+                              .goToPage(1)
+                          : null,
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.chevronLeft,
+                      color: Colors.white, size: 20),
+                  onPressed:
+                      ref.watch(projectProvider.notifier).currentPage >
+                              1
+                          ? () => ref
+                              .read(projectProvider.notifier)
+                              .prevPage()
+                          : null,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${ref.watch(projectProvider.notifier).currentPage} / '
+                  '${(projectState.totalItems / ref.watch(projectProvider.notifier).limit).ceil()}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(LucideIcons.chevronRight,
+                      color: Colors.white, size: 20),
+                  onPressed: ref
+                              .watch(projectProvider.notifier)
+                              .currentPage <
+                          (projectState.totalItems /
+                                  ref
+                                      .watch(projectProvider.notifier)
+                                      .limit)
+                              .ceil()
+                      ? () => ref
+                          .read(projectProvider.notifier)
+                          .nextPage()
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.chevronsRight,
+                      color: Colors.white, size: 20),
+                  onPressed: ref
+                              .watch(projectProvider.notifier)
+                              .currentPage <
+                          (projectState.totalItems /
+                                  ref
+                                      .watch(projectProvider.notifier)
+                                      .limit)
+                              .ceil()
+                      ? () => ref
+                          .read(projectProvider.notifier)
+                          .goToPage((projectState.totalItems /
+                                  ref
+                                      .watch(projectProvider.notifier)
+                                      .limit)
+                              .ceil())
+                      : null,
                 ),
               ],
             ),

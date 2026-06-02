@@ -4,9 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_theme.dart';
 
 // dart:html / dart:ui_web are only available on Flutter web builds.
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
+// They are imported via conditional import so desktop builds compile cleanly.
+import 'consent_youtube_stub.dart'
+    if (dart.library.html) 'consent_youtube_web.dart';
 
 /// A GDPR-compliant YouTube player widget backed by the Vidstack player.
 ///
@@ -209,50 +209,63 @@ class _ConsentYouTubePlayerState extends State<ConsentYouTubePlayer> {
   void _onConsent() {
     if (kIsWeb) {
       if (!_registered) {
-        ui_web.platformViewRegistry.registerViewFactory(
-          _viewType,
-          (int viewId) {
-            // Simple YouTube nocookie iframe — no external library needed.
-            // Vidstack's <media-video-layout> renders viewport-relative
-            // overlays that break out of Flutter's HtmlElementView bounds.
-            // A plain iframe is the most reliable embed inside Flutter Web.
-            return html.IFrameElement()
-              ..src =
-                  'https://www.youtube-nocookie.com/embed/${widget.videoId}'
-                  '?autoplay=1&rel=0&modestbranding=1'
-              ..allow =
-                  'autoplay; fullscreen; encrypted-media; picture-in-picture'
-              ..allowFullscreen = true
-              ..style.border = 'none'
-              ..style.width = '100%'
-              ..style.height = '100%';
-          },
-        );
+        registerYouTubeViewFactory(_viewType, widget.videoId);
         _registered = true;
       }
       setState(() => _consented = true);
     } else {
-      // Native targets: open in system browser (consent still required for
-      // the tap to do anything — nothing happens automatically).
-      // ignore: avoid_print
-      print(
-          '[ConsentYouTubePlayer] Native – open https://youtu.be/${widget.videoId}');
+      // On desktop: nothing to do — the consent wall is replaced by a
+      // static placeholder (see _buildDesktopPlaceholder).
+      setState(() => _consented = true);
     }
   }
 
-  // ── Vidstack embed ───────────────────────────────────────────────────────────
+  // ── Web player embed ─────────────────────────────────────────────────────────
 
   Widget _buildPlayer() {
+    if (!kIsWeb) return _buildDesktopPlaceholder();
     // HtmlElementView renders the registered factory element inline.
-    // The flutter/html renderer inserts it as a real DOM node, so the
-    // Vidstack CSS variables defined in index.html apply normally.
     return HtmlElementView(viewType: _viewType);
+  }
+
+  // ── Desktop placeholder ───────────────────────────────────────────────────────
+
+  Widget _buildDesktopPlaceholder() {
+    final attrs = widget.attrs;
+    final isGerman = widget.isGerman;
+    return Container(
+      decoration: BoxDecoration(
+        color: attrs.bgCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: attrs.borderMain),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.play, size: 48, color: attrs.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              isGerman
+                  ? 'YouTube nicht verfügbar in der Desktop-App.'
+                  : 'YouTube not available in the desktop app.',
+              style: TextStyle(color: attrs.textMuted, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Root ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb && !_consented) {
+      // On desktop: show consent wall but when user clicks, show placeholder.
+      return _buildConsentWall();
+    }
     return _consented ? _buildPlayer() : _buildConsentWall();
   }
 }

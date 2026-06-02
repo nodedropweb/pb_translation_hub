@@ -231,6 +231,22 @@ class FilterCountsNotifier extends Notifier<FilterCounts> {
       // Ignore or log error
     }
   }
+
+  /// Optimistically decrements the review counter by 1 immediately after an
+  /// approval so the badge updates without waiting for a server round-trip.
+  void decrementReview() {
+    if (state.review <= 0) return;
+    state = FilterCounts(
+      all: state.all > 0 ? state.all - 1 : 0,
+      priority: state.priority,
+      missing: state.missing,
+      review: state.review - 1,
+      released: state.released + 1,
+      stale: state.stale,
+      translated: state.translated,
+      ignored: state.ignored,
+    );
+  }
 }
 
 final filterCountsProvider = NotifierProvider<FilterCountsNotifier, FilterCounts>(() {

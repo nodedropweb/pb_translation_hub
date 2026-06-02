@@ -1,29 +1,25 @@
-/// CKEditor 5 (Classic Build) embedded in a Flutter Web HtmlElementView.
+/// CkEditorField — cross-platform rich-text editor widget.
 ///
-/// Unlike the previous srcdoc-iframe approach, each instance is now a plain
-/// `<div>` in the **main page DOM**.  Advantages:
-///   • Browser extensions (DeepL add-on, Grammarly …) can reach the
-///     `contenteditable` area because it lives in the top-level document.
-///   • No cross-frame postMessage overhead — the JS bridge communicates via
-///     direct Dart→JS method calls and JS→Dart callbacks.
-///   • `suppressed: true` hides the editor via CSS (`visibility:hidden` +
-///     `pointer-events:none`) without destroying the CKEditor instance.
-///     Flutter dialogs that need to appear above the editor just set
-///     `suppressed:true` for the duration of the dialog.
+/// • Web:     CKEditor 5 via HtmlElementView (dart:html + dart:js)
+/// • Desktop: FleatherEditor from the `fleather` package
 ///
-/// The CKEditor script and dark-theme CSS live in `web/index.html`.
-/// The JS bridge (`window._ckBridge`) is also defined there.
-///
-/// License note: CKEditor 5 is GPL 2+.  For private/internal deployments
-/// no additional obligations apply.  See https://ckeditor.com/legal/ckeditor-oss-license
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:js' as js;
-import 'dart:ui_web' as ui_web;
-import 'package:flutter/material.dart';
+/// The public API is identical on both platforms so that callers need no
+/// platform checks.
+library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:fleather/fleather.dart';
+import 'package:parchment/parchment.dart';
+import 'dart:convert';
+
+// Web-only implementation — loaded only when dart:html is available.
+import 'ckeditor_field_stub.dart'
+    if (dart.library.html) 'ckeditor_field_web_impl.dart';
+
+/// A rich-text / HTML editor widget.
+///
+/// On web it uses CKEditor 5; on desktop it uses FleatherEditor.
 class CkEditorField extends StatefulWidget {
   const CkEditorField({
     super.key,
@@ -34,22 +30,10 @@ class CkEditorField extends StatefulWidget {
     this.suppressed = false,
   });
 
-  /// Initial HTML content shown in the editor.
   final String initialHtml;
-
-  /// Called on every change with the current HTML output.
   final ValueChanged<String> onChanged;
-
-  /// Height of the editor area in logical pixels.
   final double height;
-
-  /// `true`  → minimal toolbar (summary field).
-  /// `false` → full toolbar  (body field).
   final bool isSimple;
-
-  /// When `true` the editor div is hidden via CSS and ignores pointer events.
-  /// Use this while a Flutter dialog is open so the dialog is fully visible
-  /// and interactable even when the HTML renderer is not active.
   final bool suppressed;
 
   @override
@@ -57,131 +41,131 @@ class CkEditorField extends StatefulWidget {
 }
 
 class _CkEditorFieldState extends State<CkEditorField> {
-  static int _counter = 0;
-  late final int _id;
-  late final String _viewType;
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return CkEditorFieldWebImpl(
+        key: widget.key,
+        initialHtml: widget.initialHtml,
+        onChanged: widget.onChanged,
+        height: widget.height,
+        isSimple: widget.isSimple,
+        suppressed: widget.suppressed,
+      );
+    }
+    return _DesktopEditor(
+      initialHtml: widget.initialHtml,
+      onChanged: widget.onChanged,
+      height: widget.height,
+    );
+  }
+}
 
-  html.DivElement? _container;
-  bool _editorReady = false;
-  String _lastContent = '';
+// ── Desktop editor ─────────────────────────────────────────────────────────────
+
+class _DesktopEditor extends StatefulWidget {
+  const _DesktopEditor({
+    required this.initialHtml,
+    required this.onChanged,
+    required this.height,
+  });
+
+  final String initialHtml;
+  final ValueChanged<String> onChanged;
+  final double height;
+
+  @override
+  State<_DesktopEditor> createState() => _DesktopEditorState();
+}
+
+class _DesktopEditorState extends State<_DesktopEditor> {
+  late FleatherController _controller;
+  late FocusNode _focusNode;
+  String _lastEmitted = '';
 
   @override
   void initState() {
     super.initState();
-    _id = ++_counter;
-    _viewType = 'ckeditor5_div_$_id';
-    _lastContent = widget.initialHtml;
+    _focusNode = FocusNode();
+    final doc = ParchmentDocument();
+    // Start with plain text derived from the HTML (strip tags for simplicity).
+    final plain = widget.initialHtml
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>');
+    if (plain.isNotEmpty) {
+      doc.insert(0, plain);
+    }
+    _controller = FleatherController(document: doc);
+    _controller.addListener(_onDocChanged);
+    _lastEmitted = widget.initialHtml;
+  }
 
-    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
-      // Outer container — the element Flutter embeds in the DOM.
-      _container = html.DivElement()
-        ..className = 'cke-host'
-        ..id = 'cke_container_$_id'
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.background = '#0F1115';
-
-      // Apply initial suppressed state (editor may be hidden from creation).
-      _applySuppressionCss(widget.suppressed);
-
-      // Inner div — CKEditor mounts here.
-      final editorDiv = html.DivElement()..id = 'cke_editor_$_id';
-      _container!.append(editorDiv);
-
-      // Init CKEditor after the element has been added to the live DOM.
-      Future.delayed(const Duration(milliseconds: 120), _initEditor);
-
-      return _container!;
-    });
+  void _onDocChanged() {
+    // Emit plain text wrapped in a <p> tag as minimal HTML representation.
+    final text = _controller.document.toPlainText().trimRight();
+    final html = text.isEmpty ? '' : '<p>$text</p>';
+    if (html != _lastEmitted) {
+      _lastEmitted = html;
+      widget.onChanged(html);
+    }
   }
 
   @override
-  void didUpdateWidget(covariant CkEditorField old) {
+  void didUpdateWidget(covariant _DesktopEditor old) {
     super.didUpdateWidget(old);
-
-    // 1. Propagate suppression changes via CSS (no widget recreation needed).
-    if (widget.suppressed != old.suppressed) {
-      _applySuppressionCss(widget.suppressed);
-    }
-
-    // 2. Push programmatic content changes (e.g. after AI translation).
-    //    Skip while suppressed — we'll push when we un-suppress in case
-    //    the content also changed during suppression.
-    if (widget.initialHtml != _lastContent && _editorReady) {
-      _lastContent = widget.initialHtml;
-      _setData(widget.initialHtml);
+    // If parent pushes new content (e.g. AI translation), update the document.
+    if (widget.initialHtml != old.initialHtml) {
+      final plain = widget.initialHtml
+          .replaceAll(RegExp(r'<[^>]*>'), '')
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>');
+      _controller.removeListener(_onDocChanged);
+      final doc = ParchmentDocument();
+      if (plain.isNotEmpty) doc.insert(0, plain);
+      _controller.dispose();
+      _controller = FleatherController(document: doc);
+      _controller.addListener(_onDocChanged);
+      _lastEmitted = widget.initialHtml;
+      if (mounted) setState(() {});
     }
   }
 
   @override
   void dispose() {
-    _destroyEditor();
+    _controller.removeListener(_onDocChanged);
+    _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
-
-  // ── CSS suppression ────────────────────────────────────────────────────────
-
-  void _applySuppressionCss(bool suppress) {
-    _container?.style.visibility = suppress ? 'hidden' : 'visible';
-    _container?.style.pointerEvents = suppress ? 'none' : 'auto';
-  }
-
-  // ── CKEditor lifecycle ─────────────────────────────────────────────────────
-
-  void _initEditor() {
-    if (!mounted) return;
-
-    final bridge = js.context['_ckBridge'];
-    if (bridge == null) {
-      debugPrint('[CkEditorField] _ckBridge not found in window. '
-          'Ensure index.html loads the bridge before flutter_bootstrap.js.');
-      return;
-    }
-
-    final toolbarItems = widget.isSimple
-        ? '["bold","italic","link","|","undo","redo"]'
-        : '["heading","|","bold","italic","|",'
-            '"link","bulletedList","numberedList","|",'
-            '"blockQuote","code","|","undo","redo"]';
-
-    // Dart callbacks forwarded to JS as allowInterop wrappers.
-    final onReady = js.allowInterop(() {
-      if (!mounted) return;
-      _editorReady = true;
-      _setData(widget.initialHtml);
-    });
-
-    final onChange = js.allowInterop((String html) {
-      if (!mounted) return;
-      _lastContent = html;
-      widget.onChanged(html);
-    });
-
-    (bridge as js.JsObject).callMethod('init', [_id, toolbarItems, onReady, onChange]);
-  }
-
-  void _setData(String content) {
-    if (!_editorReady) return;
-    final bridge = js.context['_ckBridge'];
-    if (bridge == null) return;
-    (bridge as js.JsObject).callMethod('setData', [_id, content]);
-  }
-
-  void _destroyEditor() {
-    final bridge = js.context['_ckBridge'];
-    if (bridge == null) return;
-    try {
-      (bridge as js.JsObject).callMethod('destroy', [_id]);
-    } catch (_) {}
-  }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: widget.height,
-      child: HtmlElementView(viewType: _viewType),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F1115),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          children: [
+            FleatherToolbar.basic(controller: _controller),
+            Expanded(
+              child: FleatherEditor(
+                controller: _controller,
+                focusNode: _focusNode,
+                padding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

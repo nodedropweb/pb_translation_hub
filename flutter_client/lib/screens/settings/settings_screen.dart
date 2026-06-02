@@ -1,6 +1,6 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:dio/dio.dart';
@@ -294,74 +294,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _pickAndUploadBackup(ThemeAttributes attrs, bool isGerman) {
-    final uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = '.zip';
-    uploadInput.click();
+  Future<void> _pickAndUploadBackup(ThemeAttributes attrs, bool isGerman) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+      withData: true,
+    );
 
-    uploadInput.onChange.listen((e) async {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        
-        setState(() {
-          _isUploading = true;
-          _uploadProgress = 0.0;
-        });
+    if (result == null || result.files.single.bytes == null) return;
 
-        reader.onLoadEnd.listen((loadEvent) async {
-          try {
-            final bytes = reader.result as List<int>;
-            
-            final formData = FormData.fromMap({
-              'file': MultipartFile.fromBytes(
-                bytes,
-                filename: file.name,
-              ),
-            });
+    final bytes = result.files.single.bytes!;
+    final filename = result.files.single.name;
 
-            final response = await _api.dio.post(
-              '/upload-backup',
-              data: formData,
-              onSendProgress: (sent, total) {
-                if (total > 0) {
-                  setState(() {
-                    _uploadProgress = sent / total;
-                  });
-                }
-              },
-            );
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+    });
 
-            final count = response.data['count'] ?? 0;
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isGerman 
-                    ? 'Backup erfolgreich: $count Dateien verarbeitet.'
-                    : 'Backup successful: $count files processed.'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } catch (err) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isGerman ? 'Upload fehlgeschlagen.' : 'Upload failed.'),
-                  backgroundColor: Colors.redAccent,
-                ),
-              );
-            }
-          } finally {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+        ),
+      });
+
+      final response = await _api.dio.post(
+        '/upload-backup',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (total > 0) {
             setState(() {
-              _isUploading = false;
+              _uploadProgress = sent / total;
             });
           }
-        });
+        },
+      );
+
+      final count = response.data['count'] ?? 0;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isGerman
+                ? 'Backup erfolgreich: $count Dateien verarbeitet.'
+                : 'Backup successful: $count files processed.'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-    });
+    } catch (err) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isGerman ? 'Upload fehlgeschlagen.' : 'Upload failed.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
   }
 
   @override
@@ -1217,7 +1211,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   TextButton.icon(
                                     onPressed: () {
                                       final text = LogService.logs.map((e) => e.toString()).join('\n');
-                                      html.window.navigator.clipboard?.writeText(text);
+                                      Clipboard.setData(ClipboardData(text: text));
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(isGerman ? 'Logs in Zwischenablage kopiert! 📋' : 'Logs copied to clipboard! 📋'),

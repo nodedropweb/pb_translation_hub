@@ -187,7 +187,72 @@ GlassContainer(
 
 ---
 
-## 5. WYSIWYG Editors (Quill)
+## 5. Glossary Term Highlighting
+
+### Overview
+The Hub highlights user-defined glossary terms inside every CKEditor 5 instance. Hovering over a highlighted term shows a floating tooltip with the preferred translation and an optional explanation.
+
+### Data flow
+```
+Flutter boot
+  └─ AppLayout.build()
+       └─ setCkEditorTheme(themeId)        ← dart:html CSS vars, no JS bridge
+  └─ ReviewScreen / EditorScreen initState
+       └─ loadCkEditorGlossary(api, lang)  ← GET /api/glossary?langcode=de
+            └─ _ckBridge.setGlobalGlossary(json)
+                 └─ _ckApplyGlossaryMarkers(editor)  ← per active CKEditor
+```
+
+### CKEditor 5 plugin (`web/index.html`)
+`GlossaryHighlightPlugin` registers an `editingDowncast` converter (`markerToHighlight`) that turns `glossaryTerm:<id>:<uid>` model markers into `<span class="ck-glossary-highlight" data-preferred="…" data-explanation="…">` elements **in the editing view only**. `getData()` is never polluted because markers are created with `affectsData: false`.
+
+Markers are applied by `_ckApplyGlossaryMarkers(editor)`:
+1. All existing `glossaryTerm:*` markers are removed.
+2. Every block element that can hold `$text` is walked.
+3. A `RegExp(\bterm\b, 'gi')` finds matches; each match becomes a model marker.
+4. The function runs inside `editor.model.change()` so CKEditor manages the view update atomically.
+
+Markers are refreshed:
+- When `setGlobalGlossary()` is called (initial load or language change).
+- 300 ms after any `change:data` event (debounced) so content edits don't lose highlights.
+- When a new editor initialises and `globalGlossary` is already populated.
+
+### Dart utilities (`lib/utils/ck_glossary.dart`)
+| Function | Purpose |
+|---|---|
+| `loadCkEditorGlossary(api, langcode)` | Fetches `/glossary`, calls `setGlobalGlossary` on the bridge. Silently swallowed on error — glossary is non-critical. |
+| `setCkEditorTheme(themeId)` | Updates `--ck-hl-bg`, `--ck-hl-border` on `:root` and all `--tip-*` variables on `#_ck_glossary_tip` directly via `dart:html`. No JS bridge involved. |
+
+Both functions are no-ops on non-web platforms (`kIsWeb` guard).
+
+### Theme colours
+| Theme | Highlight background | Highlight border | Tooltip accent |
+|---|---|---|---|
+| dark | amber 22 % | `#F59E0B` | `#8B5CF6` purple |
+| light | purple 12 % | `#7F56D9` | `#7F56D9` purple |
+| glassy | cyan 18 % | `#009CDE` | `#009CDE` cyan |
+| nature | green 18 % | `#10B981` | `#10B981` green |
+| liquid | sky-blue 18 % | `#0EA5E9` | `#0EA5E9` sky-blue |
+
+### Glossary management screen (`lib/screens/glossary/glossary_screen.dart`)
+Route `/glossary`, accessible from the sidebar. Reviewers and admins can:
+- View all terms for the currently selected target language.
+- Add a new term (source word, preferred word, optional explanation).
+- Edit or delete existing terms.
+
+Changes take effect in open editors after the next `loadCkEditorGlossary` call (e.g. on the next screen navigation or language switch).
+
+### REST API
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/glossary?langcode=de` | any logged-in user | List terms for a language |
+| `POST` | `/api/glossary` | reviewer / admin | Create a term |
+| `PUT` | `/api/glossary/:id` | reviewer / admin | Update a term |
+| `DELETE` | `/api/glossary/:id` | reviewer / admin | Delete a term |
+
+---
+
+## 5b. WYSIWYG Editors (Quill)
 
 The editor and review screens embed [Quill 1.3.6](https://quilljs.com/) via `HtmlElementView` platform views.
 

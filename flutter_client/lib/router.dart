@@ -16,6 +16,7 @@ import 'screens/review/review_screen.dart';
 import 'screens/review/review_list_screen.dart';
 import 'screens/help/help_screen.dart';
 import 'screens/help/crwb_study_screen.dart';
+import 'screens/glossary/glossary_screen.dart';
 import 'providers/auth_provider.dart';
 
 // ── Auth-aware ChangeNotifier ──────────────────────────────────────────────
@@ -136,6 +137,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/help/crwb',
             builder: (context, state) => const CrwbStudyScreen(),
+          ),
+          GoRoute(
+            path: '/glossary',
+            builder: (context, state) => const GlossaryScreen(),
           ),
         ],
       ),

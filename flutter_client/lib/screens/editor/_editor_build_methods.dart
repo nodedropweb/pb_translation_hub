@@ -4,198 +4,334 @@ extension EditorBuildMethodsExt on _EditorScreenState {
   // ── Header bar ─────────────────────────────────────────────────────────────
 
   Widget _buildHeaderBar() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.5),
-            border: Border(bottom: BorderSide(color: attrs.borderMain)),
+    return LayoutBuilder(builder: (context, constraints) {
+      final isMobile = constraints.maxWidth < 500;
+      return ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 24, vertical: isMobile ? 10 : 16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              border: Border(bottom: BorderSide(color: attrs.borderMain)),
+            ),
+            child: isMobile
+                ? _buildHeaderBarMobile()
+                : _buildHeaderBarDesktop(),
           ),
-          child: Row(
+        ),
+      );
+    });
+  }
+
+  Widget _buildHeaderBarMobile() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Zeile 1: Zurück + Titel (gekürzt) + machine_name badge
+        Row(children: [
+          IconButton(
+            icon: const Icon(LucideIcons.arrowLeft,
+                color: Colors.white70, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => context.go('/'),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _englishTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  widget.machineName,
+                  style: TextStyle(
+                    color: _getStatusColor(),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          // Source drawer toggle (icon only)
+          Tooltip(
+            message: _sourceDrawerOpen
+                ? 'Englische Quelle schließen'
+                : 'Englische Quelle einblenden',
+            child: IconButton(
+              icon: Icon(
+                LucideIcons.panelLeft,
+                color: _sourceDrawerOpen ? attrs.brand600 : Colors.white54,
+                size: 18,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () =>
+                  setState(() => _sourceDrawerOpen = !_sourceDrawerOpen),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        // Zeile 2: Aktions-Buttons
+        Row(children: [
+          if (_isReviewMode) ...[
+            Tooltip(
+              message: 'Zurück in Review setzen',
+              child: IconButton(
+                icon: const Icon(LucideIcons.rotateCcw,
+                    color: Colors.orange, size: 18),
+                onPressed: _resetReview,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : () => _save(andNext: false),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(LucideIcons.save, size: 14),
+              label: const Text('Speichern',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: attrs.brand600,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : () => _save(andNext: true),
+              icon: const Icon(LucideIcons.chevronsRight, size: 14),
+              label: const Text('& Weiter',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _buildHeaderBarDesktop() {
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white70),
+          onPressed: () => context.go('/'),
+          tooltip: 'Zurück zum Dashboard',
+        ),
+        const SizedBox(width: 4),
+
+        // Source drawer toggle
+        Tooltip(
+          message: _sourceDrawerOpen
+              ? 'Englische Quelle schließen'
+              : 'Englische Quelle einblenden',
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: _sourceDrawerOpen
+                  ? attrs.brand600.withValues(alpha: 0.2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _sourceDrawerOpen
+                    ? attrs.brand600.withValues(alpha: 0.2)
+                    : Colors.transparent,
+              ),
+            ),
+            child: IconButton(
+              icon: Icon(
+                LucideIcons.panelLeft,
+                color:
+                    _sourceDrawerOpen ? attrs.brand600 : Colors.white54,
+                size: 18,
+              ),
+              onPressed: () =>
+                  setState(() => _sourceDrawerOpen = !_sourceDrawerOpen),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Project title + machine name badge
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(LucideIcons.arrowLeft, color: Colors.white70),
-                onPressed: () => context.go('/'),
-                tooltip: 'Zurück zum Dashboard',
-              ),
-              const SizedBox(width: 4),
-
-              // Source drawer toggle
-              Tooltip(
-                message: _sourceDrawerOpen
-                    ? 'Englische Quelle schließen'
-                    : 'Englische Quelle einblenden',
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: _sourceDrawerOpen
-                        ? attrs.brand600.withValues(alpha: 0.2)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _sourceDrawerOpen
-                          ? attrs.brand600.withValues(alpha: 0.2)
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      LucideIcons.panelLeft,
-                      color: _sourceDrawerOpen
-                          ? attrs.brand600
-                          : Colors.white54,
-                      size: 18,
-                    ),
-                    onPressed: () => setState(
-                        () => _sourceDrawerOpen = !_sourceDrawerOpen),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Project title + machine name badge
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(LucideIcons.globe,
-                            size: 16, color: attrs.brand600),
-                        const SizedBox(width: 8),
-                        Text(
-                          _englishTitle,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor().withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: _getStatusColor()
-                                    .withValues(alpha: 0.2)),
-                          ),
-                          child: Text(
-                            widget.machineName,
-                            style: TextStyle(
-                              color: _getStatusColor(),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Builder(builder: (context) {
-                      final lang = ref.watch(languageProvider).targetLanguage;
-                      return Text(
-                        'Übersetze nach ${lang.name} (${lang.code})',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            fontSize: 12),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-
-              // Priority count
-              if (_remainingPriorityCount != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.15)),
-                  ),
-                  child: Text(
-                    '$_remainingPriorityCount verbleibend',
+              Row(
+                children: [
+                  Icon(LucideIcons.globe,
+                      size: 16, color: attrs.brand600),
+                  const SizedBox(width: 8),
+                  Text(
+                    _englishTitle,
                     style: const TextStyle(
-                        color: Colors.amber,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 16),
-              ],
-
-              // "Un-publish" button — only shown for already-reviewed translations
-              if (_isReviewMode) ...[
-                Tooltip(
-                  message: 'Veröffentlichung zurücknehmen und zurück in Review setzen',
-                  child: OutlinedButton.icon(
-                    onPressed: _resetReview,
-                    icon: const Icon(LucideIcons.rotateCcw, size: 14),
-                    label: const Text('Zurück in Review'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange,
-                      side: const BorderSide(color: Colors.orange, width: 1),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Save button
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : () => _save(andNext: false),
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(LucideIcons.save, size: 16),
-                label: const Text('Speichern'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: attrs.brand600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor().withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color:
+                              _getStatusColor().withValues(alpha: 0.2)),
+                    ),
+                    child: Text(
+                      widget.machineName,
+                      style: TextStyle(
+                        color: _getStatusColor(),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-
-              // Save & Next button
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : () => _save(andNext: true),
-                icon: const Icon(LucideIcons.chevronsRight, size: 16),
-                label: const Text('Speichern & Weiter'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white10),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
+              const SizedBox(height: 4),
+              Builder(builder: (context) {
+                final lang =
+                    ref.watch(languageProvider).targetLanguage;
+                return Text(
+                  'Übersetze nach ${lang.name} (${lang.code})',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      fontSize: 12),
+                );
+              }),
             ],
           ),
         ),
-      ),
+
+        // Priority count
+        if (_remainingPriorityCount != null) ...[
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: Colors.amber.withValues(alpha: 0.15)),
+            ),
+            child: Text(
+              '$_remainingPriorityCount verbleibend',
+              style: const TextStyle(
+                  color: Colors.amber,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+
+        // "Un-publish" button
+        if (_isReviewMode) ...[
+          Tooltip(
+            message:
+                'Veröffentlichung zurücknehmen und zurück in Review setzen',
+            child: OutlinedButton.icon(
+              onPressed: _resetReview,
+              icon: const Icon(LucideIcons.rotateCcw, size: 14),
+              label: const Text('Zurück in Review'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange, width: 1),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+
+        // Save button
+        ElevatedButton.icon(
+          onPressed: _isSaving ? null : () => _save(andNext: false),
+          icon: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Icon(LucideIcons.save, size: 16),
+          label: const Text('Speichern'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: attrs.brand600,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Save & Next button
+        ElevatedButton.icon(
+          onPressed: _isSaving ? null : () => _save(andNext: true),
+          icon: const Icon(LucideIcons.chevronsRight, size: 16),
+          label: const Text('Speichern & Weiter'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ],
     );
   }
 

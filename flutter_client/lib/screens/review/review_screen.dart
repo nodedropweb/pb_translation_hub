@@ -1,5 +1,7 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:js' as js;
 import 'dart:convert';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import '../../providers/language_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../utils/translation_prompt.dart';
 import '../../utils/html_sanitizer.dart';
+import '../../utils/ck_glossary.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/ckeditor_field.dart';
 import '../../widgets/glass_container.dart';
@@ -319,7 +322,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     _registerReviewWysiwygViews();
     _setupMessageListener();
     _setupKeyDownListener();
-    Future.microtask(() => _fetchData());
+    Future.microtask(() async {
+      await _fetchData();
+      // CKEditor braucht ~120 ms zum Initialisieren nach dem ersten Render.
+      // Glossar kurz verzögert laden damit setGlobalGlossary auf einen
+      // bereits fertigen Editor trifft.
+      await Future.delayed(const Duration(milliseconds: 400));
+      _loadGlossary();
+    });
+  }
+
+  /// Lädt das Glossar für die aktuelle Zielsprache und übergibt es
+  /// an die CKEditor-Bridge, die alle aktiven Editoren damit hervorhebt.
+  Future<void> _loadGlossary() async {
+    final lang = ref.read(languageProvider).targetLanguage.code;
+    await loadCkEditorGlossary(_api, lang);
   }
 
   @override
@@ -520,6 +537,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     setState(() => _approving = true);
 
+    // Ensure any unsaved content in CodeMirror source iframes is flushed to
+    // the controllers synchronously before we snapshot them.
+    _flushSourceEditors();
+
     // Snapshot controllers before navigation (they get disposed with the widget)
     final snapTitle   = _titleController.text;
     final snapSummary = _summaryController.text;
@@ -542,6 +563,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         await Future.delayed(const Duration(milliseconds: 900));
       }
     }
+
+    // Decrement the review badge immediately so the counter updates without
+    // waiting for a server round-trip (optimistic update).
+    ref.read(filterCountsProvider.notifier).decrementReview();
 
     _goToNextReview();
 
@@ -888,6 +913,38 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     }
   }
 
+  /// Synchronously reads the latest content from any open source-editor
+  /// iframes (CodeMirror) directly via JS eval, bypassing the postMessage
+  /// queue. This avoids a race condition where the user edits in CodeMirror
+  /// and immediately clicks Approve before the postMessage handler has run.
+  void _flushSourceEditors() {
+    const jsExpr = 'editor ? editor.getValue() '
+        ': (document.getElementById("fallback-textarea") '
+        '   ? document.getElementById("fallback-textarea").value : "")';
+
+    if (_showSummaryHtml && _activeSummarySourceIFrame != null) {
+      try {
+        final win = js.JsObject.fromBrowserObject(
+            _activeSummarySourceIFrame!.contentWindow!);
+        final result = win.callMethod('eval', [jsExpr]);
+        if (result is String && result.isNotEmpty) {
+          _summaryController.text = result;
+        }
+      } catch (_) {}
+    }
+
+    if (_showBodyHtml && _activeBodySourceIFrame != null) {
+      try {
+        final win = js.JsObject.fromBrowserObject(
+            _activeBodySourceIFrame!.contentWindow!);
+        final result = win.callMethod('eval', [jsExpr]);
+        if (result is String && result.isNotEmpty) {
+          _bodyController.text = result;
+        }
+      } catch (_) {}
+    }
+  }
+
   /// Returns the native display name for a language code (used for the chip
   /// in the header so users see "DEUTSCH" instead of "GERMAN").
   static String _nativeLangName(String code) {
@@ -941,10 +998,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     // Dashboard "Review" tab) instead of the capped _queue list length.
     final reviewCount = ref.watch(filterCountsProvider).review;
 
-    // Re-fetch data whenever the user switches the target language in the sidebar
+    // Re-fetch data + glossary whenever the user switches the target language
     ref.listen(languageProvider, (previous, next) {
       if (previous?.targetLanguage.code != next.targetLanguage.code) {
         _fetchData();
+        _loadGlossary();
       }
     });
 
@@ -972,6 +1030,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final baseSummary = baseData['summary'] ?? '';
     final baseBody = baseData['body'] ?? '';
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -988,218 +1048,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         child: Focus(
           autofocus: true,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32.0),
+            padding: EdgeInsets.all(isMobile ? 12.0 : 32.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header bar
             GlassContainer(
               border: Border.all(color: attrs.borderMain),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(LucideIcons.arrowLeft, color: attrs.textMuted),
-                        onPressed: () => context.go('/'),
-                      ),
-                      const SizedBox(width: 4),
-                      // Off-canvas panel toggle — links, weil Panel links aufgeht
-                      Tooltip(
-                        message: _sidebarOpen
-                            ? (isGerman ? 'Details ausblenden' : 'Hide details')
-                            : (isGerman ? 'Details & Englische Quelle' : 'Details & English Source'),
-                        child: IconButton(
-                          onPressed: () => setState(() => _sidebarOpen = !_sidebarOpen),
-                          icon: Icon(
-                            _sidebarOpen ? LucideIcons.panelLeftClose : LucideIcons.panelLeft,
-                            size: 18,
-                            color: _sidebarOpen ? attrs.brand600 : Colors.white54,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: _sidebarOpen
-                                ? attrs.brand600.withOpacity(0.2)
-                                : Colors.white.withOpacity(0.1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(LucideIcons.shieldCheck, color: attrs.brand600, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                isGerman ? 'HUMAN REVIEW' : 'HUMAN REVIEW',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: attrs.textMain,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: attrs.brand600.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: attrs.brand600.withValues(alpha: 0.2)),
-                                ),
-                                child: Text(
-                                  _nativeLangName(langState.targetLanguage.code),
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    color: attrs.brand600,
-                                  ),
-                                ),
-                              ),
-                              if (reviewCount > 0) ...[
-                                const SizedBox(width: 16),
-                                // Clickable counter → opens review list
-                                Tooltip(
-                                  message: isGerman
-                                      ? 'Review-Warteschlange öffnen'
-                                      : 'Open review queue',
-                                  child: InkWell(
-                                    onTap: () => context.go('/review-list'),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(LucideIcons.layers, size: 14, color: attrs.brand600),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            isGerman
-                                                ? '$reviewCount ausstehend'
-                                                : '$reviewCount pending',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: attrs.brand600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${isGerman ? "Überprüfung von" : "Reviewing"} ${widget.machineName}',
-                            style: TextStyle(color: attrs.textMuted, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      // ── Manual prompt copy ──────────────────────────────
-                      Tooltip(
-                        message: isGerman
-                            ? 'Quelltext + Übersetzungsprompt in die Zwischenablage kopieren'
-                            : 'Copy source text + translation prompt to clipboard',
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            final lang = ref.read(languageProvider).targetLanguage.code;
-                            final srcSummary = _project?['attributes']?['body']?['summary'] ?? '';
-                            final srcBody    = _project?['attributes']?['body']?['value'] ?? '';
-                            final prompt = buildTranslationPrompt(
-                              langcode: lang,
-                              sourceSummary: srcSummary,
-                              sourceBody: srcBody,
-                            );
-                            Clipboard.setData(ClipboardData(text: prompt));
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(isGerman
-                                  ? 'Prompt in die Zwischenablage kopiert 📋'
-                                  : 'Prompt copied to clipboard 📋'),
-                              backgroundColor: Colors.teal,
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 2),
-                            ));
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            side: BorderSide(color: attrs.borderMain),
-                            foregroundColor: attrs.textMuted,
-                          ),
-                          icon: const Icon(LucideIcons.clipboard, size: 16),
-                          label: Text(
-                            isGerman ? 'PROMPT' : 'PROMPT',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: _ignoring ? null : _handleToggleIgnore,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          side: BorderSide(color: _isIgnored ? attrs.brand600 : Colors.redAccent),
-                          foregroundColor: _isIgnored ? attrs.brand600 : Colors.redAccent,
-                        ),
-                        icon: _ignoring
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: _isIgnored ? attrs.brand600 : Colors.redAccent,
-                                ),
-                              )
-                            : Icon(_isIgnored ? LucideIcons.eye : LucideIcons.eyeOff, size: 16),
-                        label: Text(
-                          _isIgnored 
-                              ? (isGerman ? 'IGNORIEREN AUFHEBEN' : 'UNIGNORE')
-                              : (isGerman ? 'IGNORIEREN' : 'IGNORE'),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: () => _goToNextReview(),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          side: BorderSide(color: attrs.borderMain),
-                        ),
-                        icon: const Icon(LucideIcons.arrowRight, size: 16),
-                        label: Text(
-                          isGerman ? 'ÜBERSPRINGEN (Strg+→)' : 'SKIP (Ctrl+→)',
-                          style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: _approving ? null : _handleApprove,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          backgroundColor: attrs.brand600,
-                        ),
-                        icon: _approving 
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(LucideIcons.checkCircle, size: 16),
-                        label: Text(
-                          isGerman ? 'FREIGEBEN FÜR PRODUKTION (Strg+Enter)' : 'APPROVE FOR PRODUCTION (Ctrl+Enter)',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 24,
+                  vertical: isMobile ? 10 : 16),
+              child: isMobile
+                  ? _buildReviewHeaderMobile(attrs, isGerman, reviewCount)
+                  : _buildReviewHeaderDesktop(attrs, isGerman, reviewCount),
             ),
             const SizedBox(height: 32),
 
@@ -1273,7 +1134,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       const SizedBox(height: 24),
 
                       // Canvas Content
-                      _buildCanvasContent(attrs, isGerman, baseTitle, baseSummary, baseBody),
+                      _buildCanvasContent(attrs, isGerman, baseTitle, baseSummary, baseBody, isMobile),
                     ],
                   ),
                 ),
@@ -1308,6 +1169,439 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
+  // ── Responsive Header Helpers ────────────────────────────────────────────
+
+  void _copyPromptToClipboard(bool isGerman) {
+    final lang = ref.read(languageProvider).targetLanguage.code;
+    final srcSummary = _project?['attributes']?['body']?['summary'] ?? '';
+    final srcBody    = _project?['attributes']?['body']?['value'] ?? '';
+    final prompt = buildTranslationPrompt(
+      langcode: lang,
+      sourceSummary: srcSummary,
+      sourceBody: srcBody,
+    );
+    Clipboard.setData(ClipboardData(text: prompt));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(isGerman
+          ? 'Prompt in die Zwischenablage kopiert 📋'
+          : 'Prompt copied to clipboard 📋'),
+      backgroundColor: Colors.teal,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
+  /// Mobile-Header: zwei Zeilen — Titelzeile + Aktionszeile
+  Widget _buildReviewHeaderMobile(
+      ThemeAttributes attrs, bool isGerman, int reviewCount) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Zeile 1: Zurück + Sidebar + Titel + Counter
+        Row(children: [
+          IconButton(
+            icon: Icon(LucideIcons.arrowLeft, color: attrs.textMuted, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => context.go('/'),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: () => setState(() => _sidebarOpen = !_sidebarOpen),
+            icon: Icon(
+              _sidebarOpen ? LucideIcons.panelLeftClose : LucideIcons.panelLeft,
+              size: 18,
+              color: _sidebarOpen ? attrs.brand600 : Colors.white54,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(children: [
+                  Icon(LucideIcons.shieldCheck,
+                      color: attrs.brand600, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    isGerman ? 'Redaktionelle Überarbeitung' : 'Editorial Review',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: attrs.textMain,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: attrs.brand600.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _nativeLangName(
+                          ref.read(languageProvider).targetLanguage.code),
+                      style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                          color: attrs.brand600),
+                    ),
+                  ),
+                ]),
+                Text(
+                  widget.machineName,
+                  style:
+                      TextStyle(color: attrs.textMuted, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          if (reviewCount > 0)
+            Tooltip(
+              message: isGerman
+                  ? 'Review-Warteschlange öffnen'
+                  : 'Open review queue',
+              child: InkWell(
+                onTap: () => context.go('/review-list'),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(LucideIcons.layers,
+                        size: 12, color: attrs.brand600),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$reviewCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: attrs.brand600,
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+        ]),
+        const SizedBox(height: 8),
+        // Zeile 2: Aktions-Buttons als gleichmäßige Row
+        Row(children: [
+          // Prompt (icon only)
+          Tooltip(
+            message: isGerman
+                ? 'Prompt kopieren'
+                : 'Copy prompt',
+            child: OutlinedButton(
+              onPressed: () => _copyPromptToClipboard(isGerman),
+              style: OutlinedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                side: BorderSide(color: attrs.borderMain),
+                minimumSize: Size.zero,
+              ),
+              child: Icon(LucideIcons.clipboard,
+                  size: 16, color: attrs.textMuted),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Ignore (icon only)
+          Tooltip(
+            message: _isIgnored
+                ? (isGerman ? 'Ignorieren aufheben' : 'Unignore')
+                : (isGerman ? 'Ignorieren' : 'Ignore'),
+            child: OutlinedButton(
+              onPressed: _ignoring ? null : _handleToggleIgnore,
+              style: OutlinedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                side: BorderSide(
+                    color: _isIgnored ? attrs.brand600 : Colors.redAccent),
+                minimumSize: Size.zero,
+              ),
+              child: _ignoring
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _isIgnored ? attrs.brand600 : Colors.redAccent,
+                      ),
+                    )
+                  : Icon(
+                      _isIgnored ? LucideIcons.eye : LucideIcons.eyeOff,
+                      size: 16,
+                      color: _isIgnored ? attrs.brand600 : Colors.redAccent),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Skip
+          Tooltip(
+            message: isGerman ? 'Überspringen' : 'Skip',
+            child: OutlinedButton(
+              onPressed: () => _goToNextReview(),
+              style: OutlinedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                side: BorderSide(color: attrs.borderMain),
+                minimumSize: Size.zero,
+              ),
+              child: Icon(LucideIcons.arrowRight,
+                  size: 16, color: attrs.textMain),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Approve (full width remaining)
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _approving ? null : _handleApprove,
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+                backgroundColor: attrs.brand600,
+              ),
+              icon: _approving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(LucideIcons.checkCircle, size: 14),
+              label: Text(
+                isGerman ? 'FREIGEBEN' : 'APPROVE',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  /// Desktop-Header: Original-Layout (eine Zeile)
+  Widget _buildReviewHeaderDesktop(
+      ThemeAttributes attrs, bool isGerman, int reviewCount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(LucideIcons.arrowLeft, color: attrs.textMuted),
+              onPressed: () => context.go('/'),
+            ),
+            const SizedBox(width: 4),
+            Tooltip(
+              message: _sidebarOpen
+                  ? (isGerman ? 'Details ausblenden' : 'Hide details')
+                  : (isGerman
+                      ? 'Details & Englische Quelle'
+                      : 'Details & English Source'),
+              child: IconButton(
+                onPressed: () =>
+                    setState(() => _sidebarOpen = !_sidebarOpen),
+                icon: Icon(
+                  _sidebarOpen
+                      ? LucideIcons.panelLeftClose
+                      : LucideIcons.panelLeft,
+                  size: 18,
+                  color: _sidebarOpen ? attrs.brand600 : Colors.white54,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: _sidebarOpen
+                      ? attrs.brand600.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.1),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(LucideIcons.shieldCheck,
+                        color: attrs.brand600, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      isGerman ? 'Redaktionelle Überarbeitung' : 'Editorial Review',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: attrs.textMain,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: attrs.brand600.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: attrs.brand600.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        _nativeLangName(
+                            ref.read(languageProvider).targetLanguage.code),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: attrs.brand600,
+                        ),
+                      ),
+                    ),
+                    if (reviewCount > 0) ...[
+                      const SizedBox(width: 16),
+                      Tooltip(
+                        message: isGerman
+                            ? 'Review-Warteschlange öffnen'
+                            : 'Open review queue',
+                        child: InkWell(
+                          onTap: () => context.go('/review-list'),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.layers,
+                                    size: 14, color: attrs.brand600),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isGerman
+                                      ? '$reviewCount ausstehend'
+                                      : '$reviewCount pending',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: attrs.brand600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${isGerman ? "Überprüfung von" : "Reviewing"} ${widget.machineName}',
+                  style:
+                      TextStyle(color: attrs.textMuted, fontSize: 13),
+                ),
+              ],
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Tooltip(
+              message: isGerman
+                  ? 'Quelltext + Übersetzungsprompt in die Zwischenablage kopieren'
+                  : 'Copy source text + translation prompt to clipboard',
+              child: OutlinedButton.icon(
+                onPressed: () => _copyPromptToClipboard(isGerman),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
+                  side: BorderSide(color: attrs.borderMain),
+                  foregroundColor: attrs.textMuted,
+                ),
+                icon: const Icon(LucideIcons.clipboard, size: 16),
+                label: const Text('PROMPT',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _ignoring ? null : _handleToggleIgnore,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 16),
+                side: BorderSide(
+                    color:
+                        _isIgnored ? attrs.brand600 : Colors.redAccent),
+                foregroundColor:
+                    _isIgnored ? attrs.brand600 : Colors.redAccent,
+              ),
+              icon: _ignoring
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color:
+                            _isIgnored ? attrs.brand600 : Colors.redAccent,
+                      ),
+                    )
+                  : Icon(
+                      _isIgnored ? LucideIcons.eye : LucideIcons.eyeOff,
+                      size: 16),
+              label: Text(
+                _isIgnored
+                    ? (isGerman ? 'IGNORIEREN AUFHEBEN' : 'UNIGNORE')
+                    : (isGerman ? 'IGNORIEREN' : 'IGNORE'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () => _goToNextReview(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 16),
+                side: BorderSide(color: attrs.borderMain),
+              ),
+              icon: const Icon(LucideIcons.arrowRight, size: 16),
+              label: Text(
+                isGerman ? 'ÜBERSPRINGEN (Strg+→)' : 'SKIP (Ctrl+→)',
+                style: TextStyle(
+                    color: attrs.textMain, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: _approving ? null : _handleApprove,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 16),
+                backgroundColor: attrs.brand600,
+              ),
+              icon: _approving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(LucideIcons.checkCircle, size: 16),
+              label: Text(
+                isGerman
+                    ? 'FREIGEBEN FÜR PRODUKTION (Strg+Enter)'
+                    : 'APPROVE FOR PRODUCTION (Ctrl+Enter)',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _tabButton(String id, IconData icon, String label) {
     final active = _viewMode == id;
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
@@ -1327,7 +1621,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  Widget _buildCanvasContent(ThemeAttributes attrs, bool isGerman, String baseTitle, String baseSummary, String baseBody) {
+  Widget _buildCanvasContent(ThemeAttributes attrs, bool isGerman, String baseTitle, String baseSummary, String baseBody, [bool isMobile = false]) {
     // Viewport-proportional editor heights — scales across desktop, tablet and web.
     final vh = MediaQuery.of(context).size.height;
     final summaryEditorHeight = (vh * 0.20).clamp(160.0, 420.0);
@@ -1387,7 +1681,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     if (_viewMode == 'edit') {
       return GlassContainer(
         border: Border.all(color: attrs.borderMain),
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(isMobile ? 14.0 : 32.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1481,6 +1775,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   duration: Duration(seconds: 2),
                 ));
               },
+              onAutop: () {
+                final converted = _autop(_summaryController.text);
+                if (converted == _summaryController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
+                    duration: Duration(seconds: 2),
+                  ));
+                  return;
+                }
+                setState(() => _summaryController.text = converted);
+                if (_showSummaryHtml) {
+                  Future.delayed(const Duration(milliseconds: 50),
+                      () => _syncToSourceIFrame('summary', converted));
+                }
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Absätze formatiert ¶'),
+                  duration: Duration(seconds: 2),
+                ));
+              },
             ),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -1528,6 +1841,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 }
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('HTML bereinigt'),
+                  duration: Duration(seconds: 2),
+                ));
+              },
+              onAutop: () {
+                final converted = _autop(_bodyController.text);
+                if (converted == _bodyController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
+                    duration: Duration(seconds: 2),
+                  ));
+                  return;
+                }
+                setState(() => _bodyController.text = converted);
+                if (_showBodyHtml) {
+                  Future.delayed(const Duration(milliseconds: 50),
+                      () => _syncToSourceIFrame('body', converted));
+                }
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Absätze formatiert ¶'),
                   duration: Duration(seconds: 2),
                 ));
               },
@@ -1580,7 +1912,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     } else if (_viewMode == 'preview') {
       return GlassContainer(
         border: Border.all(color: attrs.borderMain),
-        padding: const EdgeInsets.all(40),
+        padding: EdgeInsets.all(isMobile ? 14.0 : 40.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1683,7 +2015,47 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  Widget _buildFieldModeToggle(String label, bool showHtml, ValueChanged<bool> onChanged, {Widget? action, VoidCallback? onTidy}) {
+  /// Port von WordPress wpautop() — wandelt Zeilenumbruch-formatierten Text
+  /// in saubere HTML-Absätze um. Doppelte Zeilenumbrüche → <p>, einzelne → <br>.
+  /// Wird übersprungen wenn der Text bereits <p>-Tags enthält.
+  static String _autop(String text) {
+    if (text.trim().isEmpty) return text;
+
+    // Bereits strukturiert — nicht nochmal wrappen
+    if (RegExp(r'<p[\s>]', caseSensitive: false).hasMatch(text)) return text;
+
+    // Zeilenenden normalisieren
+    text = text.replaceAll(RegExp(r'\r\n|\r'), '\n').trim();
+
+    // Mehrfach-Leerzeilen auf doppelt reduzieren
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    // Block-Tags sauber trennen (damit sie nicht in <p> enden)
+    const blocks =
+        r'(?:div|ul|ol|li|table|thead|tbody|tr|td|th|blockquote|pre|h[1-6]|hr|figure|figcaption|aside|section|article|header|footer|nav)';
+    text = text.replaceAllMapped(
+        RegExp('(</?$blocks[^>]*>)', caseSensitive: false),
+        (m) => '\n${m[1]}\n');
+    text = text.replaceAll(RegExp(r'\n{2,}'), '\n\n').trim();
+
+    // Chunks aufteilen und in <p> wrappen
+    final chunks = text.split(RegExp(r'\n\s*\n'));
+    final buf = StringBuffer();
+    for (final chunk in chunks) {
+      final t = chunk.trim();
+      if (t.isEmpty) continue;
+      // Ist der Chunk bereits ein Block-Element? Dann direkt ausgeben
+      if (RegExp('^<(?:$blocks)', caseSensitive: false).hasMatch(t)) {
+        buf.writeln(t);
+      } else {
+        // Einzelne Zeilenumbrüche innerhalb eines Absatzes → <br>
+        buf.writeln('<p>${t.replaceAll('\n', '<br>\n')}</p>');
+      }
+    }
+    return buf.toString().trim();
+  }
+
+  Widget _buildFieldModeToggle(String label, bool showHtml, ValueChanged<bool> onChanged, {Widget? action, VoidCallback? onTidy, VoidCallback? onAutop}) {
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -1707,6 +2079,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       child: Icon(LucideIcons.wand, size: 13, color: Colors.white38),
+                    ),
+                  ),
+                ),
+              ],
+              if (onAutop != null) ...[
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: 'Absätze automatisch formatieren (Zeilenumbrüche → <p>)',
+                  child: InkWell(
+                    onTap: onAutop,
+                    borderRadius: BorderRadius.circular(4),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Icon(LucideIcons.alignJustify, size: 13, color: Colors.white38),
                     ),
                   ),
                 ),

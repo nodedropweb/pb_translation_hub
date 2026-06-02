@@ -9,16 +9,21 @@ class ApiClient {
 
   /// Ermittelt die API-Basis-URL zur Laufzeit.
   ///
-  /// - Lokal (localhost / 127.0.0.1): direkter Zugriff auf den Dev-Server
-  ///   auf Port 9901 — funktioniert mit `hubctl.sh start` und `dev`.
-  /// - Produktion (z.B. pb.drupaltutorials.de): relativer Pfad `/api`,
+  /// - Lokal (localhost / 127.0.0.1 / nicht-Standard-Port): direkter Zugriff
+  ///   auf den Dev-Server auf Port 9901 — funktioniert mit `hubctl.sh start`
+  ///   und `dev`, auch wenn via WSL-IP (z.B. 172.x.x.x:5173) zugegriffen wird.
+  /// - Produktion (Port 80/443): relativer Pfad `/api`,
   ///   der von Nginx im Container zu `http://server:9901/api/` proxied wird.
   static String get baseUrl {
     if (kIsWeb) {
       final origin = Uri.base;
       final host = origin.host;
-      if (host == 'localhost' || host == '127.0.0.1') {
-        return 'http://localhost:9901/api';
+      final port = origin.port;
+      final isDev = host == 'localhost' ||
+          host == '127.0.0.1' ||
+          (port != 0 && port != 80 && port != 443);
+      if (isDev) {
+        return '${origin.scheme}://$host:9901/api';
       }
       // Produktion: gleicher Origin + /api (Nginx-Proxy übernimmt die Weiterleitung)
       return '${origin.scheme}://${origin.host}/api';
@@ -36,8 +41,12 @@ class ApiClient {
     if (kIsWeb) {
       final origin = Uri.base;
       final host = origin.host;
-      if (host == 'localhost' || host == '127.0.0.1') {
-        return 'http://localhost:9901';
+      final port = origin.port;
+      final isDev = host == 'localhost' ||
+          host == '127.0.0.1' ||
+          (port != 0 && port != 80 && port != 443);
+      if (isDev) {
+        return '${origin.scheme}://$host:9901';
       }
       return '${origin.scheme}://${origin.host}';
     }
@@ -79,8 +88,16 @@ class ApiClient {
             'API Error: ${e.response?.statusCode ?? "no status"} - ${e.message} on ${e.requestOptions.method} ${e.requestOptions.path}',
             error: e.response?.data,
           );
-          if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-            await TokenStorage.clearToken();
+          // Only clear the token when the server explicitly says the token is
+          // invalid or expired (403 with matching message).
+          // Do NOT clear on plain 401 ("No token provided") — those can be
+          // caused by race conditions or server-side bugs and should not log
+          // the user out or destroy a valid token.
+          if (e.response?.statusCode == 403) {
+            final msg = e.response?.data?.toString() ?? '';
+            if (msg.contains('Invalid') || msg.contains('expired')) {
+              await TokenStorage.clearToken();
+            }
           }
           return handler.next(e);
         },

@@ -11,6 +11,49 @@ Dates are in `YYYY-MM-DD` format.
 
 ---
 
+## [2.1.0] — 2026-06-02
+
+### Added
+
+#### Glossary Term Highlighting (CKEditor 5 Plugin)
+- **`server/migrations/005_create_glossary_terms.sql`** — new `glossary_terms` table (`id`, `lang_code`, `source_word`, `preferred_word`, `explanation`, `created_by`, timestamps). Indexed on `lang_code` and `source_word`.
+- **`server/routes/glossary.js`** — REST API: `GET /glossary` (filterable by `?langcode=`), `POST /glossary`, `PUT /glossary/:id`, `DELETE /glossary/:id`. Write endpoints require `reviewer` or `admin` role.
+- **`GlossaryHighlightPlugin`** in `web/index.html` — CKEditor 5 plugin using `markerToHighlight` (editing-only, never pollutes `getData()`). Markers carry `affectsData: false` so undo/redo ignores them.
+- **`_ckApplyGlossaryMarkers(editor)`** — applies `glossaryTerm:<id>:<uid>` model markers to every block element; uses `\b` word-boundary regex (case-insensitive). Runs inside `model.change()`.
+- **`_ckBridge.setGlobalGlossary(termsJson)`** — global glossary store. Calling this method re-applies markers in all active CKEditor instances immediately.
+- **Floating tooltip** (`#_ck_glossary_tip`) — appears on hover over `.ck-glossary-highlight` spans; shows preferred translation and explanation. Positioned to stay within the viewport.
+- **`flutter_client/lib/utils/ck_glossary.dart`** — shared Dart utilities:
+  - `loadCkEditorGlossary(api, langcode)` — fetches `/glossary` and calls `setGlobalGlossary` on the bridge. Called from both `ReviewScreen` and `EditorScreen` on mount and language change.
+  - `setCkEditorTheme(themeId)` — sets CSS custom properties on `#_ck_glossary_tip` and `:root` via `dart:html` directly (no JS bridge needed). Covers all 5 themes.
+- **`flutter_client/lib/screens/glossary/glossary_screen.dart`** — management UI for glossary terms. Reviewers and admins can add, edit, and delete terms. Shows the current target language's terms with source word, preferred translation, and explanation. Accessible via sidebar navigation item.
+- **Glossary loading in `EditorScreen`** — `_loadGlossary()` added (was previously only in `ReviewScreen`); triggered 400 ms after `initState` and on language change via `ref.listen`.
+- **Glossary loading in `ReviewScreen`** — refactored to call shared `loadCkEditorGlossary`; also triggered on language change.
+- **Markers re-applied after `setData`** — a 300 ms debounced call to `_ckApplyGlossaryMarkers` runs inside the `change:data` listener so markers are refreshed after any content change.
+
+#### Theme-aware Glossary Styling
+- **CSS custom properties** `--ck-hl-bg` and `--ck-hl-border` on `:root` control the highlight mark colour; `--tip-*` variables on `#_ck_glossary_tip` control the floating tooltip. Both are updated by `setCkEditorTheme()`.
+- **Per-theme colour sets** in `ck_glossary.dart`: dark (amber highlight, purple tooltip), light (purple highlight + tooltip), glassy (cyan), nature (green), liquid (sky-blue).
+- **`app_layout.dart`** calls `setCkEditorTheme(themeState.themeId)` on every `build()` — tooltip and highlight colours update instantly when the user switches themes.
+
+#### Developer Experience
+- **`api_client.dart` WSL / non-standard-port detection** — `baseUrl` and `serverOrigin` now recognise any non-standard port (not 80/443) as a development environment, resolving to `host:9901`. Previously only `localhost` / `127.0.0.1` were detected, causing login failures when accessing via WSL IP.
+
+#### Logging & Diagnostics
+- **`LogService`** (`lib/services/log_service.dart`) — in-memory ring buffer for `INFO` / `WARNING` / `ERROR` entries with timestamps and optional details. Integrates into Dio interceptors.
+- **Log download** (`lib/services/log_downloader_web.dart` / `_stub.dart`) — exports the log buffer as a JSON file via a `dart:html` Blob download on web.
+
+#### Audio Player
+- **`audio_player_web.dart` / `audio_player_stub.dart`** — conditional import wrapping `dart:html AudioElement` for web. Used by the CRWB Study Screen for TTS audio playback without native dependencies.
+
+#### CKEditor 5 Web Implementation
+- **`ckeditor_field_web_impl.dart`** — full web-only CKEditor 5 implementation extracted from `ckeditor_field.dart`. Registered via `ui_web.platformViewRegistry`. Handles `init`, `setData`, `destroy`, suppression CSS, and `didUpdateWidget` pushes.
+- **`ckeditor_field_stub.dart`** — non-web stub that satisfies the conditional import on desktop.
+
+### Fixed
+- **Glossary markers not shown in `EditorScreen`** — `loadCkEditorGlossary` was only called from `ReviewScreen`. Now also called from `EditorScreen`.
+
+---
+
 ## [2.0.0] — 2026-05-31
 
 ### Breaking Changes

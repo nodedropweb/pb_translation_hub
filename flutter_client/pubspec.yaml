@@ -48,6 +48,7 @@ dependencies:
   cached_network_image: ^3.4.1
   fleather: ^1.26.0
   parchment: ^1.25.1
+  file_picker: ^8.1.7
 
 dev_dependencies:
   flutter_test:
