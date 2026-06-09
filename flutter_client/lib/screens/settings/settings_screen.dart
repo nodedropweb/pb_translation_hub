@@ -1009,8 +1009,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      isGerman 
-                                          ? 'Vergrößert die Schrift und Badges für bessere Sichtbarkeit.' 
+                                      isGerman
+                                          ? 'Vergrößert die Schrift und Badges für bessere Sichtbarkeit.'
                                           : 'Increases the fonts and badges sizing for readability.',
                                       style: TextStyle(color: attrs.textMuted, fontSize: 11),
                                     ),
@@ -1020,6 +1020,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Switch(
                                 value: themeState.largeUi,
                                 onChanged: (val) => ref.read(themeProvider.notifier).setLargeUi(val),
+                                activeThumbColor: attrs.brand600,
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 32),
+
+                          // Auto-Autop
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isGerman
+                                          ? 'Automatische Absatzformatierung (¶ Auto-P)'
+                                          : 'Automatic Paragraph Formatting (¶ Auto-P)',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: attrs.textMain),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      isGerman
+                                          ? 'Wandelt einfachen Text automatisch in <p>-Absätze um, sobald ein Modul im Review-Screen geladen wird. Entspricht dem manuellen Klick auf den ¶-Button.'
+                                          : 'Automatically wraps plain text in <p> paragraphs when a module is loaded in the Review Screen. Equivalent to clicking the ¶ button manually.',
+                                      style: TextStyle(color: attrs.textMuted, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: themeState.autoAutop,
+                                onChanged: (val) => ref.read(themeProvider.notifier).setAutoAutop(val),
                                 activeThumbColor: attrs.brand600,
                               ),
                             ],

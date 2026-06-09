@@ -9,6 +9,9 @@ class ThemeState {
   final String fontStyle; // 'inter', 'outfit', 'sora'
   final bool confettiEnabled;
   final bool largeUi;
+  /// When true, _autop() is automatically applied to the Summary and Body
+  /// fields whenever a new module is loaded in the Review Screen.
+  final bool autoAutop;
   final String? bgImageUrl;
   final bool isLoadingBg;
   final Map<String, dynamic>? photographer;
@@ -18,6 +21,7 @@ class ThemeState {
     required this.fontStyle,
     required this.confettiEnabled,
     required this.largeUi,
+    required this.autoAutop,
     this.bgImageUrl,
     this.isLoadingBg = false,
     this.photographer,
@@ -28,6 +32,7 @@ class ThemeState {
     String? fontStyle,
     bool? confettiEnabled,
     bool? largeUi,
+    bool? autoAutop,
     String? bgImageUrl,
     bool? isLoadingBg,
     Map<String, dynamic>? photographer,
@@ -37,6 +42,7 @@ class ThemeState {
       fontStyle: fontStyle ?? this.fontStyle,
       confettiEnabled: confettiEnabled ?? this.confettiEnabled,
       largeUi: largeUi ?? this.largeUi,
+      autoAutop: autoAutop ?? this.autoAutop,
       bgImageUrl: bgImageUrl ?? this.bgImageUrl,
       isLoadingBg: isLoadingBg ?? this.isLoadingBg,
       photographer: photographer ?? this.photographer,
@@ -58,6 +64,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
       fontStyle: 'inter',
       confettiEnabled: true,
       largeUi: false,
+      autoAutop: false,
     );
   }
 
@@ -69,6 +76,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     final savedFont = prefs.getString('pb-fontStyle') ?? 'inter';
     final savedConfetti = prefs.getBool('pb-confettiEnabled') ?? true;
     final savedLargeUi = prefs.getBool('pb-largeUi') ?? false;
+    final savedAutoAutop = prefs.getBool('pb-autoAutop') ?? false;
     final savedBg = prefs.getString('pb-bgImage');
     
     Map<String, dynamic>? savedPhotographer;
@@ -84,6 +92,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
       fontStyle: savedFont,
       confettiEnabled: savedConfetti,
       largeUi: savedLargeUi,
+      autoAutop: savedAutoAutop,
       bgImageUrl: savedBg,
       photographer: savedPhotographer,
     );
@@ -118,6 +127,12 @@ class ThemeNotifier extends Notifier<ThemeState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('pb-largeUi', largeUi);
     state = state.copyWith(largeUi: largeUi);
+  }
+
+  Future<void> setAutoAutop(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('pb-autoAutop', enabled);
+    state = state.copyWith(autoAutop: enabled);
   }
 
   Future<void> fetchNewBackground() async {

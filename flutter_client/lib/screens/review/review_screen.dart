@@ -467,6 +467,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _diffBase = 'current';
     }
 
+    // Auto-Autop: wenn die Einstellung aktiv ist, Absätze automatisch formatieren
+    // bevor der Screen angezeigt wird — identisch zum manuellen ¶-Button-Klick.
+    if (ref.read(themeProvider).autoAutop) {
+      final convertedSummary = _autop(_summaryController.text);
+      if (convertedSummary != _summaryController.text) {
+        _summaryController.text = convertedSummary;
+      }
+      final convertedBody = _autop(_bodyController.text);
+      if (convertedBody != _bodyController.text) {
+        _bodyController.text = convertedBody;
+      }
+    }
+
     setState(() {
       _loading = false;
     });
