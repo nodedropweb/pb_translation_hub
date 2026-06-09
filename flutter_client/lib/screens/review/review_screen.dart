@@ -21,6 +21,7 @@ import '../../utils/ck_glossary.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/ckeditor_field.dart';
 import '../../widgets/glass_container.dart';
+import '../../widgets/search_with_autocomplete.dart';
 import 'widgets/review_diff_view.dart';
 import 'widgets/review_sidebar.dart';
 
@@ -1175,6 +1176,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   // ── Responsive Header Helpers ────────────────────────────────────────────
 
+  /// Kompaktes Suchfeld — navigiert direkt zum Review des gewählten Moduls.
+  Widget _buildReviewSearch(ThemeAttributes attrs, bool isGerman,
+      {double width = 240}) {
+    final search = SearchWithAutocomplete(
+      initialValue: '',
+      activeFilter: 'review',
+      onSearchChanged: (_) {},
+      onSuggestionSelected: (s) {
+        final nextQueue =
+            _queue.where((n) => n != widget.machineName).toList();
+        context.go('/review/${s.machineName}',
+            extra: {'queue': nextQueue});
+      },
+    );
+    return width == double.infinity
+        ? search
+        : SizedBox(width: width, child: search);
+  }
+
   void _copyPromptToClipboard(bool isGerman) {
     final lang = ref.read(languageProvider).targetLanguage.code;
     final srcSummary = _project?['attributes']?['body']?['summary'] ?? '';
@@ -1296,7 +1316,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             ),
         ]),
         const SizedBox(height: 8),
-        // Zeile 2: Aktions-Buttons als gleichmäßige Row
+        // Zeile 2: Suche (volle Breite)
+        _buildReviewSearch(attrs, isGerman, width: double.infinity),
+        const SizedBox(height: 8),
+        // Zeile 3: Aktions-Buttons als gleichmäßige Row
         Row(children: [
           // Prompt (icon only)
           Tooltip(
@@ -1390,129 +1413,145 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  /// Desktop-Header: Original-Layout (eine Zeile)
+  /// Desktop-Header: Titel links | Suche Mitte | Aktionen rechts
   Widget _buildReviewHeaderDesktop(
       ThemeAttributes attrs, bool isGerman, int reviewCount) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            IconButton(
-              icon: Icon(LucideIcons.arrowLeft, color: attrs.textMuted),
-              onPressed: () => context.go('/'),
-            ),
-            const SizedBox(width: 4),
-            Tooltip(
-              message: _sidebarOpen
-                  ? (isGerman ? 'Details ausblenden' : 'Hide details')
-                  : (isGerman
-                      ? 'Details & Englische Quelle'
-                      : 'Details & English Source'),
-              child: IconButton(
-                onPressed: () =>
-                    setState(() => _sidebarOpen = !_sidebarOpen),
-                icon: Icon(
-                  _sidebarOpen
-                      ? LucideIcons.panelLeftClose
-                      : LucideIcons.panelLeft,
-                  size: 18,
-                  color: _sidebarOpen ? attrs.brand600 : Colors.white54,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: _sidebarOpen
-                      ? attrs.brand600.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.1),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+        // ── Links: Zurück + Sidebar + Titel ──────────────────────────────────
+        Expanded(
+          flex: 3,
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(LucideIcons.arrowLeft, color: attrs.textMuted),
+                onPressed: () => context.go('/'),
+              ),
+              const SizedBox(width: 4),
+              Tooltip(
+                message: _sidebarOpen
+                    ? (isGerman ? 'Details ausblenden' : 'Hide details')
+                    : (isGerman
+                        ? 'Details & Englische Quelle'
+                        : 'Details & English Source'),
+                child: IconButton(
+                  onPressed: () =>
+                      setState(() => _sidebarOpen = !_sidebarOpen),
+                  icon: Icon(
+                    _sidebarOpen
+                        ? LucideIcons.panelLeftClose
+                        : LucideIcons.panelLeft,
+                    size: 18,
+                    color: _sidebarOpen ? attrs.brand600 : Colors.white54,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: _sidebarOpen
+                        ? attrs.brand600.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(LucideIcons.shieldCheck,
-                        color: attrs.brand600, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      isGerman ? 'Redaktionelle Überarbeitung' : 'Editorial Review',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: attrs.textMain,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: attrs.brand600.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: attrs.brand600.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        _nativeLangName(
-                            ref.read(languageProvider).targetLanguage.code),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.shieldCheck,
+                          color: attrs.brand600, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        isGerman
+                            ? 'Redaktionelle Überarbeitung'
+                            : 'Editorial Review',
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: attrs.brand600,
+                          color: attrs.textMain,
+                          letterSpacing: 1,
                         ),
                       ),
-                    ),
-                    if (reviewCount > 0) ...[
-                      const SizedBox(width: 16),
-                      Tooltip(
-                        message: isGerman
-                            ? 'Review-Warteschlange öffnen'
-                            : 'Open review queue',
-                        child: InkWell(
-                          onTap: () => context.go('/review-list'),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.layers,
-                                    size: 14, color: attrs.brand600),
-                                const SizedBox(width: 6),
-                                Text(
-                                  isGerman
-                                      ? '$reviewCount ausstehend'
-                                      : '$reviewCount pending',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: attrs.brand600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: attrs.brand600.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: attrs.brand600.withValues(alpha: 0.2)),
+                        ),
+                        child: Text(
+                          _nativeLangName(
+                              ref.read(languageProvider).targetLanguage.code),
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: attrs.brand600,
                           ),
                         ),
                       ),
+                      if (reviewCount > 0) ...[
+                        const SizedBox(width: 16),
+                        Tooltip(
+                          message: isGerman
+                              ? 'Review-Warteschlange öffnen'
+                              : 'Open review queue',
+                          child: InkWell(
+                            onTap: () => context.go('/review-list'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.layers,
+                                      size: 14, color: attrs.brand600),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    isGerman
+                                        ? '$reviewCount ausstehend'
+                                        : '$reviewCount pending',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: attrs.brand600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${isGerman ? "Überprüfung von" : "Reviewing"} ${widget.machineName}',
-                  style:
-                      TextStyle(color: attrs.textMuted, fontSize: 13),
-                ),
-              ],
-            ),
-          ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${isGerman ? "Überprüfung von" : "Reviewing"} ${widget.machineName}',
+                    style: TextStyle(color: attrs.textMuted, fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
+
+        // ── Mitte: Suchfeld ──────────────────────────────────────────────────
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildReviewSearch(attrs, isGerman),
+          ),
+        ),
+
+        // ── Rechts: Aktions-Buttons ──────────────────────────────────────────
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Tooltip(
               message: isGerman
@@ -1549,8 +1588,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color:
-                            _isIgnored ? attrs.brand600 : Colors.redAccent,
+                        color: _isIgnored
+                            ? attrs.brand600
+                            : Colors.redAccent,
                       ),
                     )
                   : Icon(
@@ -1606,13 +1646,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  /// Tablet-Header (600–1099 dp): Desktop-Layout ohne Keyboard-Shortcut-Hinweise
+  /// Tablet-Header (600–1099 dp): Zeile 1 Titel+Suche, Zeile 2 Buttons
   Widget _buildReviewHeaderTablet(
       ThemeAttributes attrs, bool isGerman, int reviewCount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Left side — identical to desktop
+        // ── Zeile 1: Zurück + Sidebar + Titel | Suchfeld ───────────────────
         Row(
           children: [
             IconButton(
@@ -1623,11 +1664,16 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             Tooltip(
               message: _sidebarOpen
                   ? (isGerman ? 'Details ausblenden' : 'Hide details')
-                  : (isGerman ? 'Details & Englische Quelle' : 'Details & English Source'),
+                  : (isGerman
+                      ? 'Details & Englische Quelle'
+                      : 'Details & English Source'),
               child: IconButton(
-                onPressed: () => setState(() => _sidebarOpen = !_sidebarOpen),
+                onPressed: () =>
+                    setState(() => _sidebarOpen = !_sidebarOpen),
                 icon: Icon(
-                  _sidebarOpen ? LucideIcons.panelLeftClose : LucideIcons.panelLeft,
+                  _sidebarOpen
+                      ? LucideIcons.panelLeftClose
+                      : LucideIcons.panelLeft,
                   size: 18,
                   color: _sidebarOpen ? attrs.brand600 : Colors.white54,
                 ),
@@ -1635,71 +1681,90 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   backgroundColor: _sidebarOpen
                       ? attrs.brand600.withOpacity(0.2)
                       : Colors.white.withOpacity(0.1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(LucideIcons.shieldCheck, color: attrs.brand600, size: 18),
-                    const SizedBox(width: 8),
+                    Icon(LucideIcons.shieldCheck,
+                        color: attrs.brand600, size: 16),
+                    const SizedBox(width: 6),
                     Text(
                       isGerman ? 'Redakt. Überarbeitung' : 'Editorial Review',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                         color: attrs.textMain,
-                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: attrs.brand600.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _nativeLangName(ref.read(languageProvider).targetLanguage.code),
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: attrs.brand600),
+                        _nativeLangName(
+                            ref.read(languageProvider).targetLanguage.code),
+                        style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            color: attrs.brand600),
                       ),
                     ),
                     if (reviewCount > 0) ...[
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Tooltip(
-                        message: isGerman ? 'Review-Warteschlange öffnen' : 'Open review queue',
+                        message: isGerman
+                            ? 'Review-Warteschlange öffnen'
+                            : 'Open review queue',
                         child: InkWell(
                           onTap: () => context.go('/review-list'),
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(LucideIcons.layers, size: 13, color: attrs.brand600),
-                              const SizedBox(width: 4),
-                              Text('$reviewCount',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: attrs.brand600)),
-                            ]),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 3),
+                            child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.layers,
+                                      size: 12, color: attrs.brand600),
+                                  const SizedBox(width: 3),
+                                  Text('$reviewCount',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: attrs.brand600)),
+                                ]),
                           ),
                         ),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.machineName,
-                  style: TextStyle(color: attrs.textMuted, fontSize: 11),
-                ),
+                Text(widget.machineName,
+                    style:
+                        TextStyle(color: attrs.textMuted, fontSize: 10)),
               ],
             ),
+            const Spacer(),
+            // Suchfeld rechts in Zeile 1
+            _buildReviewSearch(attrs, isGerman, width: 220),
           ],
         ),
-        // Right side — compact buttons without keyboard shortcut labels
+        const SizedBox(height: 8),
+
+        // ── Zeile 2: Aktions-Buttons ────────────────────────────────────────
         Row(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Tooltip(
               message: isGerman
@@ -1708,64 +1773,85 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => _copyPromptToClipboard(isGerman),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 12),
                   side: BorderSide(color: attrs.borderMain),
                   foregroundColor: attrs.textMuted,
                 ),
-                icon: const Icon(LucideIcons.clipboard, size: 14),
-                label: const Text('PROMPT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                icon: const Icon(LucideIcons.clipboard, size: 13),
+                label: const Text('PROMPT',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 11)),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             OutlinedButton.icon(
               onPressed: _ignoring ? null : _handleToggleIgnore,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                side: BorderSide(color: _isIgnored ? attrs.brand600 : Colors.redAccent),
-                foregroundColor: _isIgnored ? attrs.brand600 : Colors.redAccent,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12),
+                side: BorderSide(
+                    color:
+                        _isIgnored ? attrs.brand600 : Colors.redAccent),
+                foregroundColor:
+                    _isIgnored ? attrs.brand600 : Colors.redAccent,
               ),
               icon: _ignoring
                   ? SizedBox(
-                      width: 14, height: 14,
+                      width: 13,
+                      height: 13,
                       child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: _isIgnored ? attrs.brand600 : Colors.redAccent))
-                  : Icon(_isIgnored ? LucideIcons.eye : LucideIcons.eyeOff, size: 14),
+                          color: _isIgnored
+                              ? attrs.brand600
+                              : Colors.redAccent))
+                  : Icon(
+                      _isIgnored ? LucideIcons.eye : LucideIcons.eyeOff,
+                      size: 13),
               label: Text(
                 _isIgnored
                     ? (isGerman ? 'EINREIHEN' : 'UNIGNORE')
                     : (isGerman ? 'IGNORIEREN' : 'IGNORE'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 11),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             OutlinedButton.icon(
               onPressed: () => _goToNextReview(),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12),
                 side: BorderSide(color: attrs.borderMain),
               ),
-              icon: const Icon(LucideIcons.arrowRight, size: 14),
+              icon: const Icon(LucideIcons.arrowRight, size: 13),
               label: Text(
                 isGerman ? 'ÜBERSPRINGEN' : 'SKIP',
-                style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold, fontSize: 12),
+                style: TextStyle(
+                    color: attrs.textMain,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               onPressed: _approving ? null : _handleApprove,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
                 backgroundColor: attrs.brand600,
               ),
               icon: _approving
                   ? const SizedBox(
-                      width: 14, height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(LucideIcons.checkCircle, size: 14),
+                      width: 13,
+                      height: 13,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(LucideIcons.checkCircle, size: 13),
               label: Text(
                 isGerman ? 'FREIGEBEN' : 'APPROVE',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 11),
               ),
             ),
           ],

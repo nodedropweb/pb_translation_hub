@@ -5,7 +5,6 @@
 ///
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 import 'dart:ui_web' as ui_web;
@@ -43,6 +42,8 @@ class _CkEditorFieldWebImplState extends State<CkEditorFieldWebImpl> {
   html.DivElement? _container;
   bool _editorReady = false;
   String _lastContent = '';
+  // Watches for onReady not firing (e.g. DOM/plugin timing on first load).
+  bool _initRetryScheduled = false;
 
   @override
   void initState() {
@@ -78,9 +79,11 @@ class _CkEditorFieldWebImplState extends State<CkEditorFieldWebImpl> {
       _applySuppressionCss(widget.suppressed);
     }
 
-    if (widget.initialHtml != _lastContent && _editorReady) {
+    if (widget.initialHtml != _lastContent) {
       _lastContent = widget.initialHtml;
-      _setData(widget.initialHtml);
+      if (_editorReady) {
+        _setData(widget.initialHtml);
+      }
     }
   }
 
@@ -114,6 +117,7 @@ class _CkEditorFieldWebImplState extends State<CkEditorFieldWebImpl> {
     final onReady = js.allowInterop(() {
       if (!mounted) return;
       _editorReady = true;
+      _initRetryScheduled = false;
       _setData(widget.initialHtml);
     });
 
@@ -124,6 +128,20 @@ class _CkEditorFieldWebImplState extends State<CkEditorFieldWebImpl> {
     });
 
     (bridge as js.JsObject).callMethod('init', [_id, toolbarItems, onReady, onChange]);
+
+    // Safety net: if onReady has not fired after 3 s (DOM timing / plugin
+    // failure on initial app load), tear down and reinitialise the editor.
+    if (!_initRetryScheduled) {
+      _initRetryScheduled = true;
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted || _editorReady) return;
+        debugPrint('[CkEditorField] onReady timeout for id=$_id — retrying init');
+        _destroyEditor();
+        _editorReady = false;
+        _initRetryScheduled = false;
+        _initEditor();
+      });
+    }
   }
 
   void _setData(String content) {

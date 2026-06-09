@@ -30,6 +30,12 @@ module.exports = (ctx) => {
       }
       sql += ' ORDER BY g.source_word ASC';
       const [rows] = await db.execute(sql, params);
+      // Normalize word_forms: always return as array for the JS plugin
+      rows.forEach(row => {
+        row.word_forms = row.word_forms
+          ? row.word_forms.split(',').map(s => s.trim()).filter(Boolean)
+          : [];
+      });
       res.json(rows);
     } catch (err) {
       console.error('[glossary] GET error:', err);
@@ -39,18 +45,24 @@ module.exports = (ctx) => {
 
   // ── POST /glossary  ────────────────────────────────────────────────────────
   router.post('/glossary', authenticateToken, isReviewerOrAdmin, async (req, res) => {
-    const { lang_code, source_word, preferred_word, explanation } = req.body;
+    const { lang_code, source_word, preferred_word, explanation, word_forms } = req.body;
     if (!lang_code || !source_word || !preferred_word) {
       return res.status(400).json({ error: 'lang_code, source_word and preferred_word are required' });
     }
+    const wordFormsStr = Array.isArray(word_forms)
+      ? word_forms.map(s => s.trim()).filter(Boolean).join(',')
+      : (word_forms || '').trim();
     try {
       const [result] = await db.execute(
-        `INSERT INTO glossary_terms (lang_code, source_word, preferred_word, explanation, created_by)
-         VALUES (?, ?, ?, ?, ?)`,
-        [lang_code.trim(), source_word.trim(), preferred_word.trim(),
-         (explanation || '').trim(), req.user.id]
+        `INSERT INTO glossary_terms (lang_code, source_word, word_forms, preferred_word, explanation, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [lang_code.trim(), source_word.trim(), wordFormsStr || null,
+         preferred_word.trim(), (explanation || '').trim(), req.user.id]
       );
       const [rows] = await db.execute('SELECT * FROM glossary_terms WHERE id = ?', [result.insertId]);
+      rows[0].word_forms = rows[0].word_forms
+        ? rows[0].word_forms.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
       res.status(201).json(rows[0]);
     } catch (err) {
       console.error('[glossary] POST error:', err);
@@ -61,19 +73,25 @@ module.exports = (ctx) => {
   // ── PUT /glossary/:id  ─────────────────────────────────────────────────────
   router.put('/glossary/:id', authenticateToken, isReviewerOrAdmin, async (req, res) => {
     const { id } = req.params;
-    const { lang_code, source_word, preferred_word, explanation } = req.body;
+    const { lang_code, source_word, preferred_word, explanation, word_forms } = req.body;
     if (!lang_code || !source_word || !preferred_word) {
       return res.status(400).json({ error: 'lang_code, source_word and preferred_word are required' });
     }
+    const wordFormsStr = Array.isArray(word_forms)
+      ? word_forms.map(s => s.trim()).filter(Boolean).join(',')
+      : (word_forms || '').trim();
     try {
       await db.execute(
-        `UPDATE glossary_terms SET lang_code=?, source_word=?, preferred_word=?, explanation=?
+        `UPDATE glossary_terms SET lang_code=?, source_word=?, word_forms=?, preferred_word=?, explanation=?
          WHERE id=?`,
-        [lang_code.trim(), source_word.trim(), preferred_word.trim(),
-         (explanation || '').trim(), id]
+        [lang_code.trim(), source_word.trim(), wordFormsStr || null,
+         preferred_word.trim(), (explanation || '').trim(), id]
       );
       const [rows] = await db.execute('SELECT * FROM glossary_terms WHERE id = ?', [id]);
       if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+      rows[0].word_forms = rows[0].word_forms
+        ? rows[0].word_forms.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
       res.json(rows[0]);
     } catch (err) {
       console.error('[glossary] PUT error:', err);

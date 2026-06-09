@@ -214,6 +214,17 @@
       color: var(--tip-brand);
       opacity: 0.72;
     }
+    #_ck_glossary_tip ._tip-found {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--tip-text);
+      letter-spacing: -0.1px;
+    }
+    #_ck_glossary_tip ._tip-arrow {
+      font-size: 12px;
+      color: var(--tip-muted);
+      margin: 2px 0;
+    }
     #_ck_glossary_tip ._tip-preferred {
       font-size: 15px;
       font-weight: 800;
@@ -242,7 +253,10 @@
         '<div class="_tip-header">' +
           '<span class="_tip-icon">💡</span>' +
           '<div>' +
-            '<div class="_tip-label">Bevorzugte Übersetzung</div>' +
+            '<div class="_tip-label">Glossar-Hinweis</div>' +
+            // "Erkannte Form → Bevorzugte Übersetzung"
+            '<div class="_tip-found"  id="_tip_found"></div>' +
+            '<div class="_tip-arrow">↓ bevorzugte Übersetzung</div>' +
             '<div class="_tip-preferred" id="_tip_word"></div>' +
           '</div>' +
         '</div>' +
@@ -250,16 +264,45 @@
         '<div class="_tip-explanation" id="_tip_exp"></div>';
       document.body.appendChild(tip);
 
-      var _tipWord = tip.querySelector('#_tip_word');
-      var _tipExp  = tip.querySelector('#_tip_exp');
+      var _tipFound = tip.querySelector('#_tip_found');
+      var _tipWord  = tip.querySelector('#_tip_word');
+      var _tipExp   = tip.querySelector('#_tip_exp');
+      var _tipArrow = tip.querySelector('._tip-arrow');
       var _hideTimer = null;
 
       function showTip(target) {
+        var matched      = target.getAttribute('data-matched')      || '';
         var preferred    = target.getAttribute('data-preferred')    || '';
         var explanation  = target.getAttribute('data-explanation')  || '';
         if (!preferred) return;
 
-        _tipWord.textContent = preferred;
+        // Show the inflected form that was actually found in the text.
+        // Case A: matched form differs from preferred word (e.g. "Inhalte" → "Inhalt")
+        //   → show matched form small, arrow, preferred word large+purple
+        // Case B: matched form equals preferred word (exact match)
+        //   → just show preferred word large+purple, no arrow needed
+        var isDifferent = matched && (matched.toLowerCase() !== preferred.toLowerCase());
+
+        if (isDifferent) {
+          _tipFound.textContent         = matched;
+          _tipFound.style.display       = '';
+          _tipFound.style.fontSize      = '13px';
+          _tipFound.style.fontWeight    = '700';
+          _tipFound.style.color         = 'var(--tip-text)';
+          _tipArrow.style.display       = '';
+          _tipWord.textContent          = preferred;
+          _tipWord.style.display        = '';
+        } else {
+          // Exact match — preferred word IS the found word; show it prominently
+          _tipFound.textContent         = preferred;
+          _tipFound.style.display       = '';
+          _tipFound.style.fontSize      = '15px';
+          _tipFound.style.fontWeight    = '800';
+          _tipFound.style.color         = 'var(--tip-brand)';
+          _tipArrow.style.display       = 'none';
+          _tipWord.style.display        = 'none';
+        }
+
         _tipExp.textContent  = explanation;
         _tipExp.style.display = explanation ? '' : 'none';
         tip.querySelector('._tip-divider').style.display = explanation ? '' : 'none';
@@ -360,14 +403,21 @@
             var term = terms[t];
             if (!term.source_word) continue;
 
+            // Build alternation from source_word + all word_forms (plural etc.)
+            var allForms = [term.source_word].concat(
+              Array.isArray(term.word_forms) ? term.word_forms : []
+            ).filter(Boolean).map(_ckEscapeRe);
             var pattern = new RegExp(
-              '\\b(' + _ckEscapeRe(term.source_word) + ')\\b', 'gi'
+              '\\b(' + allForms.join('|') + ')\\b', 'gi'
             );
             var match;
             while ((match = pattern.exec(text)) !== null) {
               try {
+                // Encode the matched word form so the downcast converter can
+                // display the exact inflected form that was found in the text.
+                var matchedForm = encodeURIComponent(match[0]);
                 writer.addMarker(
-                  'glossaryTerm:' + term.id + ':' + (++_glossaryMarkerUid),
+                  'glossaryTerm:' + term.id + ':' + (++_glossaryMarkerUid) + ':' + matchedForm,
                   {
                     usingOperation: false,  // not in undo stack
                     affectsData:    false,  // NEVER appears in getData()
@@ -396,8 +446,14 @@
         model: 'glossaryTerm',
         view: function(data) {
           // data.markerName = 'glossaryTerm:<termId>:<uid>'
-          var parts    = data.markerName.split(':');
-          var termId   = parseInt(parts[1], 10);
+          // markerName format: 'glossaryTerm:<termId>:<uid>:<encodedMatchedForm>'
+          var parts       = data.markerName.split(':');
+          var termId      = parseInt(parts[1], 10);
+          // parts[3] may contain encoded '%' which itself contains ':' — but
+          // encodeURIComponent never produces ':', so simple split is safe.
+          var matchedForm = parts.length > 3
+            ? (function(){ try { return decodeURIComponent(parts[3]); } catch(_) { return ''; } })()
+            : '';
           var glossary = window._ckBridge.globalGlossary || [];
           var term     = null;
           for (var i = 0; i < glossary.length; i++) {
@@ -409,8 +465,9 @@
             name:    'span',
             classes: ['ck-glossary-highlight'],
             attributes: {
-              'data-preferred':   term.preferred_word || '',
-              'data-explanation': term.explanation    || ''
+              'data-matched':     matchedForm             || term.source_word || '',
+              'data-preferred':   term.preferred_word     || '',
+              'data-explanation': term.explanation        || ''
             }
           };
         }
@@ -447,9 +504,26 @@
       // toolbar   – JSON string of toolbar items array
       // onReady   – called when the editor is initialised
       // onChange  – called with the current HTML on every content change
-      init: function(id, toolbar, onReady, onChange) {
+      // _attempt  – internal retry counter (do not pass from outside)
+      init: function(id, toolbar, onReady, onChange, _attempt) {
+        _attempt = _attempt || 0;
+        var bridge = window._ckBridge;
+
+        // Flutter's platform-view embedding is asynchronous on the first frame.
+        // If the target element is not yet in the DOM, retry up to 10 times
+        // with 200 ms spacing before giving up.
         var el = document.getElementById('cke_editor_' + id);
-        if (!el) { console.error('[CKBridge] no element for id=' + id); return; }
+        if (!el) {
+          if (_attempt < 10) {
+            setTimeout(function() {
+              bridge.init(id, toolbar, onReady, onChange, _attempt + 1);
+            }, 200);
+          } else {
+            console.error('[CKBridge] no element for id=' + id + ' after retries');
+          }
+          return;
+        }
+
         var items = JSON.parse(toolbar);
         ClassicEditor.create(el, {
           extraPlugins: [ GlossaryHighlightPlugin ],
@@ -458,11 +532,11 @@
           language: 'en',
           ui: { poweredBy: { display: false } },
         }).then(function(editor) {
-          window._ckBridge.instances[id] = editor;
+          bridge.instances[id] = editor;
           onReady();
 
           // Falls Glossar schon geladen war als Editor fertig wird
-          if (window._ckBridge.globalGlossary.length > 0) {
+          if (bridge.globalGlossary.length > 0) {
             _ckApplyGlossaryMarkers(editor);
           }
 
@@ -470,14 +544,22 @@
             onChange(editor.getData());
             // Nach jeder Inhaltsänderung Glossar-Marker neu setzen (debounced).
             // addMarker(affectsData:false) feuert change:data NICHT → kein Loop.
-            clearTimeout(window._ckBridge._glossaryTimers[id]);
-            window._ckBridge._glossaryTimers[id] = setTimeout(function() {
-              if (window._ckBridge.globalGlossary.length > 0) {
+            clearTimeout(bridge._glossaryTimers[id]);
+            bridge._glossaryTimers[id] = setTimeout(function() {
+              if (bridge.globalGlossary.length > 0) {
                 _ckApplyGlossaryMarkers(editor);
               }
             }, 300);
           });
-        }).catch(function(err) { console.error('[CKBridge]', err); });
+        }).catch(function(err) {
+          console.error('[CKBridge] ClassicEditor.create failed for id=' + id + ':', err);
+          // Retry on creation failure — plugin or resource timing issue.
+          if (_attempt < 3) {
+            setTimeout(function() {
+              bridge.init(id, toolbar, onReady, onChange, _attempt + 1);
+            }, 500);
+          }
+        });
       },
 
       setData: function(id, html) {

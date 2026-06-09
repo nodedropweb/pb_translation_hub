@@ -26,6 +26,8 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
   final _sourceWordCtrl    = TextEditingController();
   final _preferredWordCtrl = TextEditingController();
   final _explanationCtrl   = TextEditingController();
+  final _wordFormInputCtrl = TextEditingController();
+  List<String> _wordFormsList = [];
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
     _sourceWordCtrl.dispose();
     _preferredWordCtrl.dispose();
     _explanationCtrl.dispose();
+    _wordFormInputCtrl.dispose();
     super.dispose();
   }
 
@@ -60,72 +63,208 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
     _sourceWordCtrl.text    = existing?['source_word']    ?? '';
     _preferredWordCtrl.text = existing?['preferred_word'] ?? '';
     _explanationCtrl.text   = existing?['explanation']    ?? '';
+    _wordFormInputCtrl.clear();
+    final existingForms = existing?['word_forms'];
+    _wordFormsList = existingForms is List
+        ? List<String>.from(existingForms.map((e) => e.toString()))
+        : [];
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: GlassContainer(
-          padding: const EdgeInsets.all(28),
-          borderRadius: 20,
-          backgroundColor: attrs.bgCard,
-          border: Border.all(color: attrs.borderMain),
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                Icon(LucideIcons.bookOpen, color: attrs.brand600, size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  isNew ? 'Neuen Begriff anlegen' : 'Begriff bearbeiten',
-                  style: TextStyle(
-                    color: attrs.textMain,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 24),
-              _field(attrs, 'Quellwort (erscheint im Text)',
-                  'z. B. Knoten', _sourceWordCtrl),
-              const SizedBox(height: 14),
-              _field(attrs, 'Bevorzugte Übersetzung',
-                  'z. B. Inhalt', _preferredWordCtrl),
-              const SizedBox(height: 14),
-              _field(attrs, 'Erklärung (wird im Tooltip angezeigt)',
-                  'Warum soll dieses Wort anders übersetzt werden?',
-                  _explanationCtrl, maxLines: 4),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: GlassContainer(
+            padding: const EdgeInsets.all(28),
+            borderRadius: 20,
+            backgroundColor: attrs.bgCard,
+            border: Border.all(color: attrs.borderMain),
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text('Abbrechen',
-                        style: TextStyle(color: attrs.textMuted)),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: attrs.brand600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                  Row(children: [
+                    Icon(LucideIcons.bookOpen, color: attrs.brand600, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      isNew ? 'Neuen Begriff anlegen' : 'Begriff bearbeiten',
+                      style: TextStyle(
+                        color: attrs.textMain,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    icon: Icon(
-                        isNew ? LucideIcons.plus : LucideIcons.save,
-                        size: 16),
-                    label: Text(isNew ? 'Anlegen' : 'Speichern',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ]),
+                  const SizedBox(height: 24),
+                  _field(attrs, 'Quellwort (Grundform, erscheint im Text)',
+                      'z. B. Knoten', _sourceWordCtrl),
+                  const SizedBox(height: 14),
+
+                  // ── Wortformen ────────────────────────────────────────────
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Weitere Wortformen (Plural, Genitiv, Dativ …)',
+                        style: TextStyle(
+                          color: attrs.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // Existing chips
+                      if (_wordFormsList.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _wordFormsList.map((form) {
+                              return Chip(
+                                label: Text(
+                                  form,
+                                  style: TextStyle(
+                                      color: attrs.brand600,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                backgroundColor:
+                                    attrs.brand600.withOpacity(0.12),
+                                side: BorderSide(
+                                    color: attrs.brand600.withOpacity(0.35)),
+                                deleteIcon: Icon(LucideIcons.x,
+                                    size: 12, color: attrs.textMuted),
+                                onDeleted: () {
+                                  setDialogState(() =>
+                                      _wordFormsList.remove(form));
+                                },
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 0),
+                                visualDensity: VisualDensity.compact,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      // Input row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _wordFormInputCtrl,
+                              style: TextStyle(
+                                  color: attrs.textMain, fontSize: 13),
+                              decoration: InputDecoration(
+                                hintText: 'z. B. Inhalte — Enter zum Hinzufügen',
+                                hintStyle: TextStyle(
+                                    color: attrs.textMuted.withOpacity(0.6)),
+                                filled: true,
+                                fillColor: attrs.bgInput,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide:
+                                      BorderSide(color: attrs.borderMain),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide:
+                                      BorderSide(color: attrs.borderMain),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                      color: attrs.brand600, width: 2),
+                                ),
+                              ),
+                              onSubmitted: (val) {
+                                final trimmed = val.trim();
+                                if (trimmed.isNotEmpty &&
+                                    !_wordFormsList.contains(trimmed)) {
+                                  setDialogState(() {
+                                    _wordFormsList.add(trimmed);
+                                    _wordFormInputCtrl.clear();
+                                  });
+                                } else {
+                                  _wordFormInputCtrl.clear();
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              final trimmed =
+                                  _wordFormInputCtrl.text.trim();
+                              if (trimmed.isNotEmpty &&
+                                  !_wordFormsList.contains(trimmed)) {
+                                setDialogState(() {
+                                  _wordFormsList.add(trimmed);
+                                  _wordFormInputCtrl.clear();
+                                });
+                              } else {
+                                _wordFormInputCtrl.clear();
+                              }
+                            },
+                            icon:
+                                Icon(LucideIcons.plus, color: attrs.brand600),
+                            tooltip: 'Form hinzufügen',
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  attrs.brand600.withOpacity(0.15),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  _field(attrs, 'Bevorzugte Übersetzung',
+                      'z. B. Inhalt', _preferredWordCtrl),
+                  const SizedBox(height: 14),
+                  _field(attrs, 'Erklärung (wird im Tooltip angezeigt)',
+                      'Warum soll dieses Wort anders übersetzt werden?',
+                      _explanationCtrl, maxLines: 4),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text('Abbrechen',
+                            style: TextStyle(color: attrs.textMuted)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: attrs.brand600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: Icon(
+                            isNew ? LucideIcons.plus : LucideIcons.save,
+                            size: 16),
+                        label: Text(isNew ? 'Anlegen' : 'Speichern',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -144,6 +283,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
     final payload = {
       'lang_code':      lang,
       'source_word':    _sourceWordCtrl.text.trim(),
+      'word_forms':     List<String>.from(_wordFormsList),
       'preferred_word': _preferredWordCtrl.text.trim(),
       'explanation':    _explanationCtrl.text.trim(),
     };
@@ -448,25 +588,58 @@ class _TermRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Source word badge
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color: const Color(0xFFF59E0B).withOpacity(0.4)),
-            ),
-            child: Text(
-              term['source_word'] ?? '',
-              style: const TextStyle(
-                color: Color(0xFFF59E0B),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                fontFamily: 'monospace',
+          // Source word + forms column
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                ),
+                child: Text(
+                  term['source_word'] ?? '',
+                  style: const TextStyle(
+                    color: Color(0xFFF59E0B),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ),
-            ),
+              if ((term['word_forms'] as List?)?.isNotEmpty == true) ...[
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: (term['word_forms'] as List)
+                      .map((f) => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                  color: const Color(0xFFF59E0B)
+                                      .withOpacity(0.25)),
+                            ),
+                            child: Text(
+                              f.toString(),
+                              style: const TextStyle(
+                                color: Color(0xFFF59E0B),
+                                fontSize: 10,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ],
+            ],
           ),
           const SizedBox(width: 10),
           // Arrow

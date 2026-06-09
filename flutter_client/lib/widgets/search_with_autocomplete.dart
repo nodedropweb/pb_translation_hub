@@ -49,11 +49,17 @@ class SearchWithAutocomplete extends ConsumerStatefulWidget {
   /// Optional active filter – passed to /api/autocomplete for smarter results.
   final String? activeFilter;
 
+  /// Optional override for what happens when a suggestion is tapped or
+  /// confirmed with Enter. When null, the default behaviour is to navigate
+  /// to `/edit/<machineName>`.
+  final void Function(AutocompleteSuggestion suggestion)? onSuggestionSelected;
+
   const SearchWithAutocomplete({
     super.key,
     required this.onSearchChanged,
     this.initialValue = '',
     this.activeFilter,
+    this.onSuggestionSelected,
   });
 
   @override
@@ -247,12 +253,13 @@ class _SearchWithAutocompleteState
       child: GestureDetector(
         onTap: () {
           _hideOverlay();
-          if (mounted) {
+          if (!mounted) return;
+          if (widget.onSuggestionSelected != null) {
+            widget.onSuggestionSelected!(s);
+          } else {
             context.go(Uri(
               path: '/edit/${s.machineName}',
-              queryParameters: {
-                'filter': widget.activeFilter ?? 'all',
-              },
+              queryParameters: {'filter': widget.activeFilter ?? 'all'},
             ).toString());
           }
         },
@@ -370,12 +377,15 @@ class _SearchWithAutocompleteState
       final idx = _selectedIndex.value;
       if (idx >= 0 && idx < _suggestions.length) {
         _hideOverlay();
-        context.go(Uri(
-          path: '/edit/${_suggestions[idx].machineName}',
-          queryParameters: {
-            'filter': widget.activeFilter ?? 'all',
-          },
-        ).toString());
+        final s = _suggestions[idx];
+        if (widget.onSuggestionSelected != null) {
+          widget.onSuggestionSelected!(s);
+        } else {
+          context.go(Uri(
+            path: '/edit/${s.machineName}',
+            queryParameters: {'filter': widget.activeFilter ?? 'all'},
+          ).toString());
+        }
       } else {
         widget.onSearchChanged(_controller.text.trim());
         _hideOverlay();

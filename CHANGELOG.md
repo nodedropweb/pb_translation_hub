@@ -9,6 +9,22 @@ Dates are in `YYYY-MM-DD` format.
 
 ## [Unreleased]
 
+### Added
+
+#### Glossary — Wortformen (Plurale & flektierte Formen)
+- **`server/migrations/007_glossary_word_forms.sql`** — neue Spalte `word_forms TEXT NULL` in `glossary_terms`. Speichert kommagetrennte flektierte Formen (Plural, Genitiv, Dativ usw.), z.B. `"Inhalte,Inhalts,Inhalten"`.
+- **`server/routes/glossary.js`** — GET normalisiert `word_forms` von Komma-String zu Array; POST/PUT nehmen ein `word_forms`-Array entgegen, speichern als String, geben in der Antwort wieder Array zurück.
+- **`flutter_client/web/index.html`** — `_ckApplyGlossaryMarkers` baut pro Term eine RegExp-Alternation aus `source_word` + allen `word_forms`: `\b(Inhalt|Inhalte|Inhalts|Inhalten)\b`. Die exakte gematchte Form wird als `encodeURIComponent`-kodiertes Segment in den Marker-Namen geschrieben (`glossaryTerm:<id>:<uid>:<encodedForm>`).
+- **`GlossaryHighlightPlugin`** — dekodiert die gematchte Form aus dem Marker-Namen und schreibt sie als `data-matched`-Attribut ans Highlight-`<span>`. Zusätzlich zu den bestehenden `data-preferred` und `data-explanation`.
+- **Glossar-Tooltip** — zeigt jetzt die konkrete im Text gefundene Wortform an:
+  - *Flektierte Form* (z.B. „Inhalte"): kleiner weißer Label „Inhalte" + Pfeil „↓ bevorzugte Übersetzung" + lila/fett „Inhalt".
+  - *Grundform* (matched == preferred): nur die Grundform lila/fett, kein Pfeil.
+- **`flutter_client/lib/screens/glossary/glossary_screen.dart`** — Chip-UI für Wortformen im Bearbeitungsdialog: Textfeld + „+"-Button zum Hinzufügen, „✕"-Chips zum Entfernen. In der Tabellenzeile werden Wortformen als kleinere Amber-Mini-Chips neben dem Grundform-Badge angezeigt.
+
+#### CKEditor — Init-Race-Condition behoben
+- **`flutter_client/web/index.html`** (`_ckBridge.init`) — `document.getElementById('cke_editor_<id>')` wird jetzt bis zu 10× mit 200 ms Abstand wiederholt, falls das DOM-Element beim ersten Aufruf noch nicht im Dokument ist. Tritt dieser Fall nach allen Retries immer noch auf, wird ein Fehler geloggt. Zusätzlicher Retry (bis zu 3×, 500 ms) bei `ClassicEditor.create()`-Rejection.
+- **`flutter_client/lib/widgets/ckeditor_field_web_impl.dart`** — 3-Sekunden-Safety-Net: falls `onReady` nach dem `bridge.init`-Aufruf nie feuert (z.B. wegen DOM-Timing beim ersten App-Load), wird der Editor zerstört und neu initialisiert. `didUpdateWidget` aktualisiert `_lastContent` nun immer, auch wenn `_editorReady` noch `false` ist.
+
 ---
 
 ## [2.2.0] — 2026-06-02

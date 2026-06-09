@@ -14,6 +14,7 @@ MariaDB 11.8 · Datenbank: `pb_translation_hub` · User: `pb_hub`
 | `ignored_projects` | Dauerhaft aus Warteschlangen ausgeblendete Module |
 | `site_settings` | Globale App-Einstellungen (Key-Value) |
 | `users` | Benutzerkonten mit Rollen, API-Keys, Sprachzuordnung |
+| `glossary_terms` | Fachvokabular für CKEditor-Glossar-Highlighting |
 | `schema_migrations` | Versionierungsprotokoll ausgeführter DB-Migrationen |
 
 ---
@@ -124,6 +125,27 @@ Benutzerkonten mit Rollen, Sprachen und API-Keys.
 
 ---
 
+## Tabelle: `glossary_terms`
+
+Fachvokabular pro Zielsprache. Der CKEditor-Glossar-Plugin liest diese Tabelle beim Öffnen eines Editors und hebt alle Treffer im Bearbeitungsbereich hervor.
+
+| Feld | Typ | Null | Beschreibung |
+|---|---|---|---|
+| `id` | INT AUTO_INCREMENT | NO PK | Interne ID |
+| `lang_code` | VARCHAR(10) | NO | Zielsprache (z.B. `de`, `fr`) |
+| `source_word` | VARCHAR(255) | NO | Grundform des zu erkennenden Begriffs (z.B. `Inhalt`) |
+| `word_forms` | TEXT | YES | Kommagetrennte flektierte Formen (z.B. `Inhalte,Inhalts,Inhalten`). Alle Formen inklusive `source_word` werden per RegExp-Alternation erkannt. |
+| `preferred_word` | VARCHAR(255) | NO | Bevorzugte Übersetzung / empfohlener Ausdruck |
+| `explanation` | TEXT | YES | Optionaler Erklärungstext (erscheint im Tooltip) |
+| `created_by` | INT | YES | FK → `users.id` |
+| `created_at` | TIMESTAMP | NO | Erstellungszeitpunkt |
+
+**Indexe:** `lang_code`, `source_word`
+
+**API:** `GET/POST/PUT/DELETE /api/glossary` — schreibender Zugriff erfordert Rolle `reviewer` oder `admin`. Das GET gibt `word_forms` immer als JSON-Array zurück (Backend normalisiert von Komma-String zu Array).
+
+---
+
 ## Tabelle: `schema_migrations`
 
 Protokolliert alle ausgeführten DB-Migrationen. Wird von `db_migrate.js` verwaltet.
@@ -142,9 +164,13 @@ Schema-Änderungen werden als nummerierte SQL-Dateien in `server/migrations/` ve
 
 ```
 server/migrations/
-  001_initial_schema.sql          — Basis-Schema (alle Kern-Tabellen)
-  002_users_deepl_key.sql         — deepl_api_key-Spalte
-  003_users_registration_fields.sql — target_languages + user_type
+  001_initial_schema.sql              — Basis-Schema (alle Kern-Tabellen)
+  002_users_deepl_key.sql             — deepl_api_key-Spalte
+  003_users_registration_fields.sql   — target_languages + user_type
+  004_glossary_terms.sql              — glossary_terms Tabelle
+  005_create_glossary_terms.sql       — Indizes & Constraints
+  006_suggestion_type_deepl.sql       — ENUM-Erweiterung für DeepL-Vorschläge
+  007_glossary_word_forms.sql         — word_forms TEXT-Spalte in glossary_terms
 ```
 
 ### Neue Migration anlegen
