@@ -344,9 +344,14 @@
       }
 
       document.addEventListener('mouseover', function (e) {
-        clearTimeout(_hideTimer);
         var hl = _findHighlight(e.target);
-        if (hl) { showTip(hl); }
+        if (hl) {
+          // Still over a highlight — keep tooltip alive
+          clearTimeout(_hideTimer);
+          showTip(hl);
+        }
+        // NOT over a highlight: don't touch the timer — mouseout already
+        // scheduled the hide and we must not cancel it here.
       });
 
       document.addEventListener('mouseout', function (e) {
