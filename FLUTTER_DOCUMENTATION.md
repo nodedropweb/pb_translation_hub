@@ -125,7 +125,7 @@ flutter_client/
 │       ├── help/                  # GDPR-safe help center + CRWB study
 │       │   ├── help_screen.dart
 │       │   └── crwb_study_screen.dart
-│       └── settings/              # System config, Unsplash background, confetti toggle
+│       └── settings/              # System config, theme, confetti, large UI, auto-autop
 │           └── settings_screen.dart
 ├── android/                       # Android platform (targetSdk 34 / Android 14)
 ├── web/                           # Flutter web bootstrap (index.html with splash preloader)
@@ -142,7 +142,7 @@ The app uses **Riverpod** (`flutter_riverpod`). All providers are in `lib/provid
 | Provider | Responsibility |
 |---|---|
 | `authProvider` | Login/logout state, JWT token, auto-login on startup, user role |
-| `themeProvider` | Active theme ID, Unsplash background URL and credits |
+| `themeProvider` | Active theme ID, font style, confetti, large UI, auto-autop flag, Unsplash background |
 | `languageProvider` | Target translation language selection |
 | `projectProvider` | Project list, search text, active filter, single-project sync |
 | `syncProvider` | Sync progress (current page, total module count) |
@@ -604,6 +604,23 @@ that breaks tablet portrait usability.
 
 ### Confetti controller pattern
 `editor_screen.dart` and `review_screen.dart` use the `confetti` package for celebration animations. The `ConfettiController` is initialized in `initState` and disposed in `dispose`. The confetti burst is triggered on save/approve, and navigation is delayed by 900 ms to allow the animation to play before the route changes. The confetti feature can be toggled off via the settings screen; check the setting before calling `controller.play()`.
+
+### User preferences (`ThemeState` / `themeProvider`)
+
+All per-user preferences are stored in `ThemeState` and persisted via `SharedPreferences`. The `ThemeNotifier` loads them asynchronously in `_loadInitialState()` and exposes a typed setter for each field.
+
+| Field | SharedPreferences key | Default | Description |
+|---|---|---|---|
+| `themeId` | `pb-theme` | `'glassy'` | Active colour theme |
+| `fontStyle` | `pb-fontStyle` | `'inter'` | UI font family |
+| `confettiEnabled` | `pb-confettiEnabled` | `true` | Confetti animation on save/approve |
+| `largeUi` | `pb-largeUi` | `false` | Larger text and badges |
+| `autoAutop` | `pb-autoAutop` | `false` | Auto paragraph-format on Review Screen load |
+| `bgImageUrl` | `pb-bgImage` | *(fetched)* | Unsplash background URL |
+
+#### Auto-Autop (`autoAutop`)
+
+When `autoAutop` is `true`, `_fetchData()` in `review_screen.dart` calls the static `_autop()` method on both the Summary and Body controllers immediately after all content has been loaded — before `setState(() { _loading = false; })`. This is equivalent to clicking the ¶ button on both fields manually. No Snackbar is shown for the automatic run. The setting has no effect when the content already contains `<p>` tags (autop is idempotent).
 
 ### Page transitions
 `lib/widgets/page_transition.dart` provides a shared animated transition helper. Use it when navigating between screens to maintain a consistent feel.

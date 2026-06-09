@@ -25,6 +25,14 @@ Dates are in `YYYY-MM-DD` format.
 - **`flutter_client/web/index.html`** (`_ckBridge.init`) — `document.getElementById('cke_editor_<id>')` wird jetzt bis zu 10× mit 200 ms Abstand wiederholt, falls das DOM-Element beim ersten Aufruf noch nicht im Dokument ist. Tritt dieser Fall nach allen Retries immer noch auf, wird ein Fehler geloggt. Zusätzlicher Retry (bis zu 3×, 500 ms) bei `ClassicEditor.create()`-Rejection.
 - **`flutter_client/lib/widgets/ckeditor_field_web_impl.dart`** — 3-Sekunden-Safety-Net: falls `onReady` nach dem `bridge.init`-Aufruf nie feuert (z.B. wegen DOM-Timing beim ersten App-Load), wird der Editor zerstört und neu initialisiert. `didUpdateWidget` aktualisiert `_lastContent` nun immer, auch wenn `_editorReady` noch `false` ist.
 
+#### Glossar-Tooltip — Stabilität und mouseover/mouseout
+- **`flutter_client/web/index.html`** — `mouseover`- und `mouseout`-Handler nutzen jetzt `relatedTarget` um zu prüfen, ob die Maus den Highlight-Span wirklich verlässt. Interne Bewegungen innerhalb des Spans (Text-Node zu Span-Element) lösen kein Hide mehr aus. `clearTimeout` wird im `mouseover`-Handler nur noch aufgerufen wenn die Maus tatsächlich über einem Highlight-Element ist — verhindert, dass der Hide-Timer nach dem Verlassen des Spans durch den nächsten `mouseover`-Event eines anderen Elements gecancelt wird.
+
+#### Einstellung: Automatische Absatzformatierung (Auto-P)
+- **`flutter_client/lib/providers/theme_provider.dart`** — neues Feld `autoAutop: bool` in `ThemeState`, persistiert als `pb-autoAutop` in `SharedPreferences`. Standard: `false`. Neue Methode `setAutoAutop(bool)`.
+- **`flutter_client/lib/screens/settings/settings_screen.dart`** — Switch-Toggle im Bereich „Workflow & Spaß", direkt unter dem Large-UI-Toggle. Zweisprachig: DE „Automatische Absatzformatierung (¶ Auto-P)" / EN „Automatic Paragraph Formatting (¶ Auto-P)".
+- **`flutter_client/lib/screens/review/review_screen.dart`** — am Ende von `_fetchData()`, nachdem alle Felder mit Inhalt befüllt wurden, wird `_autop()` automatisch auf Summary und Body angewendet, wenn `themeState.autoAutop == true`. Identisches Verhalten zum manuellen ¶-Button, aber ohne Snackbar-Meldung.
+
 ---
 
 ## [2.2.0] — 2026-06-02
