@@ -332,21 +332,32 @@
         tip.style.left = left + 'px';
       }
 
-      document.addEventListener('mouseover', function (e) {
-        clearTimeout(_hideTimer);
-        var el = e.target;
+      // Helper: walk up the DOM from `node` and return the nearest
+      // .ck-glossary-highlight ancestor (or the node itself), or null.
+      function _findHighlight(node) {
+        var el = node;
         while (el && el !== document.body) {
-          if (el.classList && el.classList.contains('ck-glossary-highlight')) {
-            showTip(el);
-            return;
-          }
+          if (el.classList && el.classList.contains('ck-glossary-highlight')) return el;
           el = el.parentElement;
         }
-        _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 80);
+        return null;
+      }
+
+      document.addEventListener('mouseover', function (e) {
+        clearTimeout(_hideTimer);
+        var hl = _findHighlight(e.target);
+        if (hl) { showTip(hl); }
       });
 
       document.addEventListener('mouseout', function (e) {
-        _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 80);
+        // Only schedule a hide when the mouse is truly leaving a highlight span.
+        // relatedTarget tells us where the mouse is going — if it is still
+        // inside a highlight (e.g. moving between the span's text nodes), we
+        // cancel and do nothing.
+        if (!_findHighlight(e.target)) return;          // not leaving a highlight
+        if (_findHighlight(e.relatedTarget)) return;    // still inside a highlight
+        clearTimeout(_hideTimer);
+        _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 120);
       });
     })();
 
