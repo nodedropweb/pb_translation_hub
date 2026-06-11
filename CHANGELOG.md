@@ -9,6 +9,38 @@ Dates are in `YYYY-MM-DD` format.
 
 ## [Unreleased]
 
+### Added
+
+#### Stale-Erkennung — veraltete Übersetzungen anzeigen & beheben
+- **`server/routes/projects.js`** — `/projects/:machine_name` berechnet jetzt einen MD5-Hash über `title + body.summary + body.value` und vergleicht ihn mit `translations.source_hash`. Weicht der Hash ab, liefert die API `status: 'stale'`.
+- **`flutter_client/lib/screens/editor/editor_screen.dart`** — neues Feld `_isStale`; wird beim Laden gesetzt, wenn der API-Status `'stale'` ist. Bei veralteter Übersetzung öffnet sich die englische Quell-Seitenleiste automatisch.
+- **`flutter_client/lib/screens/editor/_editor_build_methods.dart`** — orangefarbener „Veraltet — Details"-Button in der Editor-Toolbar; öffnet `_showStaleDialog()`. Neue Methode `_useEnglishSource()` ersetzt Zusammenfassung und Body mit dem aktuellen englischen Original und setzt `_isStale` zurück.
+
+#### Diff-Ansicht — Übersetzung vs. englische Quelle
+- **`flutter_client/lib/utils/diff_utils.dart`** — Wort-Diff-Algorithmus (`DiffSpan`, `DiffOp`: equal / insert / delete). Liefert eine Liste von `DiffSpan`-Objekten für zwei Texte.
+- **`flutter_client/lib/widgets/diff_view.dart`** — `DiffView`-Widget (inline farbkodierter Diff) und `showDiffSheet()` (Bottom-Sheet mit zweispaltigem Vergleich). Grün = Einfügung, Rot = Löschung.
+- **`flutter_client/lib/screens/review/review_screen.dart`** — neuer „DIFF"-Button im Review-Screen-Header: öffnet `showDiffSheet()` mit Übersetzung (links) vs. englischer Quelle (rechts).
+
+#### Debug-Sync-Endpunkte (geschützt via `PB_DEBUG_KEY`)
+- **`server/routes/sync.js`** — drei neue Routen, nur erreichbar mit korrektem `X-PB-Debug-Key`-Header:
+  - `GET /debug/sync/inspect/:machine_name` — vergleicht DB-Stand mit Live-Daten von Drupal.org (Title, Changed, Body-Länge).
+  - `POST /debug/sync/force/:machine_name` — erzwingt Einzelmodul-Sync von Drupal.org in DB + Metadaten-Verzeichnis.
+  - `POST /debug/sync/quick` — führt Quick-Sync für ein konfigurierbares Zeitfenster (`days`, Standard: 7) durch und gibt ein detailliertes Log zurück.
+
+#### Automatischer Quick-Sync alle 7,5 Tage
+- **`server/index.js`** — `scheduleQuickSync()` startet einen `setInterval` (7,5 Tage) nach dem Server-Start. Überspringt automatisch, wenn bereits ein Sync läuft oder kein `lastFullSync`-Timestamp vorhanden ist.
+
+#### App-Icons (Android / iOS / Windows)
+- **`appicons/`** — vollständige Icon-Sets für alle Plattformen hinzugefügt (Android Launcher-Icons, iOS-Größen 16–1024 px, Windows Tiles, Splash Screens, Store Logo).
+
+#### Deutsches Intro-Audio
+- **`flutter_client/web/audio/crwb_de.mp3`** — deutschsprachige Audioversion des Project-Browser-Localizer-Intros (ElevenLabs-Generierung) aktualisiert.
+
+### Fixed
+
+#### Docker — PM2-Cluster deaktiviert
+- **`server/Dockerfile`** — PM2 läuft jetzt mit `-i 1` (Single-Instance) statt `-i max`. Cluster-Modus würde konkurrierende Sync-Prozesse erzeugen, da der Sync-Status im RAM gehalten wird.
+
 ---
 
 ## [2.3.0] — 2026-06-09
