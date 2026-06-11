@@ -18,6 +18,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../utils/translation_prompt.dart';
 import '../../utils/html_sanitizer.dart';
+import '../../utils/autop.dart' as autop_util;
 import '../../utils/ck_glossary.dart';
 import '../../widgets/ckeditor_field.dart';
 import 'widgets/cost_calculator_dialog.dart';
@@ -436,6 +437,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _summaryController.text = _englishSummary;
         _bodyController.text = _englishBody;
         _isReviewMode = false;
+      }
+
+      // Auto-Autop: wenn aktiviert, Absätze beim Laden automatisch formatieren.
+      if (ref.read(themeProvider).autoAutop) {
+        final convertedSummary = autop_util.autop(_summaryController.text);
+        if (convertedSummary != _summaryController.text) {
+          _summaryController.text = convertedSummary;
+        }
+        final convertedBody = autop_util.autop(_bodyController.text);
+        if (convertedBody != _bodyController.text) {
+          _bodyController.text = convertedBody;
+        }
       }
 
       setState(() => _isLoading = false);

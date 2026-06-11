@@ -225,6 +225,7 @@ class AppTheme {
       fontStyle: 'inter',
       confettiEnabled: true,
       largeUi: false,
+      autoAutop: false,
     ));
   }
 }

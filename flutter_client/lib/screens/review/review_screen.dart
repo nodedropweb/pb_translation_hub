@@ -18,6 +18,7 @@ import '../../providers/project_provider.dart';
 import '../../utils/translation_prompt.dart';
 import '../../utils/html_sanitizer.dart';
 import '../../utils/ck_glossary.dart';
+import '../../utils/autop.dart' as autop_util;
 import '../../theme/app_theme.dart';
 import '../../widgets/ckeditor_field.dart';
 import '../../widgets/glass_container.dart';
@@ -470,11 +471,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     // Auto-Autop: wenn die Einstellung aktiv ist, Absätze automatisch formatieren
     // bevor der Screen angezeigt wird — identisch zum manuellen ¶-Button-Klick.
     if (ref.read(themeProvider).autoAutop) {
-      final convertedSummary = _autop(_summaryController.text);
+      final convertedSummary = autop_util.autop(_summaryController.text);
       if (convertedSummary != _summaryController.text) {
         _summaryController.text = convertedSummary;
       }
-      final convertedBody = _autop(_bodyController.text);
+      final convertedBody = autop_util.autop(_bodyController.text);
       if (convertedBody != _bodyController.text) {
         _bodyController.text = convertedBody;
       }
@@ -2047,7 +2048,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ));
               },
               onAutop: () {
-                final converted = _autop(_summaryController.text);
+                final converted = autop_util.autop(_summaryController.text);
                 if (converted == _summaryController.text) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
@@ -2116,7 +2117,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ));
               },
               onAutop: () {
-                final converted = _autop(_bodyController.text);
+                final converted = autop_util.autop(_bodyController.text);
                 if (converted == _bodyController.text) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
@@ -2284,102 +2285,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ),
       ],
     );
-  }
-
-  /// Wandelt unstrukturierten Text in HTML-Absätze um.
-  ///
-  /// Strategie:
-  ///   1. Bereits mehrere <p>-Tags → unverändert zurückgeben.
-  ///   2. Genau ein <p>-Tag (CKEditor-Default) oder kein Tag →
-  ///      inneren Text extrahieren und strukturieren.
-  ///   3. Text mit doppelten Zeilenumbrüchen → an \n\n aufteilen.
-  ///   4. Fließtext ohne Zeilenumbrüche → an Satzenden aufteilen
-  ///      ([.!?] gefolgt von Leerzeichen + Großbuchstabe).
-  ///      Sätze werden zu Absätzen mit ~260 Zeichen Zielgröße gruppiert.
-  static String _autop(String text) {
-    if (text.trim().isEmpty) return text;
-
-    // Zählt vorhandene <p>-Tags
-    final pCount =
-        RegExp(r'<p[\s>]', caseSensitive: false).allMatches(text).length;
-
-    // Bereits mehrere Absätze — nichts zu tun
-    if (pCount > 1) return text;
-
-    // CKEditor liefert immer mindestens ein <p>…</p> — das äußere
-    // Wrapper-Tag entfernen und den Rohtext für die weitere Verarbeitung nutzen.
-    String plain = text;
-    if (pCount == 1) {
-      plain = plain
-          .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '')
-          .replaceAll(RegExp(r'</p>', caseSensitive: false), ' ')
-          .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-          .trim();
-    }
-
-    // Zeilenenden normalisieren
-    plain = plain.replaceAll(RegExp(r'\r\n|\r'), '\n').trim();
-    plain = plain.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-    const blocks =
-        r'(?:div|ul|ol|li|table|thead|tbody|tr|td|th|blockquote|pre|h[1-6]|hr|figure|figcaption|aside|section|article|header|footer|nav)';
-
-    // ── Pfad A: Text hat bereits doppelte Zeilenumbrüche ─────────────────
-    if (plain.contains('\n\n')) {
-      plain = plain.replaceAllMapped(
-          RegExp('(</?$blocks[^>]*>)', caseSensitive: false),
-          (m) => '\n${m[1]}\n');
-      plain = plain.replaceAll(RegExp(r'\n{2,}'), '\n\n').trim();
-
-      final chunks = plain.split(RegExp(r'\n\s*\n'));
-      final buf = StringBuffer();
-      for (final chunk in chunks) {
-        final t = chunk.trim();
-        if (t.isEmpty) continue;
-        if (RegExp('^<(?:$blocks)', caseSensitive: false).hasMatch(t)) {
-          buf.writeln(t);
-        } else {
-          buf.writeln('<p>${t.replaceAll('\n', '<br>\n')}</p>');
-        }
-      }
-      return buf.toString().trim();
-    }
-
-    // ── Pfad B: Fließtext — an Satzenden aufteilen ────────────────────────
-    // Einzelne Zeilenumbrüche als Leerzeichen behandeln.
-    final normalized =
-        plain.replaceAll('\n', ' ').replaceAll(RegExp(r'  +'), ' ').trim();
-
-    // Satzgrenzen: [.!?] gefolgt von Leerzeichen + Großbuchstabe (inkl. Umlaute).
-    // Lookbehind behält die Satzzeichen beim vorigen Satz.
-    final sentenceSplitter =
-        RegExp(r'(?<=[.!?])\s+(?=[A-ZÄÖÜÀ-ɏ])');
-    final sentences = normalized.split(sentenceSplitter);
-
-    if (sentences.length <= 1) {
-      return '<p>$normalized</p>';
-    }
-
-    // Sätze zu Absätzen gruppieren — Zielgröße ~260 Zeichen pro Absatz.
-    const softLimit = 260;
-    final paragraphs = <String>[];
-    var buf = StringBuffer();
-
-    for (final s in sentences) {
-      final sentence = s.trim();
-      if (sentence.isEmpty) continue;
-      if (buf.isEmpty) {
-        buf.write(sentence);
-      } else if (buf.length >= softLimit) {
-        paragraphs.add(buf.toString());
-        buf = StringBuffer(sentence);
-      } else {
-        buf.write(' $sentence');
-      }
-    }
-    if (buf.isNotEmpty) paragraphs.add(buf.toString());
-
-    return paragraphs.map((p) => '<p>$p</p>').join('\n');
   }
 
   Widget _buildFieldModeToggle(String label, bool showHtml, ValueChanged<bool> onChanged, {Widget? action, VoidCallback? onTidy, VoidCallback? onAutop}) {
