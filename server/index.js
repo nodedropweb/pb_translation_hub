@@ -325,6 +325,7 @@ async function syncProjects(sinceTimestamp = null) {
         'filter[project_type]': 'full',
         'sort': sinceTimestamp ? '-changed' : 'machine_name',
         'page[limit]': 50,
+        'page[offset]': page * 50,
         'include': 'field_module_categories,field_maintenance_status,field_development_status,uid,field_project_images',
       };
 
