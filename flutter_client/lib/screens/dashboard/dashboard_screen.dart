@@ -1477,6 +1477,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     String activeFilter,
     ThemeAttributes attrs,
   ) async {
+    // Stale filter gets its own specialised flow — fetch all stale names first.
+    if (activeFilter == 'stale') {
+      _showStaleBulkTranslateDialog(context, ref, attrs);
+      return;
+    }
+
     int selectedCount = 25;
     bool prioritizeDrupal11 = true;
 
@@ -1493,9 +1499,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         break;
       case 'review':
         filterName = 'Review-Warteschlange';
-        break;
-      case 'stale':
-        filterName = 'Veraltete Übersetzungen';
         break;
       case 'translated':
         filterName = 'Übersetzte Projekte';
@@ -1814,6 +1817,196 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
+  // ── Stale-spezifischer Bulk-Dialog ──────────────────────────────────────────
+  void _showStaleBulkTranslateDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeAttributes attrs,
+  ) async {
+    final ApiClient api = ApiClient();
+    final langcode = ref.read(languageProvider).targetLanguage.code;
+
+    // Fetch all stale machine names before showing the dialog.
+    List<String> staleMachineNames = [];
+    String? fetchError;
+    try {
+      final res = await api.dio.get(
+        '/ai/stale-machine-names',
+        queryParameters: {'langcode': langcode},
+      );
+      staleMachineNames = List<String>.from(res.data['machineNames'] as List);
+    } catch (e) {
+      fetchError = e.toString();
+    }
+
+    if (!context.mounted) return;
+
+    if (fetchError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Fehler beim Laden der veralteten Module: $fetchError'),
+        backgroundColor: Colors.redAccent,
+      ));
+      return;
+    }
+
+    if (staleMachineNames.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Keine veralteten Module gefunden — alles aktuell! ✨'),
+        backgroundColor: Colors.green,
+      ));
+      return;
+    }
+
+    final count = staleMachineNames.length;
+    final estInputTokens = count * 500;
+    final estOutputTokens = count * 300;
+    final estTotalCost =
+        (estInputTokens * 0.00000025) + (estOutputTokens * 0.00000150);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: GlassContainer(
+          borderRadius: 24,
+          backgroundColor: attrs.bgCard.withOpacity(0.85),
+          padding: const EdgeInsets.all(32.0),
+          width: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(LucideIcons.refreshCw,
+                        color: Colors.orange, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Veraltete Module neu übersetzen',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Alle Übersetzungen, deren englische Quelle sich seit der letzten '
+                'Übersetzung geändert hat, werden automatisch mit Google Gemini '
+                'neu übersetzt. Kein manuelles Öffnen jedes Moduls nötig.',
+                style: TextStyle(
+                    color: attrs.textMuted.withOpacity(0.8),
+                    fontSize: 14,
+                    height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    _buildCostRow('Modell', 'Gemini 3.1 Flash-Lite', attrs),
+                    Divider(color: attrs.borderMain, height: 24),
+                    _buildCostRow(
+                        'Veraltete Module', '$count', attrs),
+                    _buildCostRow('Eingabe-Tokens (Schätzung)',
+                        '$estInputTokens', attrs),
+                    _buildCostRow('Ausgabe-Tokens (Schätzung)',
+                        '$estOutputTokens', attrs),
+                    Divider(color: attrs.borderMain, height: 24),
+                    _buildCostRow('Preis pro 1M Input', '\$0.25', attrs,
+                        isValueColorMuted: true),
+                    _buildCostRow('Preis pro 1M Output', '\$1.50', attrs,
+                        isValueColorMuted: true),
+                    Divider(color: attrs.borderMain, height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Geschätzte Gesamtkosten',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: Colors.white)),
+                        Text(
+                          '\$${estTotalCost.toStringAsFixed(4)} USD',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.orange),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '* Die Übersetzung ersetzt den bisherigen Text und setzt '
+                'is_reviewed zurück. Ausführung in Batches à 4 Modulen.',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: attrs.textMuted,
+                    fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                        foregroundColor: attrs.textMuted),
+                    child: const Text('Abbrechen',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(LucideIcons.refreshCw, size: 16),
+                    label: Text('Alle $count Module neu übersetzen',
+                        style:
+                            const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      _executeBulkTranslationWithNames(
+          context, ref, staleMachineNames, attrs,
+          title: 'Veraltete Module werden neu übersetzt…');
+    }
+  }
+
   Widget _buildCostRow(
     String label,
     String value,
@@ -2052,6 +2245,184 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Fehler bei der Massen-Übersetzung: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Bulk-Übersetzung mit expliziter Machine-Name-Liste (für Stale) ──────────
+  void _executeBulkTranslationWithNames(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> machineNames,
+    ThemeAttributes attrs, {
+    String title = 'AI Massen-Übersetzung',
+  }) async {
+    final ApiClient api = ApiClient();
+    final langcode = ref.read(languageProvider).targetLanguage.code;
+    final totalCount = machineNames.length;
+
+    final progressNotifier = ValueNotifier<Map<String, dynamic>>({
+      'status': 'Übersetzung wird gestartet…',
+      'progress': 0.0,
+      'processed': 0,
+      'total': totalCount,
+    });
+
+    bool isTaskCompleted = false;
+    BuildContext? dialogContext;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        dialogContext = ctx;
+        if (isTaskCompleted) {
+          Future.microtask(() {
+            if (ctx.mounted) Navigator.of(ctx).pop();
+          });
+        }
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ValueListenableBuilder<Map<String, dynamic>>(
+            valueListenable: progressNotifier,
+            builder: (context, data, child) {
+              final currentStatus = data['status'] as String;
+              final progress = data['progress'] as double;
+              final processedCount = data['processed'] as int;
+              final total = data['total'] as int;
+
+              return GlassContainer(
+                borderRadius: 24,
+                backgroundColor: attrs.bgCard.withOpacity(0.85),
+                padding: const EdgeInsets.all(32.0),
+                width: 440,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.orange),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(title,
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(currentStatus,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: attrs.bgInput,
+                      color: Colors.orange,
+                      minHeight: 8,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$processedCount von $total Modulen verarbeitet',
+                          style: TextStyle(
+                              color: attrs.textMuted, fontSize: 12),
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()} %',
+                          style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    try {
+      const batchSize = 4;
+      for (int i = 0; i < totalCount; i += batchSize) {
+        final end = i + batchSize > totalCount ? totalCount : i + batchSize;
+        final batch = machineNames.sublist(i, end);
+
+        progressNotifier.value = {
+          'status': 'Übersetze Modul ${i + 1}–$end von $totalCount …',
+          'progress': i / totalCount,
+          'processed': i,
+          'total': totalCount,
+        };
+
+        await api.dio.post(
+          '/ai/translate-bulk',
+          data: {'machineNames': batch, 'langcode': langcode},
+          options: Options(receiveTimeout: const Duration(minutes: 10)),
+        );
+
+        progressNotifier.value = {
+          'status': '$end von $totalCount Modulen abgeschlossen.',
+          'progress': end / totalCount,
+          'processed': end,
+          'total': totalCount,
+        };
+
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+
+      progressNotifier.value = {
+        'status': 'Alle $totalCount Module erfolgreich neu übersetzt! ✨',
+        'progress': 1.0,
+        'processed': totalCount,
+        'total': totalCount,
+      };
+
+      await Future.delayed(const Duration(seconds: 1));
+      isTaskCompleted = true;
+      if (dialogContext != null && dialogContext!.mounted) {
+        Navigator.of(dialogContext!).pop();
+      }
+
+      if (context.mounted) {
+        ref.read(projectProvider.notifier).setFilter('stale', force: true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '$totalCount veraltete Module erfolgreich neu übersetzt! ✨'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      isTaskCompleted = true;
+      if (dialogContext != null && dialogContext!.mounted) {
+        Navigator.of(dialogContext!).pop();
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler bei der Stale-Übersetzung: $e'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 5),
           ),

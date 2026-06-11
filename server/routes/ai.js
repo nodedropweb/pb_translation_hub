@@ -114,6 +114,32 @@ Main Description:
     );
   }
 
+  // ── Stale machine names list ─────────────────────────────────────────────────
+
+  router.get('/ai/stale-machine-names', authenticateToken, async (req, res) => {
+    const { langcode = 'de' } = req.query;
+    try {
+      const [rows] = await db.execute(
+        `SELECT t.machine_name FROM translations t
+         JOIN projects p ON t.machine_name = p.machine_name
+         WHERE t.langcode = ?
+           AND t.source_hash IS NOT NULL AND t.source_hash != ''
+           AND MD5(CONCAT(
+             IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.title')), ''),
+             IFNULL(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.summary')), 'null'), ''),
+             IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.value')), '')
+           )) != t.source_hash
+           AND t.machine_name NOT IN (SELECT machine_name FROM ignored_projects)
+         ORDER BY t.machine_name`,
+        [langcode]
+      );
+      res.json({ machineNames: rows.map(r => r.machine_name) });
+    } catch (error) {
+      console.error('[AI] stale-machine-names error:', error);
+      res.status(500).json({ error: 'Failed to fetch stale machine names.' });
+    }
+  });
+
   // ── Bulk translation (Gemini) ────────────────────────────────────────────────
 
   router.post('/ai/translate-bulk', authenticateToken, async (req, res) => {
