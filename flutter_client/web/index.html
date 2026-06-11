@@ -349,9 +349,14 @@
           // Still over a highlight — keep tooltip alive
           clearTimeout(_hideTimer);
           showTip(hl);
+        } else {
+          // Mouse moved to a non-highlight element — schedule hide if tooltip is visible.
+          // This catches cases where mouseout fires with relatedTarget=null (e.g. slow hover).
+          if (tip.style.display !== 'none') {
+            clearTimeout(_hideTimer);
+            _hideTimer = setTimeout(function () { tip.style.display = 'none'; }, 120);
+          }
         }
-        // NOT over a highlight: don't touch the timer — mouseout already
-        // scheduled the hide and we must not cancel it here.
       });
 
       document.addEventListener('mouseout', function (e) {

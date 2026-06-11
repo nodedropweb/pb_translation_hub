@@ -277,9 +277,51 @@ module.exports = (ctx) => {
     }
   });
 
+  // Debug endpoint: serves translations regardless of is_reviewed status.
+  // Protected by a shared secret (PB_DEBUG_KEY env var). Intended for
+  // contributors who need to preview pending translations before approval.
+  router.get('/debug/:langcode/:filename', async (req, res) => {
+    const debugKey = process.env.PB_DEBUG_KEY;
+    if (!debugKey) {
+      return res.status(403).json({ error: 'Debug endpoint is not enabled on this server.' });
+    }
+    const providedKey = req.headers['x-pb-debug-key'];
+    if (!providedKey || providedKey !== debugKey) {
+      return res.status(403).json({ error: 'Invalid or missing debug key.' });
+    }
+
+    const { langcode, filename } = req.params;
+    const filePath = path.join(TRANSLATIONS_DIR, langcode, filename);
+    if (!await fs.pathExists(filePath)) {
+      // Fall back to DB if no file exists yet.
+      const machine_name = filename.replace(/\.json$/, '');
+      try {
+        const [tRows] = await db.execute(
+          'SELECT title, summary, body, screenshot_alts, source_hash, is_reviewed FROM translations WHERE machine_name = ? AND langcode = ?',
+          [machine_name, langcode]
+        );
+        if (tRows.length > 0) {
+          const row = tRows[0];
+          return res.json({
+            machine_name,
+            title: row.title,
+            body: { value: fixRelativeUrls(row.body || ''), summary: fixRelativeUrls(row.summary || '') },
+            screenshot_alts: JSON.parse(row.screenshot_alts || '{}'),
+            is_reviewed: row.is_reviewed === 1,
+            source_hash: row.source_hash
+          });
+        }
+      } catch (dbErr) {
+        console.error('Debug DB lookup error:', dbErr);
+      }
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.sendFile(filePath);
+  });
+
   // Public endpoint for downloading translations (used by Drupal modules client)
   // Guard: skip reserved API prefixes so the wildcard never shadows other routers.
-  const RESERVED_PREFIXES = ['admin', 'ai', 'auth', 'sync', 'projects', 'categories'];
+  const RESERVED_PREFIXES = ['admin', 'ai', 'auth', 'sync', 'projects', 'categories', 'debug'];
   router.get('/:langcode/:filename', optionalAuth, async (req, res, next) => {
     const { langcode, filename } = req.params;
     if (RESERVED_PREFIXES.includes(langcode)) return next();
