@@ -267,7 +267,16 @@ module.exports = (ctx) => {
         [langcode]
       );
       const [[staleRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM translations t JOIN projects p ON t.machine_name = p.machine_name WHERE t.langcode = ? AND p.changed > t.updated_at AND t.machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM translations t
+         JOIN projects p ON t.machine_name = p.machine_name
+         WHERE t.langcode = ?
+           AND t.source_hash IS NOT NULL AND t.source_hash != ''
+           AND MD5(CONCAT(
+             IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.title')), ''),
+             IFNULL(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.summary')), 'null'), ''),
+             IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.value')), '')
+           )) != t.source_hash
+           AND t.machine_name NOT IN (SELECT machine_name FROM ignored_projects)`,
         [langcode]
       );
       const [[translatedRes]] = await db.execute(
@@ -343,19 +352,9 @@ module.exports = (ctx) => {
           status = 'translated';
           let isStale = false;
           if (pRows[0].t_source_hash) {
-            if (item.attributes?.changed && pRows[0].t_updated_at) {
-              const changedTime = new Date(item.attributes.changed).getTime();
-              const updatedTime = new Date(pRows[0].t_updated_at).getTime();
-              if (changedTime > updatedTime) {
-                const source = item.attributes.title + (item.attributes.body?.summary || '') + (item.attributes.body?.value || '');
-                const sourceHash = crypto.createHash('md5').update(source).digest('hex');
-                if (pRows[0].t_source_hash !== sourceHash) isStale = true;
-              }
-            } else {
-              const source = item.attributes.title + (item.attributes.body?.summary || '') + (item.attributes.body?.value || '');
-              const sourceHash = crypto.createHash('md5').update(source).digest('hex');
-              if (pRows[0].t_source_hash !== sourceHash) isStale = true;
-            }
+            const source = item.attributes.title + (item.attributes.body?.summary || '') + (item.attributes.body?.value || '');
+            const sourceHash = crypto.createHash('md5').update(source).digest('hex');
+            if (pRows[0].t_source_hash !== sourceHash) isStale = true;
           }
 
           if (isStale) {

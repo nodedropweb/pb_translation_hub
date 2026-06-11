@@ -243,7 +243,13 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
   } else if (filter === 'translated') {
     query += ` AND t.machine_name IS NOT NULL `;
   } else if (filter === 'stale') {
-    query += ` AND t.machine_name IS NOT NULL AND p.changed > t.updated_at `;
+    query += ` AND t.machine_name IS NOT NULL
+      AND t.source_hash IS NOT NULL AND t.source_hash != ''
+      AND MD5(CONCAT(
+        IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.title')), ''),
+        IFNULL(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.summary')), 'null'), ''),
+        IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.value')), '')
+      )) != t.source_hash `;
   } else if (filter === 'review') {
     query += ` AND t.machine_name IS NOT NULL AND t.is_reviewed = FALSE `;
   } else if (filter === 'released') {
@@ -321,8 +327,6 @@ async function syncProjects(sinceTimestamp = null) {
     try {
       const query = {
         'filter[status]': 1,
-        'filter[type]': 'project_module',
-        'filter[project_type]': 'full',
         'sort': sinceTimestamp ? '-changed' : 'machine_name',
         'page[limit]': 50,
         'page[offset]': page * 50,
@@ -339,7 +343,9 @@ async function syncProjects(sinceTimestamp = null) {
         query['filter[waterfall][condition][value]'] = syncStatus.lastMachineName;
       }
 
-      const response = await axios.get(DRUPAL_ORG_API, { params: query });
+      // Quick sync needs node endpoint (supports filter[changed]); full sync uses index endpoint
+      const apiUrl = sinceTimestamp ? DETAIL_API : DRUPAL_ORG_API;
+      const response = await axios.get(apiUrl, { params: query });
       const data = response.data.data;
       const included = response.data.included || [];
 
@@ -547,6 +553,38 @@ async function backfillIsReviewedInFiles() {
   }
 }
 
+// ── Automatic quick sync every 7.5 days ───────────────────────────────────────
+// Uses setInterval so no extra dependency is needed.  The interval is only
+// started after the server is fully up (inside app.listen callback).
+// A quick sync fetches only modules changed since the last full sync timestamp,
+// so it is fast and Drupal.org-friendly.
+const QUICK_SYNC_INTERVAL_MS = 7.5 * 24 * 60 * 60 * 1000; // 7.5 days
+
+function scheduleQuickSync() {
+  setInterval(async () => {
+    if (syncStatus.active) {
+      console.log('[AutoSync] Skipping scheduled quick sync — a sync is already running.');
+      return;
+    }
+    const since = syncStatus.lastFullSync;
+    if (!since) {
+      console.log('[AutoSync] Skipping scheduled quick sync — no lastFullSync timestamp yet.');
+      return;
+    }
+    console.log(`[AutoSync] Starting scheduled quick sync (changed since ${since})…`);
+    syncStatus.active = true;
+    syncStatus.shouldStop = false;
+    syncStatus.error = null;
+    try {
+      await syncProjects(since);
+      console.log('[AutoSync] Scheduled quick sync completed.');
+    } catch (e) {
+      console.error('[AutoSync] Scheduled quick sync failed:', e.message);
+      syncStatus.active = false;
+    }
+  }, QUICK_SYNC_INTERVAL_MS);
+}
+
 app.listen(PORT, async () => {
   console.log(`PB Translation Hub Backend running on http://localhost:${PORT}`);
 
@@ -563,4 +601,8 @@ app.listen(PORT, async () => {
   // Run startup tasks sequentially so backfill sees freshly generated files.
   await ensureTranslationFilesFromDb();
   backfillIsReviewedInFiles();
+
+  // Start the automatic 7.5-day quick sync scheduler.
+  scheduleQuickSync();
+  console.log(`[AutoSync] Scheduled quick sync every 7.5 days (${QUICK_SYNC_INTERVAL_MS / 1000 / 3600}h).`);
 });

@@ -20,6 +20,7 @@ import '../../utils/html_sanitizer.dart';
 import '../../utils/ck_glossary.dart';
 import '../../utils/autop.dart' as autop_util;
 import '../../theme/app_theme.dart';
+import '../../widgets/diff_view.dart';
 import '../../widgets/ckeditor_field.dart';
 import '../../widgets/glass_container.dart';
 import '../../widgets/search_with_autocomplete.dart';
@@ -1567,6 +1568,30 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Tooltip(
+              message: isGerman
+                  ? 'Übersetzung mit englischer Quelle vergleichen'
+                  : 'Compare translation with English source',
+              child: OutlinedButton.icon(
+                onPressed: () => showDiffSheet(
+                  context,
+                  leftText: _bodyController.text,
+                  rightText: _project?['attributes']?['body']?['value'] ?? '',
+                  leftLabel: isGerman ? 'Übersetzung' : 'Translation',
+                  rightLabel: isGerman ? 'Englische Quelle' : 'English Source',
+                  title: isGerman ? 'Vergleich' : 'Comparison',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  side: BorderSide(color: attrs.borderMain),
+                  foregroundColor: attrs.textMuted,
+                ),
+                icon: const Icon(Icons.compare_arrows, size: 16),
+                label: Text(isGerman ? 'DIFF' : 'DIFF',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 8),
             Tooltip(
               message: isGerman
                   ? 'Quelltext + Übersetzungsprompt in die Zwischenablage kopieren'

@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
 
-# Install PM2 for cluster mode (Performance benefit!)
+# Install PM2
 RUN npm install -g pm2
 
 # Copy source
@@ -16,5 +16,5 @@ RUN mkdir -p data
 
 EXPOSE 9901
 
-# Start via PM2 cluster mode, utilizing all available CPU cores
-CMD ["pm2-runtime", "index.js", "-i", "max"]
+# Single instance — sync state is in-memory; cluster mode would cause concurrent syncs
+CMD ["pm2-runtime", "index.js", "-i", "1"]

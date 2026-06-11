@@ -20,6 +20,7 @@ import '../../utils/translation_prompt.dart';
 import '../../utils/html_sanitizer.dart';
 import '../../utils/autop.dart' as autop_util;
 import '../../utils/ck_glossary.dart';
+import '../../widgets/diff_view.dart';
 import '../../widgets/ckeditor_field.dart';
 import 'widgets/cost_calculator_dialog.dart';
 import 'widgets/screenshot_alts_section.dart';
@@ -109,6 +110,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ── Confetti ───────────────────────────────────────────────────────────
   late ConfettiController _confettiController;
+
+  // ── Stale detection ───────────────────────────────────────────────────
+  bool _isStale = false;
 
   // ── Off-canvas source drawer ───────────────────────────────────────────
   bool _sourceDrawerOpen = false;
@@ -407,6 +411,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _nextMachineName = meta['next_machine_name'];
       _remainingPriorityCount = meta['filter_count'];
       _isIgnored = meta['is_ignored'] == true;
+      _isStale = (meta['translation']?['status'] as String?) == 'stale';
+      // Auto-open the English source panel so the translator immediately sees
+      // the current Drupal.org text alongside the stale German translation.
+      if (_isStale) _sourceDrawerOpen = true;
 
       for (final c in _screenshotAltControllers.values) {
         c.dispose();
@@ -788,6 +796,31 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       backgroundColor: Colors.orange,
     ));
     _goToNext();
+  }
+
+  /// Replaces the translation editor content with the current English source.
+  /// Used for stale modules where the translator wants to start fresh from the
+  /// new Drupal.org original rather than adapt the outdated German text.
+  void _useEnglishSource() {
+    setState(() {
+      _summaryController.text = _englishSummary;
+      _bodyController.text = _englishBody;
+      _isStale = false;
+    });
+    // Sync to CodeMirror source views if they happen to be open.
+    if (_showSummaryHtml) {
+      Future.delayed(const Duration(milliseconds: 50),
+          () => _syncToSourceIFrame('summary', _englishSummary));
+    }
+    if (_showBodyHtml) {
+      Future.delayed(const Duration(milliseconds: 50),
+          () => _syncToSourceIFrame('body', _englishBody));
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Englisches Original übernommen — bitte jetzt übersetzen.'),
+      backgroundColor: Colors.teal,
+      duration: Duration(seconds: 3),
+    ));
   }
 
   Future<void> _launchDrupalProject(String machineName) async {

@@ -466,6 +466,32 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Stale action — only shown when source has changed.
+                    // Opens the explanation modal (same as the banner button).
+                    if (_isStale) ...[
+                      Tooltip(
+                        message: 'Erklärung anzeigen & englischen Text übernehmen',
+                        child: TextButton.icon(
+                          onPressed: _showStaleDialog,
+                          icon: const Icon(Icons.warning_amber_rounded,
+                              size: 13, color: Colors.orange),
+                          label: const Text('Veraltet — Details',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            backgroundColor:
+                                Colors.orange.withOpacity(0.12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     TextButton.icon(
                       onPressed: () =>
                           _launchDrupalProject(widget.machineName),
@@ -630,12 +656,183 @@ extension EditorBuildMethodsExt on _EditorScreenState {
 
   // ── Translation pane ───────────────────────────────────────────────────────
 
+  Future<void> _showStaleDialog() async {
+    await _suppressAndWait();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1D23),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.orange.withOpacity(0.4)),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.orange.shade400, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Englische Quelle hat sich geändert',
+                style: TextStyle(
+                  color: Colors.orange.shade300,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Die vorhandene Übersetzung basiert auf einem veralteten englischen Originaltext. '
+                'Seit der letzten Übersetzung hat der Modulentwickler den englischen Text auf '
+                'Drupal.org geändert — der Inhalt der alten deutschen Übersetzung ist daher '
+                'möglicherweise nicht mehr korrekt oder vollständig.',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 13,
+                    height: 1.6),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.08),
+                  border:
+                      Border.all(color: Colors.teal.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Tipp: Klicke auf "Englisch übernehmen", um den aktuellen englischen '
+                  'Originaltext direkt in den Editor zu laden. Du kannst ihn dann als '
+                  'Ausgangspunkt für eine vollständige Neuübersetzung verwenden. '
+                  'Das englische Original ist zusätzlich im linken Panel sichtbar.',
+                  style: TextStyle(
+                      color: Colors.teal.shade200,
+                      fontSize: 12,
+                      height: 1.55),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Schließen',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showDiffSheet(
+                context,
+                leftText: _bodyController.text,
+                rightText: _englishBody,
+                leftLabel: 'Bisherige Übersetzung',
+                rightLabel: 'Neue Quelle (Englisch)',
+                title: 'Was hat sich geändert?',
+              );
+            },
+            icon: const Icon(Icons.compare_arrows, size: 14),
+            label: const Text('Diff anzeigen',
+                style:
+                    TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.orange.shade300,
+              side:
+                  BorderSide(color: Colors.orange.withOpacity(0.4)),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 9),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7)),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _useEnglishSource();
+            },
+            icon: const Icon(Icons.download_for_offline_outlined,
+                size: 15),
+            label: const Text('Englisch übernehmen',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 9),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7)),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+    // Restore CKEditor iframes regardless of which action the user chose.
+    if (mounted) _restoreEditors();
+  }
+
+  Widget _buildStaleBanner() {
+    if (!_isStale) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.08),
+        border: Border.all(color: Colors.orange.withOpacity(0.5), width: 1.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              color: Colors.orange.shade400, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Englische Quelle hat sich geändert — Übersetzung veraltet',
+              style: TextStyle(
+                  color: Colors.orange.shade300,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: _showStaleDialog,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange.shade300,
+              backgroundColor: Colors.orange.withOpacity(0.12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 7),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7)),
+              textStyle: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            child: const Text('Details & Übernehmen'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTranslationPane() {
     return Container(
       color: const Color(0xFF14171C),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildStaleBanner(),
           // Workspace header
           Container(
             padding:
