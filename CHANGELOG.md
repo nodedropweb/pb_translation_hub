@@ -11,6 +11,11 @@ Dates are in `YYYY-MM-DD` format.
 
 ### Added
 
+#### Stale-Massen-Übersetzung — alle veralteten Module per Knopfdruck neu übersetzen
+- **`server/routes/ai.js`** — neuer Endpoint `GET /ai/stale-machine-names?langcode=X`: liefert alle Machine-Names, deren `source_hash` nicht mehr mit dem aktuellen englischen Text übereinstimmt, direkt aus der DB (kein Pagination-Limit).
+- **`flutter_client/lib/screens/dashboard/dashboard_screen.dart`** — `_showStaleBulkTranslateDialog()`: spezieller Dialog für den Stale-Filter, der alle veralteten Module vorab abruft, Gesamtanzahl und Kostenschätzung anzeigt und ohne Count-Dropdown direkt startet.
+- **`_executeBulkTranslationWithNames()`** — neue Methode, die eine explizite Machine-Name-Liste in Batches à 4 an `/ai/translate-bulk` schickt; orangefarbener Progress-Dialog; aktualisiert nach Abschluss automatisch den Stale-Filter.
+
 #### Stale-Erkennung — veraltete Übersetzungen anzeigen & beheben
 - **`server/routes/projects.js`** — `/projects/:machine_name` berechnet jetzt einen MD5-Hash über `title + body.summary + body.value` und vergleicht ihn mit `translations.source_hash`. Weicht der Hash ab, liefert die API `status: 'stale'`.
 - **`flutter_client/lib/screens/editor/editor_screen.dart`** — neues Feld `_isStale`; wird beim Laden gesetzt, wenn der API-Status `'stale'` ist. Bei veralteter Übersetzung öffnet sich die englische Quell-Seitenleiste automatisch.
