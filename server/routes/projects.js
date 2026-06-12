@@ -259,11 +259,11 @@ module.exports = (ctx) => {
         [langcode]
       );
       const [[reviewRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM translations WHERE langcode = ? AND is_reviewed = FALSE AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        'SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = FALSE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
         [langcode]
       );
       const [[releasedRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM translations WHERE langcode = ? AND is_reviewed = TRUE AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        'SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
         [langcode]
       );
       const [[staleRes]] = await db.execute(
