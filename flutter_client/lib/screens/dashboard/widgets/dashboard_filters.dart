@@ -146,8 +146,9 @@ class DashboardFilters extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final projectState = ref.watch(projectProvider);
     final activeFilter = ref.watch(projectProvider.notifier).activeFilter;
-    final activeVersion = ref.watch(projectProvider.notifier).coreVersion;
+    final activeVersion = projectState.coreVersion;
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
     final filterCounts = ref.watch(filterCountsProvider);

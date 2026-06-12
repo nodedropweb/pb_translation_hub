@@ -281,8 +281,19 @@ module.exports = (ctx) => {
       const [[allRes]] = await db.execute(
         `SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`
       );
+      // Priority: zählt aus priority_projects direkt (nicht aus projects-JOIN,
+      // da viele priority-Module noch nicht ins lokale DB gesynct sind).
+      // Version-Filter per LEFT JOIN optional angehängt.
+      const priorityVersionJoin = coreVer !== null
+        ? ` LEFT JOIN projects _pv ON pp.machine_name = _pv.machine_name
+            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(_pv.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${coreVer * 1000000 + 999999}
+            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(_pv.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${coreVer * 1000000} `
+        : '';
+      const priorityVersionWhere = coreVer !== null ? ' AND _pv.machine_name IS NOT NULL ' : '';
       const [[priorityRes]] = await db.execute(
-        `SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM priority_projects) AND machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
+        `SELECT COUNT(*) as count FROM priority_projects pp${priorityVersionJoin}
+         WHERE pp.machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?)
+         AND pp.machine_name NOT IN (SELECT machine_name FROM ignored_projects)${priorityVersionWhere}`,
         [langcode]
       );
       const [[missingRes]] = await db.execute(

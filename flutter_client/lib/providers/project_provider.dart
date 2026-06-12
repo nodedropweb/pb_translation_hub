@@ -8,12 +8,14 @@ class ProjectState {
   final List<Project> projects;
   final int totalItems;
   final String? error;
+  final int? coreVersion;
 
   ProjectState({
     this.isLoading = false,
     this.projects = const [],
     this.totalItems = 0,
     this.error,
+    this.coreVersion,
   });
 
   ProjectState copyWith({
@@ -21,15 +23,19 @@ class ProjectState {
     List<Project>? projects,
     int? totalItems,
     String? error,
+    Object? coreVersion = _sentinel,
   }) {
     return ProjectState(
       isLoading: isLoading ?? this.isLoading,
       projects: projects ?? this.projects,
       totalItems: totalItems ?? this.totalItems,
       error: error ?? this.error,
+      coreVersion: coreVersion == _sentinel ? this.coreVersion : coreVersion as int?,
     );
   }
 }
+// Sentinel damit copyWith(coreVersion: null) null explizit setzen kann
+const Object _sentinel = Object();
 
 class ProjectNotifier extends Notifier<ProjectState> {
   final ApiClient _api = ApiClient();
@@ -107,6 +113,7 @@ class ProjectNotifier extends Notifier<ProjectState> {
     if (_coreVersion == version) return;
     _coreVersion = version;
     _currentPage = 1;
+    state = state.copyWith(coreVersion: version);
     _fetchProjects();
     final langcode = ref.read(languageProvider).targetLanguage.code;
     Future.microtask(() => ref.read(filterCountsProvider.notifier).fetchCounts(langcode, coreVersion: version));
