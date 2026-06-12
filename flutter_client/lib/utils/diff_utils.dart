@@ -102,8 +102,6 @@ TextSpan buildDiffTextSpan(List<DiffSpan> spans, String side, BuildContext conte
         style: TextStyle(
           color: Colors.red.shade300,
           backgroundColor: Colors.red.withOpacity(0.15),
-          decoration: TextDecoration.lineThrough,
-          decorationColor: Colors.red.shade300,
         ),
       ));
     } else if (s.op == DiffOp.insert && side == 'right') {

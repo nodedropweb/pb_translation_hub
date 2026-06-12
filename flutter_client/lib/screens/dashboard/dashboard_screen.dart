@@ -143,7 +143,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Schnell-Update (7 Tage) gestartet ⚡'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -170,7 +170,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erfolgreich synchronisiert: ${title ?? name}'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
         // Refresh the project list
@@ -1852,7 +1852,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (staleMachineNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Keine veralteten Module gefunden — alles aktuell! ✨'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.shade800,
       ));
       return;
     }
@@ -2232,7 +2232,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SnackBar(
             content: Text(
                 'Massen-Übersetzung von $totalCount Modulen erfolgreich! ✨'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -2410,7 +2410,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SnackBar(
             content: Text(
                 '$totalCount veraltete Module erfolgreich neu übersetzt! ✨'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }

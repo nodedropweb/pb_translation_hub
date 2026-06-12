@@ -569,7 +569,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isGerman ? 'Übersetzung freigegeben! 🎉' : 'Translation approved! 🎉'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.shade800,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -757,7 +757,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isGerman ? 'Vorschlag gespeichert! 💾' : 'Suggestion draft saved! 💾'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -1575,10 +1575,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => showDiffSheet(
                   context,
-                  leftText: _bodyController.text,
-                  rightText: _project?['attributes']?['body']?['value'] ?? '',
-                  leftLabel: isGerman ? 'Übersetzung' : 'Translation',
-                  rightLabel: isGerman ? 'Englische Quelle' : 'English Source',
+                  leftText: _project?['attributes']?['body']?['value'] ?? '',
+                  rightText: _bodyController.text,
+                  leftLabel: isGerman ? 'Englische Quelle' : 'English Source',
+                  rightLabel: isGerman ? 'Übersetzung' : 'Translation',
                   title: isGerman ? 'Vergleich' : 'Comparison',
                 ),
                 style: OutlinedButton.styleFrom(

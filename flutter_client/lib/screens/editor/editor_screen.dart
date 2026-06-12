@@ -562,7 +562,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Übersetzung mit Gemini erfolgreich! ✨'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ));
         }
       } else {
@@ -708,7 +708,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           content: Text(isGerman
               ? 'Modul wurde wieder in die aktive Liste aufgenommen.'
               : 'Module has been returned to the active list.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.shade800,
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -754,7 +754,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         if (confettiEnabled) _confettiController.play();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Übersetzung gespeichert – zurück in Review-Warteschlange.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.shade800,
         ));
       }
       if (andNext) _goToNext();

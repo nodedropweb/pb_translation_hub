@@ -98,7 +98,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             content: Text(isGerman 
               ? 'Registrierungseinstellung aktualisiert' 
               : 'Registration setting updated'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -125,7 +125,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(isGerman ? 'Nutzer freigeschaltet!' : 'User approved!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ));
         }
         setState(() {
@@ -236,7 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             content: Text(isGerman 
               ? '$count Übersetzungen synchronisiert!' 
               : '$count translations synced!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -272,7 +272,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             content: Text(isGerman 
               ? '$count Priority-Module synchronisiert!' 
               : '$count priority modules synced!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -338,7 +338,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             content: Text(isGerman
                 ? 'Backup erfolgreich: $count Dateien verarbeitet.'
                 : 'Backup successful: $count files processed.'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -1250,7 +1250,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(isGerman ? 'Logs in Zwischenablage kopiert! 📋' : 'Logs copied to clipboard! 📋'),
-                                          backgroundColor: Colors.green,
+                                          backgroundColor: Colors.green.shade800,
                                         ),
                                       );
                                     },
@@ -1265,7 +1265,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(isGerman ? 'Logs archiviert und rotiert! 📁' : 'Logs archived and rotated! 📁'),
-                                          backgroundColor: Colors.green,
+                                          backgroundColor: Colors.green.shade800,
                                         ),
                                       );
                                     },

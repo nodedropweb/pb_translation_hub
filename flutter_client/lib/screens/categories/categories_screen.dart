@@ -85,7 +85,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             content: Text(isGerman 
               ? 'Kategorien erfolgreich gespeichert.' 
               : 'Categories saved successfully.'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.green.shade800,
           ),
         );
       }
@@ -173,7 +173,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           content: Text(isGerman
               ? '${translations.length} Kategorien aus Datei importiert.'
               : '${translations.length} categories imported from file.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.shade800,
         ));
       }
       _fetchCategories();

@@ -734,10 +734,10 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               Navigator.pop(ctx);
               showDiffSheet(
                 context,
-                leftText: _bodyController.text,
-                rightText: _englishBody,
-                leftLabel: 'Bisherige Übersetzung',
-                rightLabel: 'Neue Quelle (Englisch)',
+                leftText: _englishBody,
+                rightText: _bodyController.text,
+                leftLabel: 'Englische Quelle',
+                rightLabel: 'Bisherige Übersetzung',
                 title: 'Was hat sich geändert?',
               );
             },

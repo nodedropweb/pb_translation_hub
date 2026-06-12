@@ -14,8 +14,8 @@ class DiffView extends StatefulWidget {
     super.key,
     required this.leftText,
     required this.rightText,
-    this.leftLabel = 'Bisherige Übersetzung',
-    this.rightLabel = 'Neue Quelle (Englisch)',
+    this.leftLabel = 'Englische Quelle',
+    this.rightLabel = 'Deutsche Übersetzung',
   });
 
   @override
@@ -102,7 +102,7 @@ class _DiffViewState extends State<DiffView> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        side == 'left' ? 'veraltet' : 'aktuell',
+                        side == 'left' ? 'EN' : 'DE',
                         style: TextStyle(fontSize: 10, color: accent),
                       ),
                     ),
