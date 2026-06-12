@@ -1058,9 +1058,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.keyS, control: true, alt: true): _handleSaveSuggestion,
           const SingleActivator(LogicalKeyboardKey.keyS, meta: true, alt: true): _handleSaveSuggestion,
-          const SingleActivator(LogicalKeyboardKey.enter, control: true): _handleApprove,
-          const SingleActivator(LogicalKeyboardKey.enter, meta: true): _handleApprove,
-          const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goToNextReview(),
+const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goToNextReview(),
           const SingleActivator(LogicalKeyboardKey.arrowRight, meta: true): () => _goToNextReview(),
         },
         child: Focus(
