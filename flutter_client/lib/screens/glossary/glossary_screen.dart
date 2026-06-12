@@ -300,7 +300,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
           content: Text(isNew
               ? 'Begriff angelegt ✓'
               : 'Begriff aktualisiert ✓'),
-          backgroundColor: Colors.green.shade800,
+          backgroundColor: const Color(0xFF2E7D32),
         ));
       }
     } catch (e) {

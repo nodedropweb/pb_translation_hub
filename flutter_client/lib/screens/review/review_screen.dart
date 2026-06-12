@@ -569,7 +569,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isGerman ? 'Übersetzung freigegeben! 🎉' : 'Translation approved! 🎉'),
-          backgroundColor: Colors.green.shade800,
+          backgroundColor: const Color(0xFF2E7D32),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -757,7 +757,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isGerman ? 'Vorschlag gespeichert! 💾' : 'Suggestion draft saved! 💾'),
-            backgroundColor: Colors.green.shade800,
+            backgroundColor: const Color(0xFF2E7D32),
           ),
         );
       }
