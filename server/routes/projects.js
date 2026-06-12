@@ -69,7 +69,8 @@ module.exports = (ctx) => {
   // Get paginated list of projects with filters and search
   router.get('/projects', optionalAuth, async (req, res) => {
     console.log(`[${new Date().toISOString()}] GET /api/projects - Query:`, req.query);
-    let { search, limit = 50, offset = 0, langcode = 'de', filter = 'all', machine_name, prioritize_drupal11 } = req.query;
+    let { search, limit = 50, offset = 0, langcode = 'de', filter = 'all', machine_name, prioritize_drupal11, core_version } = req.query;
+    const coreVer = core_version ? parseInt(core_version) : null;
     
     const isExternal = !req.user;
     if (isExternal) {
@@ -99,13 +100,14 @@ module.exports = (ctx) => {
     
     try {
       const paginated = await getFilteredIndex(
-        filter, 
-        search, 
-        langcode, 
-        limit, 
-        offset, 
+        filter,
+        search,
+        langcode,
+        limit,
+        offset,
         machineNamesArray,
-        prioritize_drupal11 === 'true' || prioritize_drupal11 === true
+        prioritize_drupal11 === 'true' || prioritize_drupal11 === true,
+        coreVer
       );
       
       let countQuery = `
@@ -143,6 +145,13 @@ module.exports = (ctx) => {
         const placeholders = machineNamesArray.map(() => '?').join(',');
         countQuery += ` AND p.machine_name IN (${placeholders}) `;
         countParams.push(...machineNamesArray);
+      }
+
+      if (coreVer !== null) {
+        const vMin = coreVer * 1000000;
+        const vMax = coreVer * 1000000 + 999999;
+        countQuery += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+                        AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
       }
 
       console.log(`[${new Date().toISOString()}] SQL execution finished. Paginated count: ${paginated.length}. Filter: ${filter}`);
@@ -247,23 +256,45 @@ module.exports = (ctx) => {
 
   // Get project count by translation status filters
   router.get('/projects/filter-counts', async (req, res) => {
-    const { langcode = 'de' } = req.query;
+    const { langcode = 'de', core_version } = req.query;
+    const coreVer = core_version ? parseInt(core_version) : null;
+
+    // Build an optional SQL snippet that restricts to a specific Drupal core version.
+    // field_core_semver_minimum/maximum are stored as integers like 10000000 = 10.0.0.
+    let vSnippet = '';
+    if (coreVer !== null) {
+      const vMin = coreVer * 1000000;
+      const vMax = coreVer * 1000000 + 999999;
+      vSnippet = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+                   AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+    }
+    // Same snippet but using table alias 'p'
+    let vSnippetP = '';
+    if (coreVer !== null) {
+      const vMin = coreVer * 1000000;
+      const vMax = coreVer * 1000000 + 999999;
+      vSnippetP = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+                    AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+    }
+
     try {
-      const [[allRes]] = await db.execute('SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)');
+      const [[allRes]] = await db.execute(
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`
+      );
       const [[priorityRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM priority_projects) AND machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM priority_projects) AND machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
         [langcode]
       );
       const [[missingRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
         [langcode]
       );
       const [[reviewRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = FALSE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = FALSE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
         [langcode]
       );
       const [[releasedRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
         [langcode]
       );
       const [[staleRes]] = await db.execute(
@@ -276,14 +307,32 @@ module.exports = (ctx) => {
              IFNULL(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.summary')), 'null'), ''),
              IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.value')), '')
            )) != t.source_hash
-           AND t.machine_name NOT IN (SELECT machine_name FROM ignored_projects)`,
+           AND t.machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippetP}`,
         [langcode]
       );
       const [[translatedRes]] = await db.execute(
-        'SELECT COUNT(*) as count FROM translations WHERE langcode = ? AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)',
+        `SELECT COUNT(*) as count FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,
         [langcode]
       );
       const [[ignoredRes]] = await db.execute('SELECT COUNT(*) as count FROM ignored_projects');
+
+      // Per-version breakdown for all relevant statuses (unfiltered by core_version,
+      // so the version chips always show their totals regardless of current version selection).
+      const versions = [9, 10, 11, 12];
+      const versionCounts = {};
+      for (const v of versions) {
+        const vMin = v * 1000000;
+        const vMax = v * 1000000 + 999999;
+        const vClause = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+                          AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+        const vClauseP = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+                           AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+        const [[va]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`);
+        const [[vm]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
+        const [[vr]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = FALSE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
+        const [[vrel]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
+        versionCounts[v] = { all: va.c, missing: vm.c, review: vr.c, released: vrel.c };
+      }
 
       res.json({
         all: allRes.count,
@@ -293,7 +342,8 @@ module.exports = (ctx) => {
         released: releasedRes.count,
         stale: staleRes.count,
         translated: translatedRes.count,
-        ignored: ignoredRes.count
+        ignored: ignoredRes.count,
+        version_counts: versionCounts,
       });
     } catch (error) {
       console.error('Filter counts error:', error);

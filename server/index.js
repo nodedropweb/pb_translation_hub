@@ -200,10 +200,11 @@ function getExcerpt(html, limit = 200) {
 }
 
 // --- Shared Filtering Logic (SQL version) ---
-async function getFilteredIndex(filter, search, langcode, limit = null, offset = 0, machine_names = null, prioritize_priority = false) {
+async function getFilteredIndex(filter, search, langcode, limit = null, offset = 0, machine_names = null, prioritize_priority = false, core_version = null) {
   if (search === 'undefined' || search === 'null') search = '';
   if (typeof search === 'string') search = search.trim();
   if (filter === 'undefined' || filter === 'null' || typeof filter === 'object') filter = 'all';
+  const coreVer = core_version ? parseInt(core_version) : null;
 
   let query = `
     SELECT 
@@ -256,6 +257,13 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
     query += ` AND t.machine_name IS NOT NULL AND t.is_reviewed = TRUE `;
   } else if (filter === 'priority') {
     query += ` AND p.machine_name IN (SELECT machine_name FROM priority_projects) AND t.machine_name IS NULL `;
+  }
+
+  if (coreVer !== null) {
+    const vMin = coreVer * 1000000;
+    const vMax = coreVer * 1000000 + 999999;
+    query += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
+               AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
   }
 
   let orderClause = '';

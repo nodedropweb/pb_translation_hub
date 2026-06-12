@@ -23,6 +23,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   List<dynamic> _reviewProjects = [];
   int _totalCount = 0;
   String _searchQuery = '';
+  int? _coreVersion;
 
   // Debounce timer so we don't fire a request on every keystroke.
   DateTime? _lastSearchTime;
@@ -44,6 +45,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
         'filter': 'review',
         'limit': 100,
         if (search.isNotEmpty) 'search': search,
+        if (_coreVersion != null) 'core_version': _coreVersion,
       };
       final response = await _api.dio.get('/projects', queryParameters: queryParams);
       final rawData = response.data['data'] as List<dynamic>;
@@ -148,8 +150,9 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
     // The local list already reflects the current search query.
     final filteredList = _reviewProjects;
 
+    final isNarrow = MediaQuery.of(context).size.width < 600;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0),
+      padding: EdgeInsets.all(isNarrow ? 16.0 : 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -174,7 +177,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                       Text(
                         isGerman ? 'Review-Warteschlange' : 'Review Pipeline',
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: isNarrow ? 22 : 32,
                           fontWeight: FontWeight.w900,
                           color: attrs.textMain,
                         ),
@@ -198,119 +201,159 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
           ),
           const SizedBox(height: 32),
 
+          // ── Drupal-Version-Chips ──────────────────────────────────────────
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [null, 9, 10, 11, 12].map((v) {
+              final isActive = _coreVersion == v;
+              final label = v == null ? (isGerman ? 'Alle' : 'All') : 'D$v';
+              return InkWell(
+                onTap: () {
+                  setState(() => _coreVersion = v);
+                  _fetchReviewProjects(search: _searchQuery);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isActive ? attrs.brand600.withOpacity(0.9) : attrs.bgCard,
+                    border: Border.all(
+                      color: isActive ? attrs.brand600 : attrs.borderMain,
+                      width: isActive ? 1.5 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      color: isActive ? Colors.white : attrs.textMain,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
           // Search + action toolbar
           GlassContainer(
             border: Border.all(color: attrs.borderMain),
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                // Search field
-                Expanded(
-                  child: TextFormField(
-                    onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: isGerman ? 'Projekt suchen...' : 'Search projects...',
-                      hintStyle: TextStyle(color: attrs.textMuted),
-                      prefixIcon: Icon(LucideIcons.search, color: attrs.textMuted, size: 18),
-                      filled: true,
-                      fillColor: Colors.black12,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: attrs.borderMain),
+                // Search field always full-width
+                // Search field full-width
+                TextFormField(
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: isGerman ? 'Projekt suchen...' : 'Search projects...',
+                    hintStyle: TextStyle(color: attrs.textMuted),
+                    prefixIcon: Icon(LucideIcons.search, color: attrs.textMuted, size: 18),
+                    filled: true,
+                    fillColor: Colors.black12,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: attrs.borderMain),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: attrs.borderMain),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: attrs.brand600),
+                    ),
+                  ),
+                  style: TextStyle(color: attrs.textMain),
+                ),
+                const SizedBox(height: 12),
+                // Action buttons + count — wrap on narrow screens
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    // Refresh button
+                    OutlinedButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () => _fetchReviewProjects(search: _searchQuery),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        side: BorderSide(color: attrs.borderMain),
+                        foregroundColor: attrs.textMain,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: attrs.borderMain),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: attrs.brand600),
+                      icon: _isLoading
+                          ? SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: attrs.brand600))
+                          : Icon(LucideIcons.refreshCw, size: 15, color: attrs.brand600),
+                      label: Text(
+                        isGerman ? 'Aktualisieren' : 'Refresh',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    style: TextStyle(color: attrs.textMain),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Refresh button
-                OutlinedButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : () => _fetchReviewProjects(search: _searchQuery),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                    side: BorderSide(color: attrs.borderMain),
-                    foregroundColor: attrs.textMain,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: _isLoading
-                      ? SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: attrs.brand600))
-                      : Icon(LucideIcons.refreshCw,
-                          size: 15, color: attrs.brand600),
-                  label: Text(
-                    isGerman ? 'Aktualisieren' : 'Refresh',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Reset all published button
-                OutlinedButton.icon(
-                  onPressed: _isResettingAll ? null : _resetAllPublished,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                    side: const BorderSide(color: Colors.orange),
-                    foregroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: _isResettingAll
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.orange))
-                      : const Icon(LucideIcons.rotateCcw, size: 15),
-                  label: Text(
-                    isGerman ? 'Freigaben zurücksetzen' : 'Reset published',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Count badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: attrs.brand600.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: attrs.brand600.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.layers, size: 16, color: attrs.brand600),
-                      const SizedBox(width: 8),
-                      Text(
-                        _searchQuery.isNotEmpty
-                            ? (isGerman
-                                ? 'Treffer: ${_reviewProjects.length} / $_totalCount'
-                                : 'Results: ${_reviewProjects.length} / $_totalCount')
-                            : (isGerman
-                                ? 'Wartend: $_totalCount'
-                                : 'Pending: $_totalCount'),
-                        style: TextStyle(
-                          color: attrs.brand600,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                    // Reset all published button
+                    OutlinedButton.icon(
+                      onPressed: _isResettingAll ? null : _resetAllPublished,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        side: const BorderSide(color: Colors.orange),
+                        foregroundColor: Colors.orange,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                    ],
-                  ),
+                      icon: _isResettingAll
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.orange))
+                          : const Icon(LucideIcons.rotateCcw, size: 15),
+                      label: Text(
+                        isGerman ? 'Freigaben zurücksetzen' : 'Reset published',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    // Count badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                      decoration: BoxDecoration(
+                        color: attrs.brand600.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: attrs.brand600.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(LucideIcons.layers, size: 16, color: attrs.brand600),
+                          const SizedBox(width: 8),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? (isGerman
+                                    ? 'Treffer: ${_reviewProjects.length} / $_totalCount'
+                                    : 'Results: ${_reviewProjects.length} / $_totalCount')
+                                : (isGerman
+                                    ? 'Wartend: $_totalCount'
+                                    : 'Pending: $_totalCount'),
+                            style: TextStyle(
+                              color: attrs.brand600,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

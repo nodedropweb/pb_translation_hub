@@ -39,6 +39,7 @@ class ProjectNotifier extends Notifier<ProjectState> {
   String _searchQuery = '';
   int _currentPage = 1;
   int _limit = 50;
+  int? _coreVersion; // null = alle Versionen
 
   @override
   ProjectState build() {
@@ -58,7 +59,7 @@ class ProjectNotifier extends Notifier<ProjectState> {
     // Refresh filter counts whenever the active filter changes, to keep counts accurate!
     final langcode = ref.read(languageProvider).targetLanguage.code;
     Future.microtask(() {
-      ref.read(filterCountsProvider.notifier).fetchCounts(langcode);
+      ref.read(filterCountsProvider.notifier).fetchCounts(langcode, coreVersion: _coreVersion);
     });
   }
 
@@ -100,6 +101,16 @@ class ProjectNotifier extends Notifier<ProjectState> {
   int get currentPage => _currentPage;
   int get limit => _limit;
   String get searchQuery => _searchQuery;
+  int? get coreVersion => _coreVersion;
+
+  void setCoreVersion(int? version) {
+    if (_coreVersion == version) return;
+    _coreVersion = version;
+    _currentPage = 1;
+    _fetchProjects();
+    final langcode = ref.read(languageProvider).targetLanguage.code;
+    Future.microtask(() => ref.read(filterCountsProvider.notifier).fetchCounts(langcode, coreVersion: version));
+  }
 
   Future<void> _fetchProjects() async {
     // We shouldn't mutate state to isLoading if we already have projects? 
@@ -117,6 +128,7 @@ class ProjectNotifier extends Notifier<ProjectState> {
           'filter': _activeFilter,
           'offset': offset,
           'limit': _limit,
+          if (_coreVersion != null) 'core_version': _coreVersion,
         },
       );
 
@@ -171,6 +183,20 @@ final projectProvider = NotifierProvider<ProjectNotifier, ProjectState>(() {
   return ProjectNotifier();
 });
 
+class VersionCount {
+  final int all;
+  final int missing;
+  final int review;
+  final int released;
+  const VersionCount({this.all = 0, this.missing = 0, this.review = 0, this.released = 0});
+  factory VersionCount.fromJson(Map<String, dynamic> json) => VersionCount(
+    all: json['all'] ?? 0,
+    missing: json['missing'] ?? 0,
+    review: json['review'] ?? 0,
+    released: json['released'] ?? 0,
+  );
+}
+
 class FilterCounts {
   final int all;
   final int priority;
@@ -180,6 +206,8 @@ class FilterCounts {
   final int stale;
   final int translated;
   final int ignored;
+  // keyed by Drupal major version number (9, 10, 11, 12)
+  final Map<int, VersionCount> versionCounts;
 
   FilterCounts({
     this.all = 0,
@@ -190,9 +218,16 @@ class FilterCounts {
     this.stale = 0,
     this.translated = 0,
     this.ignored = 0,
+    this.versionCounts = const {},
   });
 
   factory FilterCounts.fromJson(Map<String, dynamic> json) {
+    final rawVc = json['version_counts'] as Map<String, dynamic>? ?? {};
+    final vc = <int, VersionCount>{};
+    rawVc.forEach((k, v) {
+      final ver = int.tryParse(k);
+      if (ver != null && v is Map<String, dynamic>) vc[ver] = VersionCount.fromJson(v);
+    });
     return FilterCounts(
       all: json['all'] ?? 0,
       priority: json['priority'] ?? 0,
@@ -202,6 +237,7 @@ class FilterCounts {
       stale: json['stale'] ?? 0,
       translated: json['translated'] ?? 0,
       ignored: json['ignored'] ?? 0,
+      versionCounts: vc,
     );
   }
 }
@@ -220,11 +256,14 @@ class FilterCountsNotifier extends Notifier<FilterCounts> {
     return FilterCounts();
   }
 
-  Future<void> fetchCounts(String langcode) async {
+  Future<void> fetchCounts(String langcode, {int? coreVersion}) async {
     try {
       final response = await _api.dio.get(
         '/projects/filter-counts',
-        queryParameters: {'langcode': langcode},
+        queryParameters: {
+          'langcode': langcode,
+          if (coreVersion != null) 'core_version': coreVersion,
+        },
       );
       state = FilterCounts.fromJson(response.data);
     } catch (e) {
@@ -245,6 +284,7 @@ class FilterCountsNotifier extends Notifier<FilterCounts> {
       stale: state.stale,
       translated: state.translated,
       ignored: state.ignored,
+      versionCounts: state.versionCounts,
     );
   }
 }

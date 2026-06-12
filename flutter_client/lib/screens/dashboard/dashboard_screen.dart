@@ -617,17 +617,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 8),
 
           // ── Count + Per-page row ──────────────────────────────────────────
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: attrs.bgCard,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: attrs.borderMain),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Gefunden: ',
                         style: TextStyle(
@@ -649,7 +652,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
