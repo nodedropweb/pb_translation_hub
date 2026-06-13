@@ -55,9 +55,11 @@ class SyncProgressBar extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        syncStatus.total > 0
-                            ? 'Synchronisiere: ${syncStatus.current} / ${syncStatus.total} Module'
-                            : 'Synchronisiere: ${syncStatus.current} Module …',
+                        syncStatus.syncType == 'quick'
+                            ? 'Quick Sync: ${syncStatus.current} geänderte Module …'
+                            : syncStatus.total > 0
+                                ? 'Full Sync: ${syncStatus.current} / ${syncStatus.total} Module'
+                                : 'Full Sync: ${syncStatus.current} Module …',
                         style: TextStyle(
                           color: attrs.textMain,
                           fontWeight: FontWeight.bold,
@@ -85,7 +87,7 @@ class SyncProgressBar extends ConsumerWidget {
                       minHeight: 6,
                     ),
                   ),
-                  if (syncStatus.lastMachineName.isNotEmpty) ...[
+                  if (syncStatus.syncType != 'quick' && syncStatus.lastMachineName.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       syncStatus.lastMachineName,

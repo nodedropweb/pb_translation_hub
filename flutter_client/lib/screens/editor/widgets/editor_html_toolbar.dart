@@ -5,7 +5,7 @@ import '../../../theme/app_theme.dart';
 
 /// WYSIWYG toolbar that acts directly on a [FleatherController].
 ///
-/// Replaces the old Quill-based [onExecCommand] toolbar.
+/// Replaces the earlier [onExecCommand]-based HTML toolbar.
 class EditorHtmlToolbar extends StatelessWidget {
   final ThemeAttributes attrs;
   final FleatherController controller;

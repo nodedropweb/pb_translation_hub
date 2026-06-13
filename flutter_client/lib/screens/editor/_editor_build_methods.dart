@@ -1049,7 +1049,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                             // cannot be hidden as gracefully).
                             child: _suppressEditors
                                 ? CkEditorField(
-                                    initialHtml: _summaryController.text,
+                                    initialHtml: _escapeCodeBlockContent(_summaryController.text),
                                     onChanged: (html) =>
                                         _summaryController.text = html,
                                     height: 200,
@@ -1063,7 +1063,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                                             viewType: 'editor-summary-source'),
                                       )
                                     : CkEditorField(
-                                        initialHtml: _summaryController.text,
+                                        initialHtml: _escapeCodeBlockContent(_summaryController.text),
                                         onChanged: (html) =>
                                             _summaryController.text = html,
                                         height: 200,
@@ -1109,7 +1109,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                             ),
                             child: _suppressEditors
                                 ? CkEditorField(
-                                    initialHtml: _bodyController.text,
+                                    initialHtml: _escapeCodeBlockContent(_bodyController.text),
                                     onChanged: (html) =>
                                         _bodyController.text = html,
                                     height: 500,
@@ -1123,7 +1123,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                                             viewType: 'editor-body-source'),
                                       )
                                     : CkEditorField(
-                                        initialHtml: _bodyController.text,
+                                        initialHtml: _escapeCodeBlockContent(_bodyController.text),
                                         onChanged: (html) =>
                                             _bodyController.text = html,
                                         height: 500,

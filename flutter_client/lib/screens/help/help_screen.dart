@@ -348,7 +348,7 @@ class HelpScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       Text(
                         isJapanese
-                            ? 'Quillエディターにフォーカスがある状態でもショートカットは機能します。'
+                            ? 'CKEditorにフォーカスがある状態でもショートカットは機能します。'
                             : (isGerman
                             ? 'Tastenkombinationen funktionieren auch wenn der CKEditor fokussiert ist.'
                             : 'Shortcuts work even when the CKEditor is focused.'),

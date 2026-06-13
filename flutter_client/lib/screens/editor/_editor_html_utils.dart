@@ -1,24 +1,14 @@
 // HTML utility functions shared across editor part files.
-// The Quill.js bridge has been removed; these are pure Dart helpers.
+// Pure Dart helpers (no editor JS bridge): code-block escaping, relative-path
+// fixing and related HTML normalisation used by editor_screen.dart.
 part of 'editor_screen.dart';
 
 // ── HTML utility functions ─────────────────────────────────────────────────
 
-/// Escapes raw HTML tags inside `<code>` blocks so the browser renders them
-/// as visible text rather than as actual DOM elements.
-/// Example: `<code><audio></audio></code>` → `<code>&lt;audio&gt;&lt;/audio&gt;</code>`
-String _escapeCodeBlockContent(String html) {
-  return html.replaceAllMapped(
-    RegExp(r'<code>(.*?)</code>', multiLine: true, dotAll: true),
-    (m) {
-      final inner = m[1]!.replaceAllMapped(
-        RegExp(r'<([a-zA-Z/][^>]*)>'),
-        (t) => '&lt;${t[1]}&gt;',
-      );
-      return '<code>$inner</code>';
-    },
-  );
-}
+/// Escapes raw HTML tags inside `<code>` blocks so they show as literal text.
+/// Thin alias for the shared [escapeCodeBlockContent] in html_sanitizer.dart
+/// (kept so the editor part-files can use the short private name).
+String _escapeCodeBlockContent(String html) => escapeCodeBlockContent(html);
 
 /// Converts remaining relative Drupal paths to absolute drupal.org URLs.
 String _fixRelativePaths(String html) {

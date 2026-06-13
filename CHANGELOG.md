@@ -43,6 +43,9 @@ Dates are in `YYYY-MM-DD` format.
 
 ### Fixed
 
+#### CKEditor — `<img>` Tags Preserved
+- **`flutter_client/web/index.html`** — Added `img` to `htmlSupport.allow` configuration to prevent CKEditor 5 from stripping `<img>` tags on initialization or saving.
+
 #### Docker — PM2-Cluster deaktiviert
 - **`server/Dockerfile`** — PM2 läuft jetzt mit `-i 1` (Single-Instance) statt `-i max`. Cluster-Modus würde konkurrierende Sync-Prozesse erzeugen, da der Sync-Status im RAM gehalten wird.
 

@@ -115,8 +115,12 @@
     <div id="preloader-bar-wrap"><div id="preloader-bar"></div></div>
   </div>
 
-  <!-- ── CKEditor 5 Classic build (GPL 2+) ──────────────────────────────── -->
-  <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+  <!-- ── CKEditor 5 (self-hosted, GPL 2+) ────────────────────────────────── -->
+  <!-- Built from flutter_client/ckeditor_build (ckeditor5 43.3.1). No CDN /
+       no third-party request (DSGVO). Includes Code / CodeBlock /
+       SourceEditing / GeneralHtmlSupport. Exposes window.ClassicEditor. -->
+  <link rel="stylesheet" href="vendor/ckeditor/ckeditor.css">
+  <script src="vendor/ckeditor/ckeditor.js"></script>
 
   <!-- ── CKEditor dark theme (applied to div-based instances in main DOM) ── -->
   <style>
@@ -550,6 +554,18 @@
           extraPlugins: [ GlossaryHighlightPlugin ],
           // shouldNotGroupWhenFull: alle Buttons sichtbar, kein 3-Punkte-Menü
           toolbar: { items: items, shouldNotGroupWhenFull: true },
+          // General HTML Support: erhält Tags/Attribute, für die es keinen
+          // eigenen Button gibt (sonst strippt CKEditor sie beim setData).
+          // Deckt u. a. den Listicle-Heading-Markup ab (div/span/Klassen).
+          htmlSupport: {
+            allow: [
+              { name: 'code' },
+              { name: 'pre' },
+              { name: 'div',  classes: true, attributes: true, styles: true },
+              { name: 'span', classes: true, attributes: true, styles: true },
+              { name: 'img',  classes: true, attributes: true, styles: true },
+            ],
+          },
           language: 'en',
           ui: { poweredBy: { display: false } },
         }).then(function(editor) {

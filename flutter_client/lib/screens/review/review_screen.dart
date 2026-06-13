@@ -827,6 +827,41 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
+  /// Maps a language code (e.g. 'pt-br', 'de', 'fr') to a BCP-47 locale
+  /// accepted by the Web Speech API.
+  String _langToBcp47(String code) {
+    const map = {
+      'de': 'de-DE',
+      'en': 'en-US',
+      'fr': 'fr-FR',
+      'es': 'es-ES',
+      'it': 'it-IT',
+      'nl': 'nl-NL',
+      'pl': 'pl-PL',
+      'pt-br': 'pt-BR',
+      'pt-pt': 'pt-PT',
+      'pt': 'pt-BR',
+      'ru': 'ru-RU',
+      'ja': 'ja-JP',
+      'zh': 'zh-CN',
+      'ko': 'ko-KR',
+      'tr': 'tr-TR',
+      'sv': 'sv-SE',
+      'da': 'da-DK',
+      'fi': 'fi-FI',
+      'nb': 'nb-NO',
+      'cs': 'cs-CZ',
+      'sk': 'sk-SK',
+      'hu': 'hu-HU',
+      'ro': 'ro-RO',
+      'bg': 'bg-BG',
+      'hr': 'hr-HR',
+      'uk': 'uk-UA',
+    };
+    final lower = code.toLowerCase();
+    return map[lower] ?? (lower.contains('-') ? lower : '${lower}-${lower.toUpperCase()}');
+  }
+
   void _speakText(String fieldKey, String text) {
     final lang = ref.read(languageProvider).targetLanguage.code;
     final synth = html.window.speechSynthesis;
@@ -837,7 +872,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (plainText.trim().isEmpty) return;
 
       final utterance = html.SpeechSynthesisUtterance(plainText);
-      utterance.lang = lang == 'de' ? 'de-DE' : 'en-US';
+      utterance.lang = _langToBcp47(lang);
 
       // Attempt matching high quality / natural voices
       final voices = synth.getVoices();
@@ -915,6 +950,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       setState(() {
         _currentlyPlayingField = fieldKey;
       });
+      // Chrome on Android pauses speechSynthesis after inactivity — resume() fixes silent failure
+      synth.resume();
       synth.speak(utterance);
     }
   }
@@ -2105,7 +2142,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                             viewType: 'wysiwyg-review-summary-source'),
                       )
                     : CkEditorField(
-                        initialHtml: _summaryController.text,
+                        initialHtml: escapeCodeBlockContent(_summaryController.text),
                         onChanged: (html) => _summaryController.text = html,
                         height: summaryEditorHeight,
                         isSimple: true,
@@ -2174,7 +2211,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                             viewType: 'wysiwyg-review-body-source'),
                       )
                     : CkEditorField(
-                        initialHtml: _bodyController.text,
+                        initialHtml: escapeCodeBlockContent(_bodyController.text),
                         onChanged: (html) => _bodyController.text = html,
                         height: bodyEditorHeight,
                         isSimple: false,

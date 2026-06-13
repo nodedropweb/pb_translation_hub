@@ -150,8 +150,7 @@ module.exports = (ctx) => {
       if (coreVer !== null) {
         const vMin = coreVer * 1000000;
         const vMax = coreVer * 1000000 + 999999;
-        countQuery += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-                        AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+        countQuery += ` AND p.semver_min <= ${vMax} AND p.semver_max >= ${vMin} `;
       }
 
       console.log(`[${new Date().toISOString()}] SQL execution finished. Paginated count: ${paginated.length}. Filter: ${filter}`);
@@ -259,22 +258,19 @@ module.exports = (ctx) => {
     const { langcode = 'de', core_version } = req.query;
     const coreVer = core_version ? parseInt(core_version) : null;
 
-    // Build an optional SQL snippet that restricts to a specific Drupal core version.
-    // field_core_semver_minimum/maximum are stored as integers like 10000000 = 10.0.0.
+    // Build optional SQL snippets using the indexed generated columns semver_min/semver_max.
     let vSnippet = '';
     if (coreVer !== null) {
       const vMin = coreVer * 1000000;
       const vMax = coreVer * 1000000 + 999999;
-      vSnippet = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-                   AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+      vSnippet  = ` AND semver_min <= ${vMax} AND semver_max >= ${vMin} `;
     }
     // Same snippet but using table alias 'p'
     let vSnippetP = '';
     if (coreVer !== null) {
       const vMin = coreVer * 1000000;
       const vMax = coreVer * 1000000 + 999999;
-      vSnippetP = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-                    AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+      vSnippetP = ` AND p.semver_min <= ${vMax} AND p.semver_max >= ${vMin} `;
     }
 
     try {
@@ -286,8 +282,8 @@ module.exports = (ctx) => {
       // Version-Filter per LEFT JOIN optional angehängt.
       const priorityVersionJoin = coreVer !== null
         ? ` LEFT JOIN projects _pv ON pp.machine_name = _pv.machine_name
-            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(_pv.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${coreVer * 1000000 + 999999}
-            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(_pv.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${coreVer * 1000000} `
+            AND _pv.semver_min <= ${coreVer * 1000000 + 999999}
+            AND _pv.semver_max >= ${coreVer * 1000000} `
         : '';
       const priorityVersionWhere = coreVer !== null ? ' AND _pv.machine_name IS NOT NULL ' : '';
       const [[priorityRes]] = await db.execute(
@@ -327,22 +323,39 @@ module.exports = (ctx) => {
       );
       const [[ignoredRes]] = await db.execute('SELECT COUNT(*) as count FROM ignored_projects');
 
-      // Per-version breakdown for all relevant statuses (unfiltered by core_version,
-      // so the version chips always show their totals regardless of current version selection).
-      const versions = [9, 10, 11, 12];
+      // Per-version breakdown — single aggregation query using indexed generated columns.
+      const [[vcRow]] = await db.execute(
+        `SELECT
+          SUM(CASE WHEN p.semver_min <= 9999999  AND p.semver_max >= 9000000  THEN 1 ELSE 0 END) AS v9_all,
+          SUM(CASE WHEN p.semver_min <= 10999999 AND p.semver_max >= 10000000 THEN 1 ELSE 0 END) AS v10_all,
+          SUM(CASE WHEN p.semver_min <= 11999999 AND p.semver_max >= 11000000 THEN 1 ELSE 0 END) AS v11_all,
+          SUM(CASE WHEN p.semver_min <= 12999999 AND p.semver_max >= 12000000 THEN 1 ELSE 0 END) AS v12_all,
+          SUM(CASE WHEN p.semver_min <= 9999999  AND p.semver_max >= 9000000  AND t.machine_name IS NULL THEN 1 ELSE 0 END) AS v9_missing,
+          SUM(CASE WHEN p.semver_min <= 10999999 AND p.semver_max >= 10000000 AND t.machine_name IS NULL THEN 1 ELSE 0 END) AS v10_missing,
+          SUM(CASE WHEN p.semver_min <= 11999999 AND p.semver_max >= 11000000 AND t.machine_name IS NULL THEN 1 ELSE 0 END) AS v11_missing,
+          SUM(CASE WHEN p.semver_min <= 12999999 AND p.semver_max >= 12000000 AND t.machine_name IS NULL THEN 1 ELSE 0 END) AS v12_missing,
+          SUM(CASE WHEN p.semver_min <= 9999999  AND p.semver_max >= 9000000  AND t.is_reviewed = 0 THEN 1 ELSE 0 END) AS v9_review,
+          SUM(CASE WHEN p.semver_min <= 10999999 AND p.semver_max >= 10000000 AND t.is_reviewed = 0 THEN 1 ELSE 0 END) AS v10_review,
+          SUM(CASE WHEN p.semver_min <= 11999999 AND p.semver_max >= 11000000 AND t.is_reviewed = 0 THEN 1 ELSE 0 END) AS v11_review,
+          SUM(CASE WHEN p.semver_min <= 12999999 AND p.semver_max >= 12000000 AND t.is_reviewed = 0 THEN 1 ELSE 0 END) AS v12_review,
+          SUM(CASE WHEN p.semver_min <= 9999999  AND p.semver_max >= 9000000  AND t.is_reviewed = 1 THEN 1 ELSE 0 END) AS v9_released,
+          SUM(CASE WHEN p.semver_min <= 10999999 AND p.semver_max >= 10000000 AND t.is_reviewed = 1 THEN 1 ELSE 0 END) AS v10_released,
+          SUM(CASE WHEN p.semver_min <= 11999999 AND p.semver_max >= 11000000 AND t.is_reviewed = 1 THEN 1 ELSE 0 END) AS v11_released,
+          SUM(CASE WHEN p.semver_min <= 12999999 AND p.semver_max >= 12000000 AND t.is_reviewed = 1 THEN 1 ELSE 0 END) AS v12_released
+        FROM projects p
+        LEFT JOIN translations t ON t.machine_name = p.machine_name AND t.langcode = ?
+        LEFT JOIN ignored_projects ig ON ig.machine_name = p.machine_name
+        WHERE ig.machine_name IS NULL`,
+        [langcode]
+      );
       const versionCounts = {};
-      for (const v of versions) {
-        const vMin = v * 1000000;
-        const vMax = v * 1000000 + 999999;
-        const vClause = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-                          AND CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
-        const vClauseP = ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-                           AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
-        const [[va]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`);
-        const [[vm]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
-        const [[vr]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = FALSE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
-        const [[vrel]] = await db.execute(`SELECT COUNT(*) as c FROM projects WHERE machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vClause}`, [langcode]);
-        versionCounts[v] = { all: va.c, missing: vm.c, review: vr.c, released: vrel.c };
+      for (const v of [9, 10, 11, 12]) {
+        versionCounts[v] = {
+          all:      vcRow[`v${v}_all`]      ?? 0,
+          missing:  vcRow[`v${v}_missing`]  ?? 0,
+          review:   vcRow[`v${v}_review`]   ?? 0,
+          released: vcRow[`v${v}_released`] ?? 0,
+        };
       }
 
       res.json({

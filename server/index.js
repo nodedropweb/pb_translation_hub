@@ -114,11 +114,12 @@ let syncStatus = {
   active: false,
   finished: false,
   current: 0,
-  total: 38252, 
+  total: 38252,
   lastMachineName: '',
   error: null,
   shouldStop: false,
-  lastFullSync: null
+  lastFullSync: null,
+  syncType: null, // 'quick' | 'full' | null
 };
 
 // Load last status if exists
@@ -262,8 +263,7 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
   if (coreVer !== null) {
     const vMin = coreVer * 1000000;
     const vMax = coreVer * 1000000 + 999999;
-    query += ` AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_minimum')) AS UNSIGNED) <= ${vMax}
-               AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.field_core_semver_maximum')) AS UNSIGNED) >= ${vMin} `;
+    query += ` AND p.semver_min <= ${vMax} AND p.semver_max >= ${vMin} `;
   }
 
   let orderClause = '';
@@ -305,6 +305,7 @@ async function syncProjects(sinceTimestamp = null) {
   syncStatus.active = true;
   syncStatus.shouldStop = false;
   syncStatus.error = null;
+  syncStatus.syncType = sinceTimestamp ? 'quick' : 'full';
 
   if (!sinceTimestamp) {
     try {
@@ -324,8 +325,11 @@ async function syncProjects(sinceTimestamp = null) {
       syncStatus.current = 0;
     }
   } else {
+    // Quick sync: reset counters and clear stale lastMachineName from previous full sync
+    // so the UI doesn't show a misleading "zxcvbn"-style full-sync indicator.
     syncStatus.current = 0;
-    syncStatus.total = 0; // wird aus erster Drupal.org API-Antwort befüllt
+    syncStatus.total = 0;
+    syncStatus.lastMachineName = '';
   }
 
   console.log(sinceTimestamp ? `Starting quick update since ${sinceTimestamp}...` : 'Starting full metadata sync...');
@@ -408,10 +412,15 @@ async function syncProjects(sinceTimestamp = null) {
   }
   
   if (!syncStatus.shouldStop && !syncStatus.error) {
-    syncStatus.lastFullSync = new Date().toISOString();
+    // Only full syncs update lastFullSync — quick syncs don't reset the baseline
+    // (the auto-sync scheduler uses lastFullSync as the 'since' cutoff).
+    if (syncStatus.syncType === 'full') {
+      syncStatus.lastFullSync = new Date().toISOString();
+    }
   }
-  
+
   syncStatus.active = false;
+  syncStatus.syncType = null;
   saveStatus();
   console.log('Sync process finished or stopped.');
 }
@@ -437,6 +446,9 @@ const ctx = {
   upload,
   uploadAvatar
 };
+
+// --- Health endpoint (circuit breaker probe for pb_localizer) ---
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 // --- Modular Routers ---
 // NOTE: admin and ai must be registered BEFORE translations because

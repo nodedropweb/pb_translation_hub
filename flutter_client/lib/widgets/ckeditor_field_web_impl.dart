@@ -112,7 +112,8 @@ class _CkEditorFieldWebImplState extends State<CkEditorFieldWebImpl> {
         ? '["bold","italic","link","|","undo","redo"]'
         : '["heading","|","bold","italic","|",'
             '"link","bulletedList","numberedList","|",'
-            '"blockQuote","code","|","undo","redo"]';
+            '"blockQuote","code","codeBlock","|",'
+            '"sourceEditing","|","undo","redo"]';
 
     final onReady = js.allowInterop(() {
       if (!mounted) return;

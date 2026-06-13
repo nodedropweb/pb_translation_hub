@@ -65,8 +65,8 @@ class ApiClient {
   ApiClient._internal() {
     dio = Dio(BaseOptions(
       baseUrl: baseUrl, // getter — wird einmalig beim ersten ApiClient() Aufruf ausgewertet
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
     ));
 
     dio.interceptors.add(

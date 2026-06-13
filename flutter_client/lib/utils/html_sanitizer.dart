@@ -29,6 +29,53 @@ String tidyDeeplHtml(String html) {
   return h.trim();
 }
 
+/// Escapes raw HTML tags **inside** `<code>` blocks so they are shown as literal
+/// source text, and promotes multi-line samples to proper `<pre><code>` code
+/// blocks (rendered as a real CKEditor CodeBlock).
+///
+/// Imported Drupal content often wraps an HTML code sample in inline `<code>`
+/// without entity-escaping it, e.g.
+/// `<code><div class="listicle-heading">…</div></code>`. Because `<code>` is an
+/// inline element, any HTML parser (browser, CKEditor, Drupal) closes the
+/// `<code>` at the first block tag and *renders* the markup. Escaping the inner
+/// `<…>` to `&lt;…&gt;` makes the sample display as the code text it is meant to
+/// be; multi-line samples additionally become a `<pre><code>` block for clean
+/// line breaks and monospaced rendering. Single-line tokens (e.g.
+/// `composer require …`) stay inline `<code>`.
+///
+/// Idempotent and round-trip safe:
+///   * already-escaped content (`&lt;`) is not matched again;
+///   * CKEditor's CodeBlock getData emits `<code class="language-…">`, which the
+///     bare `<code>` pattern below never matches — so promoted blocks are left
+///     untouched on the next load;
+///   * a `<code>` already wrapped in `<pre>` is not wrapped again.
+///
+/// Used by both the editor and review screens before handing content to the
+/// CKEditor field, and by the read-only source panel.
+String escapeCodeBlockContent(String html) {
+  return html.replaceAllMapped(
+    RegExp(r'<code>(.*?)</code>', multiLine: true, dotAll: true),
+    (m) {
+      final inner = m[1]!.replaceAllMapped(
+        RegExp(r'<([a-zA-Z/][^>]*)>'),
+        (t) => '&lt;${t[1]}&gt;',
+      );
+
+      // Don't re-wrap a <code> that is already inside a <pre> block.
+      final before = m.input.substring(0, m.start);
+      final after = m.input.substring(m.end);
+      final alreadyInPre = RegExp(r'<pre>\s*$').hasMatch(before) &&
+          RegExp(r'^\s*</pre>').hasMatch(after);
+
+      // Multi-line sample → promote to a real code block.
+      if (!alreadyInPre && inner.trim().contains('\n')) {
+        return '<pre><code>${inner.trim()}</code></pre>';
+      }
+      return '<code>$inner</code>';
+    },
+  );
+}
+
 /// Strips HTML tags that [ParchmentHtmlCodec] cannot represent, preventing
 /// Fleather from receiving malformed documents that crash during rendering.
 ///

@@ -200,21 +200,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final activeFilter = ref.watch(projectProvider.notifier).activeFilter;
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
+    final isGerman = ref.watch(languageProvider).targetLanguage.code == 'de';
     final syncStatus = ref.watch(syncProvider);
     final user = ref.watch(authProvider).user;
     final isMobile = MediaQuery.of(context).size.width < 500;
 
     if (isMobile) {
       return _buildMobileDashboard(
-          projectState, activeFilter, attrs, syncStatus, user);
+          projectState, activeFilter, attrs, syncStatus, user, isGerman);
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header — LayoutBuilder für schmale Portrait-Screens ───────────
+    return CustomScrollView(
+      slivers: [
+        // ── All header content ────────────────────────────────────────────
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 32, 32, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+        // ── Header — LayoutBuilder für schmale Portrait-Screens ───────────
           LayoutBuilder(
             builder: (context, constraints) {
               final showAiInline = constraints.maxWidth > 560;
@@ -237,8 +242,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         elevation: 8,
                       ),
                       icon: const Icon(LucideIcons.sparkles, size: 18),
-                      label: const Text('AI Massen-Übersetzung',
-                          style: TextStyle(
+                      label: Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
                     )
                   : null;
@@ -865,106 +870,138 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ],
 
-          // ── Project grid ──────────────────────────────────────────────────
-          Expanded(
-            child: projectState.isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: attrs.brand600))
-                : projectState.error != null
-                    ? Center(
-                        child: Text(projectState.error!,
-                            style: const TextStyle(color: Colors.redAccent)))
-                    : projectState.projects.isEmpty
-                        ? Center(
-                            child: Text('Keine Projekte gefunden.',
-                                style: TextStyle(color: attrs.textMuted)))
-                        : GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 420,
-                              childAspectRatio: 0.78,
-                              crossAxisSpacing: 24,
-                              mainAxisSpacing: 24,
-                            ),
-                            itemCount: projectState.projects.length,
-                            itemBuilder: (context, index) =>
-                                ProjectCard(
-                                  project: projectState.projects[index],
-                                  attrs: attrs,
-                                  filter: activeFilter,
-                                  search: ref.read(projectProvider.notifier).searchQuery,
-                                ),
-                          ),
-          ),
-
-          // ── Pagination ────────────────────────────────────────────────────
-          if (!projectState.isLoading &&
-              projectState.totalItems >
-                  ref.watch(projectProvider.notifier).limit) ...[
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(LucideIcons.chevronsLeft,
-                      color: Colors.white),
-                  onPressed: ref.watch(projectProvider.notifier).currentPage >
-                          1
-                      ? () => ref.read(projectProvider.notifier).goToPage(1)
-                      : null,
-                  tooltip: 'Erste Seite',
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.chevronLeft,
-                      color: Colors.white),
-                  onPressed: ref.watch(projectProvider.notifier).currentPage >
-                          1
-                      ? () =>
-                          ref.read(projectProvider.notifier).prevPage()
-                      : null,
-                  tooltip: 'Vorherige Seite',
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'Seite ${ref.watch(projectProvider.notifier).currentPage} '
-                  'von ${(projectState.totalItems / ref.watch(projectProvider.notifier).limit).ceil()}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(LucideIcons.chevronRight,
-                      color: Colors.white),
-                  onPressed: ref.watch(projectProvider.notifier).currentPage <
-                          (projectState.totalItems /
-                                  ref.watch(projectProvider.notifier).limit)
-                              .ceil()
-                      ? () =>
-                          ref.read(projectProvider.notifier).nextPage()
-                      : null,
-                  tooltip: 'Nächste Seite',
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.chevronsRight,
-                      color: Colors.white),
-                  onPressed: ref.watch(projectProvider.notifier).currentPage <
-                          (projectState.totalItems /
-                                  ref.watch(projectProvider.notifier).limit)
-                              .ceil()
-                      ? () => ref.read(projectProvider.notifier).goToPage(
-                          (projectState.totalItems /
-                                  ref.watch(projectProvider.notifier).limit)
-                              .ceil())
-                      : null,
-                  tooltip: 'Letzte Seite',
-                ),
               ],
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+
+        // ── Project grid ──────────────────────────────────────────────────
+        if (projectState.isLoading)
+          SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator(color: attrs.brand600)),
+          )
+        else if (projectState.error != null)
+          SliverFillRemaining(
+            child: Center(
+                child: Text(projectState.error!,
+                    style: const TextStyle(color: Colors.redAccent))),
+          )
+        else if (projectState.projects.isEmpty)
+          SliverFillRemaining(
+            child: Center(
+                child: Text('Keine Projekte gefunden.',
+                    style: TextStyle(color: attrs.textMuted))),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            sliver: SliverGrid.builder(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 420,
+                childAspectRatio: 0.78,
+                crossAxisSpacing: 24,
+                mainAxisSpacing: 24,
+              ),
+              itemCount: projectState.projects.length,
+              itemBuilder: (context, index) => ProjectCard(
+                project: projectState.projects[index],
+                attrs: attrs,
+                filter: activeFilter,
+                search: ref.read(projectProvider.notifier).searchQuery,
+              ),
+            ),
+          ),
+
+        // ── Pagination ────────────────────────────────────────────────────
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+            child: !projectState.isLoading &&
+                    projectState.totalItems >
+                        ref.watch(projectProvider.notifier).limit
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(LucideIcons.chevronsLeft,
+                              color: Colors.white),
+                          onPressed:
+                              ref.watch(projectProvider.notifier).currentPage >
+                                      1
+                                  ? () => ref
+                                      .read(projectProvider.notifier)
+                                      .goToPage(1)
+                                  : null,
+                          tooltip: 'Erste Seite',
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.chevronLeft,
+                              color: Colors.white),
+                          onPressed:
+                              ref.watch(projectProvider.notifier).currentPage >
+                                      1
+                                  ? () => ref
+                                      .read(projectProvider.notifier)
+                                      .prevPage()
+                                  : null,
+                          tooltip: 'Vorherige Seite',
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          'Seite ${ref.watch(projectProvider.notifier).currentPage} '
+                          'von ${(projectState.totalItems / ref.watch(projectProvider.notifier).limit).ceil()}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(LucideIcons.chevronRight,
+                              color: Colors.white),
+                          onPressed: ref
+                                      .watch(projectProvider.notifier)
+                                      .currentPage <
+                                  (projectState.totalItems /
+                                          ref
+                                              .watch(projectProvider.notifier)
+                                              .limit)
+                                      .ceil()
+                              ? () => ref
+                                  .read(projectProvider.notifier)
+                                  .nextPage()
+                              : null,
+                          tooltip: 'Nächste Seite',
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.chevronsRight,
+                              color: Colors.white),
+                          onPressed: ref
+                                      .watch(projectProvider.notifier)
+                                      .currentPage <
+                                  (projectState.totalItems /
+                                          ref
+                                              .watch(projectProvider.notifier)
+                                              .limit)
+                                      .ceil()
+                              ? () => ref.read(projectProvider.notifier).goToPage(
+                                  (projectState.totalItems /
+                                          ref
+                                              .watch(projectProvider.notifier)
+                                              .limit)
+                                      .ceil())
+                              : null,
+                          tooltip: 'Letzte Seite',
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -978,6 +1015,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ThemeAttributes attrs,
     SyncStatus syncStatus,
     dynamic user,
+    bool isGerman,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
@@ -1041,8 +1079,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(LucideIcons.sparkles, size: 16),
-                label: const Text('AI Massen-Übersetzung',
-                    style: TextStyle(
+                label: Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                    style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 13)),
               ),
             ),
@@ -1485,32 +1523,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return;
     }
 
+    final langcode    = ref.read(languageProvider).targetLanguage.code;
+    final isGerman    = langcode == 'de';
+    final coreVersion = ref.read(projectProvider).coreVersion;
+
     int selectedCount = 25;
     bool prioritizeDrupal11 = true;
 
     String filterName;
     switch (activeFilter) {
       case 'all':
-        filterName = 'Alle Projekte';
+        filterName = isGerman ? 'Alle Projekte' : 'All Projects';
         break;
       case 'priority':
         filterName = 'Drupal 11';
         break;
       case 'missing':
-        filterName = 'Fehlende Übersetzungen';
+        filterName = isGerman ? 'Fehlende Übersetzungen' : 'Missing Translations';
         break;
       case 'review':
-        filterName = 'Review-Warteschlange';
+        filterName = isGerman ? 'Review-Warteschlange' : 'Review Queue';
         break;
       case 'translated':
-        filterName = 'Übersetzte Projekte';
+        filterName = isGerman ? 'Übersetzte Projekte' : 'Translated Projects';
         break;
       case 'released':
-        filterName = 'Freigegebene Projekte';
+        filterName = isGerman ? 'Freigegebene Projekte' : 'Released Projects';
         break;
       default:
         filterName = activeFilter;
     }
+    if (coreVersion != null) filterName += ' · D$coreVersion';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1548,10 +1591,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               color: attrs.brand600, size: 24),
                         ),
                         const SizedBox(width: 16),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'AI Massen-Übersetzung',
-                            style: TextStyle(
+                            isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                            style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white),
@@ -1561,8 +1604,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Übersetze mehrere Module aus dem ausgewählten Filter '
-                      'automatisch mit Google Gemini.',
+                      isGerman
+                          ? 'Übersetze mehrere Module aus dem ausgewählten Filter automatisch mit Google Gemini.'
+                          : 'Automatically translate multiple modules from the selected filter using Google Gemini.',
                       style: TextStyle(
                           color: attrs.textMuted.withOpacity(0.8),
                           fontSize: 14,
@@ -1577,7 +1621,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Aktiver Filter',
+                              Text(isGerman ? 'Aktiver Filter' : 'Active Filter',
                                   style: TextStyle(
                                       color: attrs.textMuted, fontSize: 12)),
                               const SizedBox(height: 8),
@@ -1590,20 +1634,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   border:
                                       Border.all(color: attrs.borderMain),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(LucideIcons.filter,
-                                        size: 14, color: attrs.textMuted),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(filterName,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis),
-                                    ),
-                                  ],
+                                child: Tooltip(
+                                  message: filterName,
+                                  child: Row(
+                                    children: [
+                                      Icon(LucideIcons.filter,
+                                          size: 14, color: attrs.textMuted),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(filterName,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -1614,7 +1661,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Anzahl Module',
+                              Text(isGerman ? 'Anzahl Module' : 'Module Count',
                                   style: TextStyle(
                                       color: attrs.textMuted, fontSize: 12)),
                               const SizedBox(height: 8),
@@ -1699,15 +1746,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Drupal 11 Module priorisieren',
-                                        style: TextStyle(
+                                    Text(
+                                        isGerman ? 'Drupal 11 Module priorisieren' : 'Prioritise Drupal 11 modules',
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 13,
                                             color: Colors.white)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Übersetzt bevorzugt Drupal 11 '
-                                      'kompatible Module zuerst',
+                                      isGerman
+                                          ? 'Übersetzt bevorzugt Drupal 11 kompatible Module zuerst'
+                                          : 'Translates Drupal 11 compatible modules first',
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: attrs.textMuted
@@ -1733,20 +1782,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildCostRow('Modell', 'Gemini 3.1 Flash-Lite', attrs),
+                          _buildCostRow(isGerman ? 'Modell' : 'Model', 'Gemini 3.1 Flash-Lite', attrs),
                           Divider(color: attrs.borderMain, height: 24),
-                          _buildCostRow('Module gesamt', '$selectedCount', attrs),
-                          _buildCostRow('Eingabe-Tokens (Schätzung)', '$estInputTokens', attrs),
-                          _buildCostRow('Ausgabe-Tokens (Schätzung)', '$estOutputTokens', attrs),
+                          _buildCostRow(isGerman ? 'Module gesamt' : 'Total modules', '$selectedCount', attrs),
+                          _buildCostRow(isGerman ? 'Eingabe-Tokens (Schätzung)' : 'Input tokens (est.)', '$estInputTokens', attrs),
+                          _buildCostRow(isGerman ? 'Ausgabe-Tokens (Schätzung)' : 'Output tokens (est.)', '$estOutputTokens', attrs),
                           Divider(color: attrs.borderMain, height: 24),
-                          _buildCostRow('Preis pro 1M Input', '\$0.25', attrs, isValueColorMuted: true),
-                          _buildCostRow('Preis pro 1M Output', '\$1.50', attrs, isValueColorMuted: true),
+                          _buildCostRow(isGerman ? 'Preis pro 1M Input' : 'Price per 1M input', '\$0.25', attrs, isValueColorMuted: true),
+                          _buildCostRow(isGerman ? 'Preis pro 1M Output' : 'Price per 1M output', '\$1.50', attrs, isValueColorMuted: true),
                           Divider(color: attrs.borderMain, height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Geschätzte Gesamtkosten',
-                                  style: TextStyle(
+                              Text(isGerman ? 'Geschätzte Gesamtkosten' : 'Estimated total cost',
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
                                       color: Colors.white)),
@@ -1764,8 +1813,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '* Die Übersetzung wird in ressourcenschonenden Batches '
-                      'ausgeführt, um Timeouts zu verhindern.',
+                      isGerman
+                          ? '* Die Übersetzung wird in ressourcenschonenden Batches ausgeführt, um Timeouts zu verhindern.'
+                          : '* Translation is executed in resource-efficient batches to prevent timeouts.',
                       style: TextStyle(
                           fontSize: 11,
                           color: attrs.textMuted,
@@ -1784,8 +1834,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 20, vertical: 16),
                               foregroundColor: attrs.textMuted),
-                          child: const Text('Abbrechen',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
@@ -1799,8 +1849,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
-                          child: const Text('Massen-Übersetzung starten',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(isGerman ? 'Massen-Übersetzung starten' : 'Start Bulk Translation',
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -1815,7 +1865,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (confirmed == true) {
       _executeBulkTranslation(
-          context, ref, activeFilter, selectedCount, prioritizeDrupal11, attrs);
+          context, ref, activeFilter, selectedCount, prioritizeDrupal11, attrs,
+          coreVersion: coreVersion, isGerman: isGerman);
     }
   }
 
@@ -1827,6 +1878,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) async {
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
+    final isGerman = langcode == 'de';
 
     // Fetch all stale machine names before showing the dialog.
     List<String> staleMachineNames = [];
@@ -1845,15 +1897,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (fetchError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Fehler beim Laden der veralteten Module: $fetchError'),
+        content: Text(isGerman
+            ? 'Fehler beim Laden der veralteten Module: $fetchError'
+            : 'Error loading outdated modules: $fetchError'),
         backgroundColor: Colors.redAccent,
       ));
       return;
     }
 
     if (staleMachineNames.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Keine veralteten Module gefunden — alles aktuell! ✨'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(isGerman
+            ? 'Keine veralteten Module gefunden — alles aktuell! ✨'
+            : 'No outdated modules found — everything is up to date! ✨'),
         backgroundColor: const Color(0xFF2E7D32),
       ));
       return;
@@ -1891,10 +1947,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         color: Colors.orange, size: 24),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Veraltete Module neu übersetzen',
-                      style: TextStyle(
+                      isGerman ? 'Veraltete Module neu übersetzen' : 'Re-translate Outdated Modules',
+                      style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.white),
@@ -1904,9 +1960,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Alle Übersetzungen, deren englische Quelle sich seit der letzten '
-                'Übersetzung geändert hat, werden automatisch mit Google Gemini '
-                'neu übersetzt. Kein manuelles Öffnen jedes Moduls nötig.',
+                isGerman
+                    ? 'Alle Übersetzungen, deren englische Quelle sich seit der letzten Übersetzung geändert hat, werden automatisch mit Google Gemini neu übersetzt. Kein manuelles Öffnen jedes Moduls nötig.'
+                    : 'All translations whose English source has changed since the last translation will be automatically re-translated using Google Gemini. No need to open each module manually.',
                 style: TextStyle(
                     color: attrs.textMuted.withOpacity(0.8),
                     fontSize: 14,
@@ -1922,25 +1978,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildCostRow('Modell', 'Gemini 3.1 Flash-Lite', attrs),
+                    _buildCostRow(isGerman ? 'Modell' : 'Model', 'Gemini 3.1 Flash-Lite', attrs),
                     Divider(color: attrs.borderMain, height: 24),
                     _buildCostRow(
-                        'Veraltete Module', '$count', attrs),
-                    _buildCostRow('Eingabe-Tokens (Schätzung)',
+                        isGerman ? 'Veraltete Module' : 'Outdated modules', '$count', attrs),
+                    _buildCostRow(isGerman ? 'Eingabe-Tokens (Schätzung)' : 'Input tokens (est.)',
                         '$estInputTokens', attrs),
-                    _buildCostRow('Ausgabe-Tokens (Schätzung)',
+                    _buildCostRow(isGerman ? 'Ausgabe-Tokens (Schätzung)' : 'Output tokens (est.)',
                         '$estOutputTokens', attrs),
                     Divider(color: attrs.borderMain, height: 24),
-                    _buildCostRow('Preis pro 1M Input', '\$0.25', attrs,
+                    _buildCostRow(isGerman ? 'Preis pro 1M Input' : 'Price per 1M input', '\$0.25', attrs,
                         isValueColorMuted: true),
-                    _buildCostRow('Preis pro 1M Output', '\$1.50', attrs,
+                    _buildCostRow(isGerman ? 'Preis pro 1M Output' : 'Price per 1M output', '\$1.50', attrs,
                         isValueColorMuted: true),
                     Divider(color: attrs.borderMain, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Geschätzte Gesamtkosten',
-                            style: TextStyle(
+                        Text(isGerman ? 'Geschätzte Gesamtkosten' : 'Estimated total cost',
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
                                 color: Colors.white)),
@@ -1958,8 +2014,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                '* Die Übersetzung ersetzt den bisherigen Text und setzt '
-                'is_reviewed zurück. Ausführung in Batches à 4 Modulen.',
+                isGerman
+                    ? '* Die Übersetzung ersetzt den bisherigen Text und setzt is_reviewed zurück. Ausführung in Batches à 4 Modulen.'
+                    : '* Translation replaces existing text and resets is_reviewed. Executed in batches of 4 modules.',
                 style: TextStyle(
                     fontSize: 11,
                     color: attrs.textMuted,
@@ -1975,8 +2032,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 16),
                         foregroundColor: attrs.textMuted),
-                    child: const Text('Abbrechen',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
@@ -1990,9 +2047,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: const Icon(LucideIcons.refreshCw, size: 16),
-                    label: Text('Alle $count Module neu übersetzen',
-                        style:
-                            const TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(
+                        isGerman ? 'Alle $count Module neu übersetzen' : 'Re-translate all $count modules',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -2005,7 +2062,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (confirmed == true && context.mounted) {
       _executeBulkTranslationWithNames(
           context, ref, staleMachineNames, attrs,
-          title: 'Veraltete Module werden neu übersetzt…');
+          isGerman: isGerman,
+          title: isGerman ? 'Veraltete Module werden neu übersetzt…' : 'Re-translating outdated modules…');
     }
   }
 
@@ -2041,14 +2099,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     String activeFilter,
     int limitCount,
     bool prioritizeDrupal11,
-    ThemeAttributes attrs,
-  ) async {
+    ThemeAttributes attrs, {
+    int? coreVersion,
+    bool isGerman = true,
+  }) async {
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
 
     final progressNotifier =
         ValueNotifier<Map<String, dynamic>>({
-      'status': 'Projekte werden vom Server abgerufen…',
+      'status': isGerman ? 'Projekte werden vom Server abgerufen…' : 'Fetching projects from server…',
       'progress': 0.0,
       'processed': 0,
       'total': 0,
@@ -2096,8 +2156,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               strokeWidth: 2, color: attrs.brand600),
                         ),
                         const SizedBox(width: 16),
-                        const Text('AI Massen-Übersetzung',
-                            style: TextStyle(
+                        Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                            style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white)),
@@ -2150,6 +2210,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           'limit': limitCount,
           'langcode': langcode,
           'prioritize_drupal11': prioritizeDrupal11,
+          if (coreVersion != null) 'core_version': coreVersion,
         },
       );
 
@@ -2167,9 +2228,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Keine übersetzbaren Projekte in diesem Filter gefunden.'),
+            SnackBar(
+              content: Text(isGerman
+                  ? 'Keine übersetzbaren Projekte in diesem Filter gefunden.'
+                  : 'No translatable projects found for this filter.'),
               backgroundColor: Colors.amber,
             ),
           );
@@ -2178,7 +2240,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': 'Übersetzung wird gestartet…',
+        'status': isGerman ? 'Übersetzung wird gestartet…' : 'Starting translation…',
         'progress': 0.0,
         'processed': 0,
         'total': totalCount,
@@ -2191,7 +2253,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final batch = machineNames.sublist(i, end);
 
         progressNotifier.value = {
-          'status': 'Übersetze Modul ${i + 1}–$end von $totalCount …',
+          'status': isGerman
+              ? 'Übersetze Modul ${i + 1}–$end von $totalCount …'
+              : 'Translating module ${i + 1}–$end of $totalCount …',
           'progress': i / totalCount,
           'processed': i,
           'total': totalCount,
@@ -2206,7 +2270,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
 
         progressNotifier.value = {
-          'status': '$end von $totalCount Modulen abgeschlossen.',
+          'status': isGerman
+              ? '$end von $totalCount Modulen abgeschlossen.'
+              : '$end of $totalCount modules completed.',
           'progress': end / totalCount,
           'processed': end,
           'total': totalCount,
@@ -2216,7 +2282,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': 'Übersetzung erfolgreich abgeschlossen! ✨',
+        'status': isGerman ? 'Übersetzung erfolgreich abgeschlossen! ✨' : 'Translation completed successfully! ✨',
         'progress': 1.0,
         'processed': totalCount,
         'total': totalCount,
@@ -2232,8 +2298,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(projectProvider.notifier).setFilter(activeFilter, force: true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                'Massen-Übersetzung von $totalCount Modulen erfolgreich! ✨'),
+            content: Text(isGerman
+                ? 'Massen-Übersetzung von $totalCount Modulen erfolgreich! ✨'
+                : 'Bulk translation of $totalCount modules successful! ✨'),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -2246,7 +2313,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler bei der Massen-Übersetzung: $e'),
+            content: Text(isGerman ? 'Fehler bei der Massen-Übersetzung: $e' : 'Bulk translation error: $e'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 5),
           ),
@@ -2261,14 +2328,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     WidgetRef ref,
     List<String> machineNames,
     ThemeAttributes attrs, {
-    String title = 'AI Massen-Übersetzung',
+    String title = 'AI Bulk Translation',
+    bool isGerman = true,
   }) async {
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
     final totalCount = machineNames.length;
 
     final progressNotifier = ValueNotifier<Map<String, dynamic>>({
-      'status': 'Übersetzung wird gestartet…',
+      'status': isGerman ? 'Übersetzung wird gestartet…' : 'Starting translation…',
       'progress': 0.0,
       'processed': 0,
       'total': totalCount,
@@ -2342,7 +2410,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '$processedCount von $total Modulen verarbeitet',
+                          isGerman
+                              ? '$processedCount von $total Modulen verarbeitet'
+                              : '$processedCount of $total modules processed',
                           style: TextStyle(
                               color: attrs.textMuted, fontSize: 12),
                         ),
@@ -2371,7 +2441,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final batch = machineNames.sublist(i, end);
 
         progressNotifier.value = {
-          'status': 'Übersetze Modul ${i + 1}–$end von $totalCount …',
+          'status': isGerman
+              ? 'Übersetze Modul ${i + 1}–$end von $totalCount …'
+              : 'Translating module ${i + 1}–$end of $totalCount …',
           'progress': i / totalCount,
           'processed': i,
           'total': totalCount,
@@ -2384,7 +2456,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
 
         progressNotifier.value = {
-          'status': '$end von $totalCount Modulen abgeschlossen.',
+          'status': isGerman
+              ? '$end von $totalCount Modulen abgeschlossen.'
+              : '$end of $totalCount modules completed.',
           'progress': end / totalCount,
           'processed': end,
           'total': totalCount,
@@ -2394,7 +2468,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': 'Alle $totalCount Module erfolgreich neu übersetzt! ✨',
+        'status': isGerman
+            ? 'Alle $totalCount Module erfolgreich neu übersetzt! ✨'
+            : 'All $totalCount modules successfully re-translated! ✨',
         'progress': 1.0,
         'processed': totalCount,
         'total': totalCount,
@@ -2410,8 +2486,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(projectProvider.notifier).setFilter('stale', force: true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                '$totalCount veraltete Module erfolgreich neu übersetzt! ✨'),
+            content: Text(isGerman
+                ? '$totalCount veraltete Module erfolgreich neu übersetzt! ✨'
+                : '$totalCount outdated modules successfully re-translated! ✨'),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -2424,7 +2501,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler bei der Stale-Übersetzung: $e'),
+            content: Text(isGerman
+                ? 'Fehler bei der Stale-Übersetzung: $e'
+                : 'Error during re-translation: $e'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 5),
           ),

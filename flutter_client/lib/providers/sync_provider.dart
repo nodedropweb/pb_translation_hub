@@ -11,6 +11,7 @@ class SyncStatus {
   final String lastMachineName;
   final String? error;
   final String? lastFullSync;
+  final String? syncType; // 'quick' | 'full' | null
 
   const SyncStatus({
     this.active = false,
@@ -20,6 +21,7 @@ class SyncStatus {
     this.lastMachineName = '',
     this.error,
     this.lastFullSync,
+    this.syncType,
   });
 
   factory SyncStatus.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class SyncStatus {
       lastMachineName: json['lastMachineName'] as String? ?? '',
       error: json['error'] as String?,
       lastFullSync: json['lastFullSync'] as String?,
+      syncType: json['syncType'] as String?,
     );
   }
 

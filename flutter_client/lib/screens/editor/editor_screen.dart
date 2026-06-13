@@ -25,7 +25,7 @@ import '../../widgets/ckeditor_field.dart';
 import 'widgets/cost_calculator_dialog.dart';
 import 'widgets/screenshot_alts_section.dart';
 
-part '_editor_quill_bridge.dart';
+part '_editor_html_utils.dart';
 part '_editor_build_methods.dart';
 
 // Top-level constants shared across part files
