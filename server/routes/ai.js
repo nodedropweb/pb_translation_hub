@@ -31,20 +31,21 @@ module.exports = (ctx) => {
     return map[langcode] || langcode;
   }
 
-  const DEFAULT_PROMPT = `Translate the following two HTML blocks (summary and main description) from the Drupal Project Browser to {{langcode}}.
-IMPORTANT:
-1. Return ONLY the translation.
-2. Do NOT add any introduction, comments, or explanations (e.g., NO "Here is the translation").
-3. Module names must stay in English.
-4. Links and image URLs must remain unchanged.
-5. Separate the two translated blocks EXACTLY by the string '---'.
+  const DEFAULT_PROMPT = `You translate Drupal Project Browser module descriptions to {{langcode}}.
+You receive two source blocks: a short SUMMARY and a longer DESCRIPTION (both HTML).
 
-Summary:
+OUTPUT RULES — follow them exactly:
+1. Output ONLY the translation. No preface, no comments, no explanations (NO "Here is the translation").
+2. Output VALID HTML, never Markdown. Do NOT use #, ##, ###, **, *, -, or backticks, and do NOT wrap the output in code fences. Convert any structure into real HTML tags.
+3. Allowed tags only: <p> <br> <strong> <em> <a href> <ul> <li> <ol> <blockquote> <code> <pre> <h3> <h4> <h5> <h6> <img>. Use <h3>–<h6> for sub-headings (never <h1> or <h2>).
+4. Do NOT output field labels. Never write "Summary", "Zusammenfassung", "Description", "Main Description", "Hauptbeschreibung", "Body" or any translation of them — they are NOT part of the text, only delimiters below.
+5. Keep every <a href="..."> and <img src="..."> URL unchanged. Module names, package names and technical identifiers stay in English.
+6. Output the translated SUMMARY first, then a line containing only --- , then the translated DESCRIPTION.
+
+=== SOURCE SUMMARY ===
 {{summary}}
 
----
-
-Main Description:
+=== SOURCE DESCRIPTION ===
 {{body}}`;
 
   /**
@@ -70,6 +71,86 @@ Main Description:
       summary: (parts[0] || '').trim(),
       body:    (parts[1] || '').trim(),
     };
+  }
+
+  // ── AI output sanitisation ────────────────────────────────────────────────
+  // Defense-in-depth: even with a strict prompt the model occasionally returns
+  // Markdown or echoes field labels ("Zusammenfassung:", "Main Description:").
+  // Drupal Project Browser only renders HTML, so we normalise here before saving.
+
+  // Field labels that must never appear in the stored text (EN + DE).
+  const FIELD_LABELS =
+    '(?:Zusammenfassung|Kurzbeschreibung|Summary|Hauptbeschreibung|Main Description|Beschreibung|Description|Body)';
+
+  function looksLikeHtml(s) {
+    return /<(?:p|div|ul|ol|li|h[1-6]|strong|em|b|i|a|br|pre|code|blockquote|img|span)\b/i.test(s);
+  }
+
+  // Inline Markdown → HTML (bold before italic; links and inline code).
+  function inlineMd(s) {
+    return s
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/(\*\*|__)(.+?)\1/g, '<strong>$2</strong>')
+      .replace(/(^|[^*_])([*_])(?!\s)(.+?)(?<!\s)\2(?![*_])/g, '$1<em>$3</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+
+  // Block-level Markdown (and plain text) → HTML.
+  function mdToHtml(md) {
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const out = [];
+    let para = [];
+    let list = null; // 'ul' | 'ol'
+    const flushPara = () => {
+      if (para.length) { out.push('<p>' + inlineMd(para.join(' ').trim()) + '</p>'); para = []; }
+    };
+    const flushList = () => { if (list) { out.push('</' + list + '>'); list = null; } };
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line === '') { flushPara(); flushList(); continue; }
+      let m;
+      if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
+        flushPara(); flushList();
+        let lvl = m[1].length;
+        if (lvl < 3) lvl = 3;       // never emit <h1>/<h2> in module bodies
+        if (lvl > 6) lvl = 6;
+        out.push(`<h${lvl}>` + inlineMd(m[2].trim()) + `</h${lvl}>`);
+      } else if ((m = line.match(/^[-*+]\s+(.*)$/))) {
+        flushPara();
+        if (list !== 'ul') { flushList(); out.push('<ul>'); list = 'ul'; }
+        out.push('<li>' + inlineMd(m[1].trim()) + '</li>');
+      } else if ((m = line.match(/^\d+\.\s+(.*)$/))) {
+        flushPara();
+        if (list !== 'ol') { flushList(); out.push('<ol>'); list = 'ol'; }
+        out.push('<li>' + inlineMd(m[1].trim()) + '</li>');
+      } else {
+        flushList();
+        para.push(line);
+      }
+    }
+    flushPara(); flushList();
+    return out.join('\n');
+  }
+
+  function sanitizeAiHtml(text) {
+    if (!text) return '';
+    let t = String(text).trim();
+    // strip surrounding code fences (```html … ```)
+    t = t.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    // strip leading field-label lines and inline "Label:" prefixes (repeatedly)
+    const labelLine = new RegExp(
+      '^[ \\t]*(?:#{1,6}[ \\t]*)?(?:\\*\\*|__)?[ \\t]*' + FIELD_LABELS +
+      '[ \\t]*:?[ \\t]*(?:\\*\\*|__)?[ \\t]*\\n+', 'i');
+    const labelInline = new RegExp(
+      '^[ \\t]*(?:\\*\\*|__)?[ \\t]*' + FIELD_LABELS +
+      '[ \\t]*:[ \\t]*(?:\\*\\*|__)?[ \\t]*', 'i');
+    let prev;
+    do { prev = t; t = t.replace(labelLine, '').replace(labelInline, '').trim(); } while (t !== prev);
+    // Convert to HTML only when the model did not already return HTML.
+    if (!looksLikeHtml(t)) t = mdToHtml(t);
+    return t.trim();
   }
 
   /**
@@ -182,7 +263,9 @@ Main Description:
             .replace(/{{body}}/g, bodySrc);
 
           const rawText = await callGemini(user.google_ai_key, promptText);
-          const { summary: translatedSummary, body: translatedBody } = parseSummaryBody(rawText);
+          const parsed = parseSummaryBody(rawText);
+          const translatedSummary = sanitizeAiHtml(parsed.summary);
+          const translatedBody    = sanitizeAiHtml(parsed.body);
 
           await saveTranslation(db, TRANSLATIONS_DIR, {
             machine_name, langcode, title,
@@ -232,23 +315,7 @@ Main Description:
 
       const COUNT_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:countTokens?key=${user.google_ai_key}`;
       
-      const defaultPrompt = `Translate the following two HTML blocks (summary and main description) from the Drupal Project Browser to {{langcode}}.
-IMPORTANT:
-1. Return ONLY the translation.
-2. Do NOT add any introduction, comments, or explanations.
-3. Module names must stay in English.
-4. Links and image URLs must remain unchanged.
-5. Separate the two translated blocks EXACTLY by the string '---'.
-
-Summary:
-{{summary}}
-
----
-
-Main Description:
-{{body}}`;
-
-      const userPromptTemplate = user.ai_prompt || defaultPrompt;
+      const userPromptTemplate = user.ai_prompt || DEFAULT_PROMPT;
       let totalTokens = 0;
 
       for (const machine_name of machineNames) {

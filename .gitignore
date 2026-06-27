@@ -1,3 +1,6 @@
+# Backups (lokale Sicherungsarchive, von backup.sh erzeugt)
+backups/
+
 # Node / NPM
 node_modules/
 npm-debug.log*

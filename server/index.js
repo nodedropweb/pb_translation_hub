@@ -298,6 +298,86 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
   return rows;
 }
 
+// --- Sync-Event-Protokollierung ------------------------------------------------
+//
+// Erkennt während des Syncs (VOR dem projects-Upsert), ob ein Modul neu ist,
+// seine Beschreibung sich geändert hat, und welche Übersetzungen dadurch
+// veraltet werden. Speist die Tabelle sync_events (Migration 009) für das
+// Analyse-Dashboard.
+
+// Extrahiert die übersetzungsrelevanten Beschreibungsfelder aus einem
+// JSON:API-Objekt (entspricht den Feldern der Stale-MD5-Formel).
+function extractDesc(dataObj) {
+  const a = (dataObj && dataObj.attributes) || {};
+  return {
+    title:   a.title || '',
+    summary: (a.body && a.body.summary != null) ? a.body.summary : '',
+    body:    (a.body && a.body.value   != null) ? a.body.value   : '',
+  };
+}
+
+function descriptionChanged(oldData, newItem) {
+  const o = extractDesc(oldData);
+  const n = extractDesc(newItem);
+  return o.title !== n.title || o.summary !== n.summary || o.body !== n.body;
+}
+
+// Muss VOR dem projects-Upsert aufgerufen werden (nutzt die alte p.data in der DB).
+// Fehler dürfen den Sync niemals abbrechen — daher try/catch + nur loggen.
+async function recordSyncEvents(machineName, newItem) {
+  try {
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const [rows] = await db.execute('SELECT data FROM projects WHERE machine_name = ?', [machineName]);
+
+    if (rows.length === 0) {
+      await db.execute(
+        `INSERT IGNORE INTO sync_events (machine_name, event_type, langcode, event_date)
+         VALUES (?, 'new_module', NULL, ?)`,
+        [machineName, today]
+      );
+      return;
+    }
+
+    let oldData = null;
+    try {
+      oldData = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    } catch (_) { /* korrupte alte Daten → wie geändert behandeln */ }
+
+    if (!descriptionChanged(oldData, newItem)) return;
+
+    await db.execute(
+      `INSERT IGNORE INTO sync_events (machine_name, event_type, langcode, event_date)
+       VALUES (?, 'description_changed', NULL, ?)`,
+      [machineName, today]
+    );
+
+    // Übersetzungen, die VOR der Quelländerung aktuell waren (source_hash == aktuelle
+    // MD5 der alten Daten), werden durch die Textänderung jetzt veraltet.
+    const [trows] = await db.execute(
+      `SELECT t.langcode FROM translations t
+       JOIN projects p ON t.machine_name = p.machine_name
+       WHERE t.machine_name = ?
+         AND t.source_hash IS NOT NULL AND t.source_hash != ''
+         AND MD5(CONCAT(
+           IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.title')), ''),
+           IFNULL(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.summary')), 'null'), ''),
+           IFNULL(JSON_UNQUOTE(JSON_EXTRACT(p.data, '$.attributes.body.value')), '')
+         )) = t.source_hash`,
+      [machineName]
+    );
+
+    for (const tr of trows) {
+      await db.execute(
+        `INSERT IGNORE INTO sync_events (machine_name, event_type, langcode, event_date)
+         VALUES (?, 'stale', ?, ?)`,
+        [machineName, tr.langcode, today]
+      );
+    }
+  } catch (e) {
+    console.error(`[sync_events] recordSyncEvents fehlgeschlagen für ${machineName}:`, e.message);
+  }
+}
+
 // --- Sync Service ---
 async function syncProjects(sinceTimestamp = null) {
   if (syncStatus.active) return;
@@ -390,6 +470,7 @@ async function syncProjects(sinceTimestamp = null) {
             })).filter(img => img.url);
           }
 
+          await recordSyncEvents(machineName, item);
           await fs.writeJson(path.join(METADATA_DIR, `${machineName}.json`), item);
           await db.execute(
             'INSERT INTO projects (machine_name, title, data, changed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE title=VALUES(title), data=VALUES(data), changed=VALUES(changed)',
@@ -435,6 +516,7 @@ const ctx = {
   syncStatus,
   saveStatus,
   syncProjects,
+  recordSyncEvents,
   JWT_SECRET,
   DATA_DIR,
   METADATA_DIR,
@@ -461,6 +543,7 @@ app.use('/api', require('./routes/categories')(ctx));
 app.use('/api', require('./routes/admin')(ctx));
 app.use('/api', require('./routes/ai')(ctx));
 app.use('/api', require('./routes/glossary')(ctx));
+app.use('/api', require('./routes/dashboard')(ctx));
 app.use('/api', require('./routes/translations')(ctx));
 
 // ── Startup: ensure translation files exist on the filesystem ─────────────────

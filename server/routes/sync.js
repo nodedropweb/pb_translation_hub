@@ -11,6 +11,7 @@ module.exports = (ctx) => {
     authenticateToken,
     syncStatus,
     syncProjects,
+    recordSyncEvents,
     DATA_DIR,
     METADATA_DIR,
     TRANSLATIONS_DIR,
@@ -84,6 +85,7 @@ module.exports = (ctx) => {
         })).filter(img => img.url);
       }
 
+      await recordSyncEvents(machine_name, item);
       await fs.writeJson(path.join(METADATA_DIR, `${machine_name}.json`), item);
       await db.execute(
         'INSERT INTO projects (machine_name, title, data, changed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE title=VALUES(title), data=VALUES(data), changed=VALUES(changed)',
@@ -131,6 +133,7 @@ module.exports = (ctx) => {
         for (const item of data) {
           const mn = item.attributes.field_project_machine_name;
           if (!mn) continue;
+          await recordSyncEvents(mn, item);
           await fs.writeJson(path.join(METADATA_DIR, `${mn}.json`), item);
           await db.execute(
             'INSERT INTO projects (machine_name, title, data, changed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE title=VALUES(title), data=VALUES(data), changed=VALUES(changed)',
@@ -177,6 +180,7 @@ module.exports = (ctx) => {
         })).filter(img => img.url);
       }
 
+      await recordSyncEvents(machine_name, item);
       await fs.writeJson(path.join(METADATA_DIR, `${machine_name}.json`), item);
       await db.execute(
         'INSERT INTO projects (machine_name, title, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE title=VALUES(title), data=VALUES(data)',

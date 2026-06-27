@@ -105,10 +105,9 @@ if $DB_BACKUP && ! $DRY_RUN; then
   ssh "${REMOTE_USER}@${REMOTE_HOST}" "
     cd ${REMOTE_DIR}
     DB_PASS=\$(grep DB_PASSWORD server/.env | cut -d= -f2)
-    docker compose exec -T db mysqldump -u pb_hub -p\"\${DB_PASS}\" pb_translation_hub \
-      | gzip > ~/backups/${BACKUP_FILE} 2>/dev/null \
-      || docker compose exec -T db mysqldump -u pb_hub -pdrupal pb_translation_hub \
-           | gzip > ~/backups/${BACKUP_FILE}
+    docker compose exec -T -e MYSQL_PWD=\"\${DB_PASS:-drupal}\" db \
+      sh -c 'if command -v mariadb-dump >/dev/null 2>&1; then mariadb-dump -u pb_hub pb_translation_hub; else mysqldump -u pb_hub pb_translation_hub; fi' \
+      | gzip > ~/backups/${BACKUP_FILE}
     echo 'Backup: ~/backups/${BACKUP_FILE}'
   " && echo -e "  ${GREEN}Backup erstellt: ~/backups/${BACKUP_FILE}${NC}" \
     || echo -e "  ${YELLOW}Backup fehlgeschlagen (non-fatal) — bitte manuell prüfen${NC}"
@@ -126,6 +125,7 @@ fi
 COMMON_EXCLUDES=(
   --exclude '.git'
   --exclude 'node_modules'
+  --exclude 'backups'
   --exclude 'flutter_client/build'
   --exclude 'flutter_client/.dart_tool'
   --exclude 'flutter_client/.flutter-plugins*'

@@ -368,6 +368,14 @@ class _SidebarContent extends StatelessWidget {
                     GoRouterState.of(context).uri.path == '/',
                 attrs: attrs,
               ),
+              _NavItem(
+                icon: LucideIcons.chartColumnBig,
+                label: isGerman ? 'Statistik' : 'Analytics',
+                route: '/analytics',
+                isActive:
+                    GoRouterState.of(context).uri.path == '/analytics',
+                attrs: attrs,
+              ),
               if (ref.watch(authProvider).user?.isReviewer == true) ...[
                 _NavItem(
                   icon: LucideIcons.shieldCheck,

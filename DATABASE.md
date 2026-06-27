@@ -15,6 +15,7 @@ MariaDB 11.8 · Datenbank: `pb_translation_hub` · User: `pb_hub`
 | `site_settings` | Globale App-Einstellungen (Key-Value) |
 | `users` | Benutzerkonten mit Rollen, API-Keys, Sprachzuordnung |
 | `glossary_terms` | Fachvokabular für CKEditor-Glossar-Highlighting |
+| `sync_events` | Historischer Verlauf der Sync-Ereignisse (für Analyse-Dashboard) |
 | `schema_migrations` | Versionierungsprotokoll ausgeführter DB-Migrationen |
 
 ---
@@ -146,6 +147,36 @@ Fachvokabular pro Zielsprache. Der CKEditor-Glossar-Plugin liest diese Tabelle b
 
 ---
 
+## Tabelle: `sync_events`
+
+Protokolliert während jedes Syncs, was sich an einem Modul geändert hat —
+Grundlage für die Wochen-Verläufe im Analyse-Dashboard. Wird vom Helper
+`recordSyncEvents()` in `server/index.js` befüllt (vor jedem `projects`-Upsert,
+in allen Sync-Pfaden).
+
+| Feld | Typ | Null | Beschreibung |
+|---|---|---|---|
+| `id` | INT AUTO_INCREMENT | NO PK | Interne ID |
+| `machine_name` | VARCHAR(255) | NO | Modulname |
+| `event_type` | ENUM | NO | `new_module` · `description_changed` · `stale` |
+| `langcode` | VARCHAR(10) | YES | Nur bei `stale` gesetzt (betroffene Sprache) |
+| `event_date` | DATE | NO | Tag des Ereignisses (Basis für Wochenbucket) |
+| `created_at` | TIMESTAMP | NO | Einfügezeitpunkt |
+
+**Unique Key** `(machine_name, event_type, langcode, event_date)` + `INSERT IGNORE`
+verhindern Doppel-Events pro Tag. Im Dashboard zählen `new_module` +
+`description_changed` zusammen als „Modul mit neuer Projektbeschreibung".
+
+**Backfill:** `node server/scripts/backfill_sync_events.js` rekonstruiert den
+Verlauf einmalig näherungsweise aus `projects.changed` (ISO-8601-String).
+Idempotent. Echte „neu vs. geändert"-Trennung erst ab dem ersten neuen Sync.
+
+**API:** `GET /api/dashboard/weekly?type=new_description|stale&weeks=12&langcode=de`
+liefert pro Woche `{ week_start, count, modules[] }`. Kompatibilität pro
+Drupal-Version + Übersetzungsbedarf liefert weiterhin `/api/projects/filter-counts`.
+
+---
+
 ## Tabelle: `schema_migrations`
 
 Protokolliert alle ausgeführten DB-Migrationen. Wird von `db_migrate.js` verwaltet.
@@ -171,6 +202,8 @@ server/migrations/
   005_create_glossary_terms.sql       — Indizes & Constraints
   006_suggestion_type_deepl.sql       — ENUM-Erweiterung für DeepL-Vorschläge
   007_glossary_word_forms.sql         — word_forms TEXT-Spalte in glossary_terms
+  008_semver_columns.sql              — semver_min/max Generated Columns + Index
+  009_sync_events.sql                 — sync_events Tabelle (Verlauf fürs Dashboard)
 ```
 
 ### Neue Migration anlegen
@@ -257,6 +290,32 @@ ORDER BY user_type, username;
 ---
 
 ## Backup & Wiederherstellung
+
+### Vollständiges Backup (empfohlen): `backup.sh` / `restore.sh`
+
+Sichert in **ein** Archiv sowohl die komplette DB **als auch** den
+`data/translations/`-Baum. Wichtig: **Kategorienamen** (`_categories.json`)
+existieren nur als Dateien und fehlen in einem reinen DB-Dump.
+
+```bash
+./backup.sh             # Live-Server (drupaltutorials.de) per SSH
+./backup.sh --local     # lokale Instanz (mysqldump auf 127.0.0.1)
+# → backups/pb_hub_backup_<YYYYMMDD_HHMMSS>.tar.gz  (db.sql.gz + translations.tar.gz + manifest.txt)
+
+./restore.sh <archiv.tar.gz> --target local|remote --yes
+# remote danach: ./deploy.sh --no-build  (Server-Neustart → Migrationen laufen)
+```
+
+### Nur-DB-Backup (Schnellsicherung, z. B. vor Migrationen)
+
+`deploy.sh --db-backup` legt vor dem Deploy einen reinen DB-Dump auf dem Server
+unter `~/backups/pb_db_backup_<stamp>.sql.gz` ab (Passwort aus `server/.env`,
+Fallback `drupal`). Praktisch als Pre-Migrations-Netz.
+
+> Hinweis: Dieser Weg sichert **nur die DB**, nicht die Kategorie-/
+> Übersetzungsdateien (`data/translations/`, inkl. `_categories.json`). Für ein
+> vollständig wiederherstellbares Backup `backup.sh` verwenden. `backup.sh` nutzt
+> dieselbe Passwortauflösung wie `deploy.sh`.
 
 ### Backup erstellen (Produktion)
 

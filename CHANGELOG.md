@@ -11,6 +11,16 @@ Dates are in `YYYY-MM-DD` format.
 
 ### Added
 
+#### Analyse-Dashboard — Kompatibilität, Übersetzungsbedarf & Wochen-Verläufe
+- **`server/migrations/009_sync_events.sql`** — neue Tabelle `sync_events` (Verlauf von `new_module` / `description_changed` / `stale` mit `event_date`).
+- **`server/index.js`** — Helper `recordSyncEvents()` protokolliert vor jedem `projects`-Upsert neue Module, geänderte Beschreibungen und dadurch veraltete Übersetzungen (pro Sprache); in `syncProjects()` und allen Sync-Pfaden in **`server/routes/sync.js`** eingebunden.
+- **`server/routes/dashboard.js`** — neuer Endpoint `GET /dashboard/weekly?type=new_description|stale&weeks=&langcode=` (Wochenbuckets + Modullisten). Kompatibilität/Bedarf nutzt weiterhin `/projects/filter-counts`.
+- **`server/scripts/backfill_sync_events.js`** — einmaliger, idempotenter Backfill des Verlaufs aus `projects.changed`.
+- **`flutter_client/lib/screens/analytics/analytics_screen.dart`** + **`providers/analytics_provider.dart`** — neuer „Statistik"-Screen (Route `/analytics`, Nav-Eintrag): Übersetzungsbedarf-Karten, Kompatibilitäts-Balken pro Drupal 9–12, zwei ausklappbare Wochenlisten (neue Beschreibungen / veraltet markiert).
+
+#### Vollständiges Backup & Restore (DB + Übersetzungs-/Kategorie-Dateien)
+- **`backup.sh`** / **`restore.sh`** — sichern bzw. restaurieren DB-Dump **und** den `data/translations/`-Baum (inkl. `_categories.json`, das nur als Datei existiert) in/aus einem Archiv `backups/pb_hub_backup_<stamp>.tar.gz`. Modi `--local` und Live-Server per SSH.
+
 #### Stale-Massen-Übersetzung — alle veralteten Module per Knopfdruck neu übersetzen
 - **`server/routes/ai.js`** — neuer Endpoint `GET /ai/stale-machine-names?langcode=X`: liefert alle Machine-Names, deren `source_hash` nicht mehr mit dem aktuellen englischen Text übereinstimmt, direkt aus der DB (kein Pagination-Limit).
 - **`flutter_client/lib/screens/dashboard/dashboard_screen.dart`** — `_showStaleBulkTranslateDialog()`: spezieller Dialog für den Stale-Filter, der alle veralteten Module vorab abruft, Gesamtanzahl und Kostenschätzung anzeigt und ohne Count-Dropdown direkt startet.

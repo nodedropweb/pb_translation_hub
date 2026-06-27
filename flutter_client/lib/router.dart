@@ -8,6 +8,7 @@ import 'screens/auth/register_screen.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/page_transition.dart';
 import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/analytics/analytics_screen.dart';
 import 'screens/editor/editor_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/categories/categories_screen.dart';
@@ -113,6 +114,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 inheritedQueue: inheritedQueue,
               );
             },
+          ),
+          GoRoute(
+            path: '/analytics',
+            builder: (context, state) => const AnalyticsScreen(),
           ),
           GoRoute(
             path: '/categories',
