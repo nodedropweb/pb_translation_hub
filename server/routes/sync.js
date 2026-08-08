@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 
 const DETAIL_API = 'https://www.drupal.org/jsonapi/node/project_module';
+const DRUPAL_API_TIMEOUT = 15000; // ms — avoid hanging indefinitely on a stalled drupal.org response
 
 module.exports = (ctx) => {
   const {
@@ -11,6 +12,7 @@ module.exports = (ctx) => {
     authenticateToken,
     syncStatus,
     syncProjects,
+    stopSync,
     recordSyncEvents,
     DATA_DIR,
     METADATA_DIR,
@@ -35,7 +37,8 @@ module.exports = (ctx) => {
       const dbRow = rows[0] || null;
 
       const response = await axios.get('https://www.drupal.org/jsonapi/node/project_module', {
-        params: { 'filter[field_project_machine_name]': machine_name }
+        params: { 'filter[field_project_machine_name]': machine_name },
+        timeout: DRUPAL_API_TIMEOUT,
       });
       const item = response.data.data?.[0] || null;
 
@@ -67,7 +70,7 @@ module.exports = (ctx) => {
         'filter[field_project_machine_name]': machine_name,
         'include': 'field_module_categories,field_maintenance_status,field_development_status,uid,field_project_images',
       };
-      const response = await axios.get('https://www.drupal.org/jsonapi/node/project_module', { params: query });
+      const response = await axios.get('https://www.drupal.org/jsonapi/node/project_module', { params: query, timeout: DRUPAL_API_TIMEOUT });
       const item = response.data.data?.[0];
       const included = response.data.included || [];
 
@@ -124,7 +127,7 @@ module.exports = (ctx) => {
           'page[offset]': page * 50,
         };
 
-        const response = await axios.get('https://www.drupal.org/jsonapi/node/project_module', { params: query });
+        const response = await axios.get('https://www.drupal.org/jsonapi/node/project_module', { params: query, timeout: DRUPAL_API_TIMEOUT });
         const data = response.data.data || [];
         if (page === 0) log.push({ totalOnDrupalOrg: response.data.meta?.count });
 
@@ -160,7 +163,7 @@ module.exports = (ctx) => {
         'include': 'field_module_categories,field_maintenance_status,field_development_status,uid,field_project_images',
       };
 
-      const response = await axios.get(DETAIL_API, { params: query });
+      const response = await axios.get(DETAIL_API, { params: query, timeout: DRUPAL_API_TIMEOUT });
       const item = response.data.data[0];
       const included = response.data.included || [];
 
@@ -205,7 +208,7 @@ module.exports = (ctx) => {
 
   // Stop background sync
   router.post('/sync/stop', authenticateToken, (req, res) => {
-    syncStatus.shouldStop = true;
+    stopSync();
     res.json({ success: true });
   });
 

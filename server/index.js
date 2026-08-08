@@ -156,6 +156,7 @@ app.get('/', (req, res) => {
 // --- Drupal.org API Constants ---
 const DRUPAL_ORG_API = 'https://www.drupal.org/jsonapi/index/project_modules';
 const DETAIL_API = 'https://www.drupal.org/jsonapi/node/project_module';
+const DRUPAL_API_TIMEOUT = 15000; // ms — prevents a stalled drupal.org response from wedging the sync loop forever
 
 // --- Helper Functions ---
 function fixDrupalUrl(url) {
@@ -379,9 +380,20 @@ async function recordSyncEvents(machineName, newItem) {
 }
 
 // --- Sync Service ---
+let syncAbortController = null;
+
+// Called by POST /sync/stop. Setting shouldStop alone isn't enough to unstick
+// the loop while it's parked inside an in-flight axios.get() — this also
+// aborts that request immediately so Stop takes effect right away instead of
+// waiting for the request to time out on its own.
+function stopSync() {
+  syncStatus.shouldStop = true;
+  if (syncAbortController) syncAbortController.abort();
+}
+
 async function syncProjects(sinceTimestamp = null) {
   if (syncStatus.active) return;
-  
+
   syncStatus.active = true;
   syncStatus.shouldStop = false;
   syncStatus.error = null;
@@ -437,7 +449,13 @@ async function syncProjects(sinceTimestamp = null) {
 
       // Quick sync needs node endpoint (supports filter[changed]); full sync uses index endpoint
       const apiUrl = sinceTimestamp ? DETAIL_API : DRUPAL_ORG_API;
-      const response = await axios.get(apiUrl, { params: query });
+      syncAbortController = new AbortController();
+      const response = await axios.get(apiUrl, {
+        params: query,
+        timeout: DRUPAL_API_TIMEOUT,
+        signal: syncAbortController.signal,
+      });
+      syncAbortController = null;
       const data = response.data.data;
       const included = response.data.included || [];
 
@@ -484,14 +502,21 @@ async function syncProjects(sinceTimestamp = null) {
 
       page++;
       saveStatus();
-      await new Promise(r => setTimeout(r, 100)); 
+      await new Promise(r => setTimeout(r, 100));
     } catch (error) {
+      syncAbortController = null;
+      if (syncStatus.shouldStop || axios.isCancel(error)) {
+        // Aborted via the Stop button — not a real failure.
+        break;
+      }
       console.error('Sync error:', error.message);
       syncStatus.error = error.message;
       syncStatus.active = false;
     }
   }
-  
+
+  syncAbortController = null;
+
   if (!syncStatus.shouldStop && !syncStatus.error) {
     // Only full syncs update lastFullSync — quick syncs don't reset the baseline
     // (the auto-sync scheduler uses lastFullSync as the 'since' cutoff).
@@ -516,6 +541,7 @@ const ctx = {
   syncStatus,
   saveStatus,
   syncProjects,
+  stopSync,
   recordSyncEvents,
   JWT_SECRET,
   DATA_DIR,
