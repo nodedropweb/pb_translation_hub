@@ -254,12 +254,22 @@ class FilterCountsNotifier extends Notifier<FilterCounts> {
 
   @override
   FilterCounts build() {
-    // Watch language to trigger rebuilds automatically
-    final langcode = ref.watch(languageProvider).targetLanguage.code;
-    
-    // We run the fetch asynchronously so it doesn't block the build cycle
+    // NOTE: intentionally ref.read, not ref.watch. languageProvider's state
+    // changes 2-3 times during app startup (default -> saved-language ->
+    // post-fetchLanguages()); watching it here would rerun build() each
+    // time, resetting state back to FilterCounts() (all zeros) and racing a
+    // fresh fetch against whichever fetch was already in flight — the exact
+    // "counts show 0 until F5" bug. React to real language changes via
+    // ref.listen instead, which calls fetchCounts() without resetting state.
+    final langcode = ref.read(languageProvider).targetLanguage.code;
     Future.microtask(() => fetchCounts(langcode));
-    
+
+    ref.listen(languageProvider, (previous, next) {
+      if (previous?.targetLanguage.code != next.targetLanguage.code) {
+        fetchCounts(next.targetLanguage.code);
+      }
+    });
+
     return FilterCounts();
   }
 
