@@ -132,8 +132,7 @@ module.exports = (ctx) => {
         countQuery += ' AND p.machine_name IN (SELECT machine_name FROM translations WHERE langcode = ? AND is_reviewed = TRUE) ';
         countParams.push(langcode);
       } else if (filter === 'priority') {
-        countQuery += ' AND p.machine_name IN (SELECT machine_name FROM priority_projects) AND p.machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) ';
-        countParams.push(langcode);
+        countQuery += ' AND p.machine_name IN (SELECT machine_name FROM priority_projects) AND p.semver_max < 12000000 ';
       }
 
       if (search) {
@@ -277,20 +276,16 @@ module.exports = (ctx) => {
       const [[allRes]] = await db.execute(
         `SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`
       );
-      // Priority: zählt aus priority_projects direkt (nicht aus projects-JOIN,
-      // da viele priority-Module noch nicht ins lokale DB gesynct sind).
-      // Version-Filter per LEFT JOIN optional angehängt.
-      const priorityVersionJoin = coreVer !== null
-        ? ` LEFT JOIN projects _pv ON pp.machine_name = _pv.machine_name
-            AND _pv.semver_min <= ${coreVer * 1000000 + 999999}
-            AND _pv.semver_max >= ${coreVer * 1000000} `
-        : '';
-      const priorityVersionWhere = coreVer !== null ? ' AND _pv.machine_name IS NOT NULL ' : '';
+      // Priority: priority-listed modules not yet Drupal-12-compatible.
+      // Driven from projects p (joined, not a separate priority_projects
+      // count) so it can never show a nonzero count with an empty list —
+      // unlike the old "priority-listed AND untranslated" definition, which
+      // silently dropped priority modules never synced into `projects`.
       const [[priorityRes]] = await db.execute(
-        `SELECT COUNT(*) as count FROM priority_projects pp${priorityVersionJoin}
-         WHERE pp.machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?)
-         AND pp.machine_name NOT IN (SELECT machine_name FROM ignored_projects)${priorityVersionWhere}`,
-        [langcode]
+        `SELECT COUNT(*) as count FROM projects p
+         JOIN priority_projects pp ON pp.machine_name = p.machine_name
+         WHERE p.semver_max < 12000000
+         AND p.machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippetP}`
       );
       const [[missingRes]] = await db.execute(
         `SELECT COUNT(*) as count FROM projects WHERE machine_name NOT IN (SELECT machine_name FROM translations WHERE langcode = ?) AND machine_name NOT IN (SELECT machine_name FROM ignored_projects)${vSnippet}`,

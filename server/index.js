@@ -264,7 +264,12 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
   } else if (filter === 'released') {
     query += ` AND t.machine_name IS NOT NULL AND t.is_reviewed = TRUE `;
   } else if (filter === 'priority') {
-    query += ` AND p.machine_name IN (SELECT machine_name FROM priority_projects) AND t.machine_name IS NULL `;
+    // "Priority" now means: on the curated priority list, but not yet
+    // Drupal-12-compatible (semver_max < 12000000). Driven from projects p
+    // (not translations), so it can never show a nonzero count with an empty
+    // list — unlike the old "priority-listed AND untranslated" definition,
+    // which silently dropped priority modules never synced into `projects`.
+    query += ` AND p.machine_name IN (SELECT machine_name FROM priority_projects) AND p.semver_max < 12000000 `;
   }
 
   if (coreVer !== null) {
@@ -277,7 +282,9 @@ async function getFilteredIndex(filter, search, langcode, limit = null, offset =
   const orderParams = [];
 
   if (prioritize_priority) {
-    orderClause += ` (p.machine_name IN (SELECT machine_name FROM priority_projects)) DESC, `;
+    // Matches the 'priority' filter's meaning: surface priority-listed
+    // modules that still lack Drupal 12 support first.
+    orderClause += ` (p.machine_name IN (SELECT machine_name FROM priority_projects) AND p.semver_max < 12000000) DESC, `;
   }
 
   if (search) {

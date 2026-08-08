@@ -1536,7 +1536,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         filterName = isGerman ? 'Alle Projekte' : 'All Projects';
         break;
       case 'priority':
-        filterName = 'Drupal 11';
+        filterName = 'Drupal 12';
         break;
       case 'missing':
         filterName = isGerman ? 'Fehlende Übersetzungen' : 'Missing Translations';
@@ -1710,7 +1710,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Drupal 11 priority toggle
+                    // Drupal 12 priority toggle
                     if (activeFilter != 'priority') ...[
                       GestureDetector(
                         onTap: () => setState(
@@ -1747,7 +1747,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                        isGerman ? 'Drupal 11 Module priorisieren' : 'Prioritise Drupal 11 modules',
+                                        isGerman ? 'Drupal 12 Module priorisieren' : 'Prioritise Drupal 12 modules',
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 13,
@@ -1755,8 +1755,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       isGerman
-                                          ? 'Übersetzt bevorzugt Drupal 11 kompatible Module zuerst'
-                                          : 'Translates Drupal 11 compatible modules first',
+                                          ? 'Übersetzt bevorzugt Module ohne Drupal 12 Unterstützung zuerst'
+                                          : 'Translates modules without Drupal 12 support first',
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: attrs.textMuted
