@@ -84,6 +84,12 @@ const db = mysql.createPool({
   user: process.env.DB_USER || 'pb_hub',
   password: process.env.DB_PASSWORD || 'drupal',
   database: process.env.DB_NAME || 'pb_translation_hub',
+  // mysql2 returns DECIMAL columns (e.g. SUM(CASE WHEN ... THEN 1 ELSE 0 END))
+  // as strings by default to avoid precision loss. The Flutter client's
+  // FilterCounts model expects real ints, so a string there throws during
+  // JSON parsing — silently swallowed by the client's catch-all, making all
+  // filter counts show 0. Cast DECIMAL results to JS numbers globally.
+  decimalNumbers: true,
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 100,
   queueLimit: 0
