@@ -55,11 +55,15 @@ const _nativeUiLocales = <String, Locale>{
   'ca': Locale('ca'),
   'it': Locale('it'),
   'sv': Locale('sv'),
-  // Still pending (translation batch interrupted by a spend-limit failure on
-  // 2026-08-22): az, pl, id, da, ar, ro, lt, ko, et. Add each back here once
-  // its app_<code>.arb file actually exists — leaving a code in this map
-  // without a matching ARB file makes AppLocalizations.of(context) return
-  // null for that locale and crashes every screen's `!` on it.
+  'da': Locale('da'),
+  'pl': Locale('pl'),
+  'ro': Locale('ro'),
+  'lt': Locale('lt'),
+  'et': Locale('et'),
+  'az': Locale('az'),
+  'id': Locale('id'),
+  'ar': Locale('ar'),
+  'ko': Locale('ko'),
 };
 
 class TranslationHubApp extends ConsumerWidget {
