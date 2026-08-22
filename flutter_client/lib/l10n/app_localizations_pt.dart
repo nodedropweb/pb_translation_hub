@@ -12,7 +12,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'PB Translation Hub';
 
   @override
-  String get editorLoadingProject => 'Carregando detalhes do projeto...';
+  String get editorLoadingProject => 'A carregar detalhes do projeto...';
 
   @override
   String editorLoadError(String error) {
@@ -21,7 +21,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorGeminiSuccess =>
-      'Tradução com o Gemini realizada com sucesso! ✨';
+      'Tradução com o Gemini concluída com sucesso! ✨';
 
   @override
   String get editorUnknownError => 'Erro desconhecido';
@@ -33,15 +33,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorGeminiKeyMissing =>
-      'Adicione sua chave do Google AI no seu perfil de usuário (não nas configurações de administrador).';
+      'Adicione a sua chave do Google AI no seu perfil de utilizador (não nas definições de administração).';
 
   @override
   String get editorGeminiError =>
-      'Erro durante a tradução com o Gemini. Verifique sua chave do Google AI no seu perfil.';
+      'Erro durante a tradução com o Gemini. Verifique a sua chave do Google AI no seu perfil.';
 
   @override
   String get editorDeeplSuccess =>
-      'Tradução com o DeepL realizada com sucesso! 🔵';
+      'Tradução com o DeepL concluída com sucesso! 🔵';
 
   @override
   String editorDeeplFailed(String detail) {
@@ -50,7 +50,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorDeeplGenericError =>
-      'Erro durante a tradução com o DeepL. Verifique se sua chave de API do DeepL está definida no seu perfil.';
+      'Erro durante a tradução com o DeepL. Certifique-se de que a sua chave de API do DeepL está definida no seu perfil.';
 
   @override
   String get editorDeeplInvalidKey =>
@@ -58,15 +58,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorDeeplQuotaExceeded =>
-      'Cota do DeepL esgotada. Verifique seu plano.';
+      'Cota do DeepL esgotada. Verifique o seu plano.';
 
   @override
-  String get editorReviewReset =>
-      'Tradução redefinida para o status de revisão.';
+  String get editorReviewReset => 'Tradução reposta no estado de revisão.';
 
   @override
   String editorResetError(String error) {
-    return 'Falha ao redefinir: $error';
+    return 'Falha ao repor: $error';
   }
 
   @override
@@ -77,11 +76,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorSaveSuccess =>
-      'Tradução salva — de volta à fila de revisão.';
+      'Tradução guardada — de volta à fila de revisão.';
 
   @override
   String editorSaveError(String error) {
-    return 'Falha ao salvar: $error';
+    return 'Falha ao guardar: $error';
   }
 
   @override
@@ -89,7 +88,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorChangesDiscarded =>
-      'Alterações descartadas, carregando o próximo projeto...';
+      'Alterações descartadas, a carregar o próximo projeto...';
 
   @override
   String get editorEnglishSourceApplied =>
@@ -97,11 +96,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String editorCannotOpenUrl(String url) {
-    return 'Não foi possível abrir a URL: $url';
+    return 'Não foi possível abrir o URL: $url';
   }
 
   @override
-  String get commonSave => 'Salvar';
+  String get commonSave => 'Guardar';
 
   @override
   String get commonClose => 'Fechar';
@@ -116,17 +115,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editorUnignoreShortTooltip => 'Restaurar módulo';
 
   @override
-  String get editorBackToReviewTooltip => 'Retornar para revisão';
+  String get editorBackToReviewTooltip => 'Repor em revisão';
 
   @override
-  String get editorAndNext => 'e Próximo';
+  String get editorAndNext => 'e Seguinte';
 
   @override
   String get editorBackToDashboard => 'Voltar ao painel';
 
   @override
   String editorTranslatingInto(String langName, String langCode) {
-    return 'Traduzindo para $langName ($langCode)';
+    return 'A traduzir para $langName ($langCode)';
   }
 
   @override
@@ -135,20 +134,19 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get editorUnignoreLongTooltip => 'Devolver módulo à lista ativa';
+  String get editorUnignoreLongTooltip => 'Devolver o módulo à lista ativa';
 
   @override
   String get editorUnignoreLabel => 'Restaurar';
 
   @override
-  String get editorUnpublishTooltip =>
-      'Revogar publicação e retornar para revisão';
+  String get editorUnpublishTooltip => 'Revogar publicação e repor em revisão';
 
   @override
-  String get editorBackToReview => 'Voltar para revisão';
+  String get editorBackToReview => 'Voltar à revisão';
 
   @override
-  String get editorSaveAndNext => 'Salvar e próximo';
+  String get editorSaveAndNext => 'Guardar e seguinte';
 
   @override
   String get editorEnglishSourceHeader => 'FONTE EM INGLÊS';
@@ -189,11 +187,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editorStaleExplanation =>
-      'A tradução existente é baseada em um texto original em inglês desatualizado. Desde a última tradução, o mantenedor do módulo alterou o texto em inglês no Drupal.org — o conteúdo da tradução existente pode, portanto, não ser mais preciso ou completo.';
+      'A tradução existente baseia-se num texto original em inglês desatualizado. Desde a última tradução, o responsável pelo módulo alterou o texto em inglês no Drupal.org — o conteúdo da tradução existente pode, por isso, já não estar correto ou completo.';
 
   @override
   String get editorStaleTip =>
-      'Dica: clique em \"Usar original em inglês\" para carregar a fonte em inglês atual diretamente no editor. Você pode então usá-la como ponto de partida para uma nova tradução. O original em inglês também é exibido no painel à esquerda.';
+      'Dica: clique em «Utilizar original em inglês» para carregar a fonte em inglês atual diretamente no editor. Pode depois utilizá-la como ponto de partida para uma nova tradução. O original em inglês também está visível no painel da esquerda.';
 
   @override
   String get editorEnglishSourceShort => 'Fonte em inglês';
@@ -208,7 +206,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editorShowDiff => 'Mostrar diferenças';
 
   @override
-  String get editorUseEnglish => 'Usar original em inglês';
+  String get editorUseEnglish => 'Utilizar original em inglês';
 
   @override
   String get editorStaleBannerText =>
@@ -223,7 +221,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get editorTranslatingEllipsis => 'Traduzindo...';
+  String get editorTranslatingEllipsis => 'A traduzir...';
 
   @override
   String get editorShowEditor => 'Mostrar editor';
@@ -241,11 +239,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editorHtmlCleaned => 'HTML limpo';
 
   @override
-  String get editorLivePreviewHeader => 'PRÉ-VISUALIZAÇÃO AO VIVO';
+  String get editorLivePreviewHeader => 'PRÉ-VISUALIZAÇÃO EM DIRETO';
 
   @override
   String get editorTidyHtmlTooltip =>
-      'Limpar HTML (remover artefatos do DeepL)';
+      'Limpar HTML (remover artefactos do DeepL)';
 
   @override
   String get editorVisualMode => 'VISUAL';
@@ -261,7 +259,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get costDialogIntro =>
-      'O módulo selecionado será traduzido com a IA Google Gemini. Aqui está a estimativa detalhada de custo para esta operação:';
+      'O módulo selecionado será traduzido com a IA Google Gemini. Segue-se a estimativa detalhada do custo desta operação:';
 
   @override
   String get costRowModel => 'Modelo';
@@ -274,7 +272,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String costTokenChars(int tokens, int chars) {
-    return '$tokens (~$chars caracteres)';
+    return '$tokens (~$chars carateres)';
   }
 
   @override
@@ -288,16 +286,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get costDialogFootnote =>
-      '* Observação: esta é uma estimativa baseada no modelo de preços pay-as-you-go atual do Google. O uso real pode variar ligeiramente.';
+      '* Nota: esta é uma estimativa baseada no modelo de preços por utilização atual da Google. O consumo real pode variar ligeiramente.';
 
   @override
   String get costDialogStartTranslation => 'Iniciar tradução';
 
   @override
-  String get htmlToolbarInsertLink => 'Inserir link';
+  String get htmlToolbarInsertLink => 'Inserir ligação';
 
   @override
-  String get htmlToolbarLinkTooltip => 'Inserir link (a)';
+  String get htmlToolbarLinkTooltip => 'Inserir ligação (a)';
 
   @override
   String get htmlToolbarInsert => 'Inserir';
@@ -315,7 +313,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get htmlToolbarItalic => 'Itálico (em)';
 
   @override
-  String get htmlToolbarBulletList => 'Lista com marcadores (ul)';
+  String get htmlToolbarBulletList => 'Lista com marcas (ul)';
 
   @override
   String get htmlToolbarNumberedList => 'Lista numerada (ol)';
@@ -324,15 +322,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get htmlToolbarQuote => 'Citação (blockquote)';
 
   @override
-  String get screenshotAltsHeader => 'TEXTO ALTERNATIVO DAS CAPTURAS DE TELA';
+  String get screenshotAltsHeader => 'TEXTO ALTERNATIVO DAS CAPTURAS DE ECRÃ';
 
   @override
   String get screenshotAltsIntro =>
-      'Insira um texto alternativo descritivo no idioma de destino para cada captura de tela.';
+      'Introduza um texto alternativo descritivo no idioma de destino para cada captura de ecrã.';
 
   @override
   String screenshotLabel(int number) {
-    return 'Captura de tela $number';
+    return 'Captura de ecrã $number';
   }
 
   @override
@@ -340,7 +338,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get screenshotAltHint =>
-      'Insira o texto alternativo no idioma de destino…';
+      'Introduza o texto alternativo no idioma de destino…';
 
   @override
   String get dashUnignoreAllConfirmTitle =>
@@ -348,7 +346,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashUnignoreAllConfirmBody =>
-      'Todos os módulos ignorados serão devolvidos à lista ativa e ficarão disponíveis para tradução novamente.';
+      'Todos os módulos ignorados serão devolvidos à lista ativa e voltarão a estar disponíveis para tradução.';
 
   @override
   String get dashUnignoreAllConfirmAction => 'Restaurar todos';
@@ -392,14 +390,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashHeaderSubtitle =>
-      'Traduza descrições de módulos do Drupal para o idioma de destino. Ajude a tornar o ecossistema mais acessível.';
+      'Traduza descrições de módulos Drupal para o idioma de destino. Ajude a tornar o ecossistema mais acessível.';
 
   @override
-  String get dashHeaderSubtitleShort =>
-      'Traduza descrições de módulos do Drupal.';
+  String get dashHeaderSubtitleShort => 'Traduza descrições de módulos Drupal.';
 
   @override
-  String get dashLastLabel => 'Última: ';
+  String get dashLastLabel => 'Último: ';
 
   @override
   String get dashContinue => 'Continuar';
@@ -416,11 +413,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashFullSyncTooltip =>
-      'Sincronização completa do banco de dados a partir do Drupal.org';
+      'Sincronização completa da base de dados a partir do Drupal.org';
 
   @override
   String get dashManualLoadTooltip =>
-      'Carregar manualmente um único módulo do Drupal.org';
+      'Carregar manualmente um único módulo a partir do Drupal.org';
 
   @override
   String get dashQuickShort => 'Rápida';
@@ -441,7 +438,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String dashPerPageShort(int count) {
-    return '$count / página';
+    return '$count / pág.';
   }
 
   @override
@@ -451,7 +448,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dashPrevPage => 'Página anterior';
 
   @override
-  String get dashNextPage => 'Próxima página';
+  String get dashNextPage => 'Página seguinte';
 
   @override
   String get dashLastPage => 'Última página';
@@ -472,19 +469,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashAddModuleSubtitle =>
-      'Carregar diretamente do Drupal.org pelo machine name.';
+      'Carregar diretamente a partir do Drupal.org por machine name.';
 
   @override
   String get dashAddModuleShort => 'Adicionar módulo';
 
   @override
-  String get dashNoProjectsFound => 'Nenhum projeto encontrado.';
+  String get dashNoProjectsFound => 'Não foram encontrados projetos.';
 
   @override
   String get dashFilterAll => 'Todos os projetos';
 
   @override
-  String get dashFilterMissing => 'Traduções ausentes';
+  String get dashFilterMissing => 'Traduções em falta';
 
   @override
   String get dashFilterReview => 'Fila de revisão';
@@ -497,7 +494,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashBulkDialogIntro =>
-      'Traduza automaticamente vários módulos do filtro selecionado usando o Google Gemini.';
+      'Traduza automaticamente vários módulos do filtro selecionado utilizando o Google Gemini.';
 
   @override
   String get dashActiveFilter => 'Filtro ativo';
@@ -511,11 +508,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get dashPrioritizeD12Title => 'Priorizar módulos do Drupal 12';
+  String get dashPrioritizeD12Title => 'Priorizar módulos Drupal 12';
 
   @override
   String get dashPrioritizeD12Subtitle =>
-      'Traduz primeiro os módulos sem suporte ao Drupal 12';
+      'Traduz primeiro os módulos sem suporte para Drupal 12';
 
   @override
   String get dashTotalModules => 'Total de módulos';
@@ -528,7 +525,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashBulkFootnote =>
-      '* A tradução é executada em lotes eficientes em termos de recursos para evitar tempos limite.';
+      '* A tradução é executada em lotes eficientes em recursos, para evitar tempos de espera excedidos.';
 
   @override
   String get dashStartBulkTranslation => 'Iniciar tradução em massa';
@@ -540,7 +537,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashNoStaleModules =>
-      'Nenhum módulo desatualizado encontrado — tudo está em dia! ✨';
+      'Não foram encontrados módulos desatualizados — está tudo atualizado! ✨';
 
   @override
   String get dashRetranslateOutdatedTitle =>
@@ -548,26 +545,26 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashRetranslateOutdatedIntro =>
-      'Todas as traduções cuja fonte em inglês mudou desde a última tradução serão retraduzidas automaticamente usando o Google Gemini. Não é necessário abrir cada módulo manualmente.';
+      'Todas as traduções cuja fonte em inglês tenha mudado desde a última tradução serão retraduzidas automaticamente com o Google Gemini. Não é necessário abrir cada módulo manualmente.';
 
   @override
   String get dashOutdatedModules => 'Módulos desatualizados';
 
   @override
   String get dashRetranslateOutdatedFootnote =>
-      '* A tradução substitui o texto existente e redefine is_reviewed. Executada em lotes de 4 módulos.';
+      '* A tradução substitui o texto existente e repõe o is_reviewed. Executada em lotes de 4 módulos.';
 
   @override
   String dashRetranslateAllCount(int count) {
-    return 'Retraduzir todos os $count módulos';
+    return 'Retraduzir os $count módulos';
   }
 
   @override
   String get dashRetranslatingOutdatedTitle =>
-      'Retraduzindo módulos desatualizados…';
+      'A retraduzir módulos desatualizados…';
 
   @override
-  String get dashFetchingProjects => 'Buscando projetos no servidor…';
+  String get dashFetchingProjects => 'A obter projetos do servidor…';
 
   @override
   String dashModulesProcessed(int processed, int total) {
@@ -576,14 +573,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashNoTranslatableProjects =>
-      'Nenhum projeto traduzível encontrado para este filtro.';
+      'Não foram encontrados projetos traduzíveis para este filtro.';
 
   @override
-  String get dashStartingTranslation => 'Iniciando tradução…';
+  String get dashStartingTranslation => 'A iniciar tradução…';
 
   @override
   String dashTranslatingModuleRange(int start, int end, int total) {
-    return 'Traduzindo módulo $start–$end de $total …';
+    return 'A traduzir o módulo $start–$end de $total …';
   }
 
   @override
@@ -596,7 +593,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String dashBulkTranslationSuccess(int count) {
-    return 'Tradução em massa de $count módulos realizada com sucesso! ✨';
+    return 'Tradução em massa de $count módulos concluída com sucesso! ✨';
   }
 
   @override
@@ -606,7 +603,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String dashAllModulesRetranslated(int count) {
-    return 'Todos os $count módulos foram retraduzidos com sucesso! ✨';
+    return 'Os $count módulos foram retraduzidos com sucesso! ✨';
   }
 
   @override
@@ -623,7 +620,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get filterAllShort => 'Todos';
 
   @override
-  String get filterMissing => 'Ausentes';
+  String get filterMissing => 'Em falta';
 
   @override
   String get filterTranslated => 'Traduzidos';
@@ -647,7 +644,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get commonEdit => 'Editar';
 
   @override
-  String get commonReset => 'Redefinir';
+  String get commonReset => 'Repor';
 
   @override
   String get commonRefresh => 'Atualizar';
@@ -659,30 +656,30 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reviewResetAllConfirmTitle =>
-      'Redefinir todas as traduções publicadas?';
+      'Repor todas as traduções publicadas?';
 
   @override
   String reviewResetAllConfirmBody(String langcode) {
-    return 'Todas as traduções marcadas como publicadas para $langcode serão redefinidas para o estado de revisão. Isso não pode ser desfeito.';
+    return 'Todas as traduções marcadas como publicadas para $langcode serão repostas no estado de revisão. Esta ação não pode ser anulada.';
   }
 
   @override
   String reviewResetAllSuccess(int count) {
-    return '$count traduções redefinidas para o estado de revisão.';
+    return '$count traduções repostas no estado de revisão.';
   }
 
   @override
-  String get reviewPipelineTitle => 'Pipeline de revisão';
+  String get reviewPipelineTitle => 'Fluxo de revisão';
 
   @override
   String get reviewPipelineSubtitle =>
-      'Pipeline de garantia de qualidade humana para traduções por IA';
+      'Processo de garantia de qualidade humana para traduções de IA';
 
   @override
-  String get reviewSearchHint => 'Buscar projetos...';
+  String get reviewSearchHint => 'Pesquisar projetos...';
 
   @override
-  String get reviewResetPublished => 'Redefinir publicadas';
+  String get reviewResetPublished => 'Repor publicadas';
 
   @override
   String reviewResultsCount(int count, int total) {
@@ -695,17 +692,17 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get reviewNoProjectsPending => 'Nenhum projeto pendente de revisão.';
+  String get reviewNoProjectsPending => 'Não há projetos pendentes de revisão.';
 
   @override
   String get reviewAllVerifiedOrNone =>
-      'Todas as traduções já foram verificadas ou nenhuma existe neste contexto de idioma.';
+      'Todas as traduções já foram verificadas ou não existe nenhuma neste contexto de idioma.';
 
   @override
   String get reviewNoSummary => 'Sem resumo.';
 
   @override
-  String get reviewStartAudit => 'INICIAR AUDITORIA';
+  String get reviewStartAudit => 'INICIAR VERIFICAÇÃO';
 
   @override
   String get reviewHtmlSourceShort => 'Fonte HTML';
@@ -720,13 +717,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reviewOriginalTitle => 'Título original';
 
   @override
-  String get reviewDrupalOrgProject => 'Projeto no Drupal.org';
+  String get reviewDrupalOrgProject => 'Projeto Drupal.org';
 
   @override
   String get reviewSuggestions => 'Sugestões';
 
   @override
-  String get reviewNoSuggestions => 'Nenhuma sugestão disponível.';
+  String get reviewNoSuggestions => 'Não há sugestões disponíveis.';
 
   @override
   String get reviewApply => 'Aplicar';
@@ -744,13 +741,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reviewBaseOriginal => 'Base (Original)';
 
   @override
-  String get reviewYourCorrection => 'Sua correção';
+  String get reviewYourCorrection => 'A sua correção';
 
   @override
-  String get reviewChangesVisual => 'Revise suas alterações (visual)';
+  String get reviewChangesVisual => 'Reveja as suas alterações (visual)';
 
   @override
-  String get commonSkip => 'Pular';
+  String get commonSkip => 'Ignorar';
 
   @override
   String get commonIgnore => 'Ignorar';
@@ -760,29 +757,29 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reviewEmptyProjectBody =>
-      'Este projeto está vazio (sem título, resumo ou corpo) e não pode ser aprovado. Pule-o.';
+      'Este projeto está vazio (sem título, resumo ou corpo) e não pode ser aprovado. Por favor, salte-o.';
 
   @override
   String get reviewApprovedSuccess => 'Tradução aprovada! 🎉';
 
   @override
   String reviewApprovalFailed(String machine) {
-    return '⚠️ A aprovação de \"$machine\" falhou — tente novamente.';
+    return '⚠️ A aprovação de «$machine» falhou — tente novamente.';
   }
 
   @override
   String get reviewUnignoredSuccess =>
-      'Restaurado. O módulo está ativo novamente!';
+      'Restaurado. O módulo está novamente ativo!';
 
   @override
-  String get reviewActionFailed => 'Ação falhou.';
+  String get reviewActionFailed => 'A ação falhou.';
 
   @override
   String get reviewIgnoreModuleTitle => 'Ignorar módulo?';
 
   @override
   String get reviewIgnoreModuleBody =>
-      'Este módulo será ocultado permanentemente de todas as listas. Você não vai mais travar nele.';
+      'Este módulo será ocultado permanentemente de todas as listas. Não voltará a ficar bloqueado por causa dele.';
 
   @override
   String get reviewModulePermanentlyIgnored =>
@@ -792,29 +789,29 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reviewIgnoreFailed => 'Falha ao ignorar o módulo.';
 
   @override
-  String get reviewSuggestionSaved => 'Rascunho da sugestão salvo! 💾';
+  String get reviewSuggestionSaved => 'Rascunho da sugestão guardado! 💾';
 
   @override
   String get reviewSaveSuggestionFailed =>
-      'Falha ao salvar o rascunho da sugestão.';
+      'Falha ao guardar o rascunho da sugestão.';
 
   @override
-  String get reviewSuggestionDeleted => 'Sugestão excluída.';
+  String get reviewSuggestionDeleted => 'Sugestão eliminada.';
 
   @override
-  String get reviewDeleteFailed => 'Falha ao excluir.';
+  String get reviewDeleteFailed => 'Falha ao eliminar.';
 
   @override
   String get reviewSuggestionApplied => 'Sugestão aplicada.';
 
   @override
-  String get reviewPreparingData => 'Preparando dados de revisão...';
+  String get reviewPreparingData => 'A preparar dados de revisão...';
 
   @override
   String get reviewDirectEdit => 'Edição direta';
 
   @override
-  String get reviewLivePreview => 'Pré-visualização ao vivo';
+  String get reviewLivePreview => 'Pré-visualização em direto';
 
   @override
   String get reviewCompareWith => 'Comparar com:';
@@ -850,7 +847,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String reviewReviewingModule(String name) {
-    return 'Revisando $name';
+    return 'A rever $name';
   }
 
   @override
@@ -874,7 +871,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reviewIgnoreCaps => 'IGNORAR';
 
   @override
-  String get reviewSkipShortcut => 'PULAR (Ctrl+→)';
+  String get reviewSkipShortcut => 'SALTAR (Ctrl+→)';
 
   @override
   String get reviewEditorialReviewShort => 'Revisão editorial';
@@ -898,11 +895,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reviewBodyField => 'Conteúdo do corpo';
 
   @override
-  String get reviewSaveShortcut => 'SALVAR (Ctrl+Alt+S)';
+  String get reviewSaveShortcut => 'GUARDAR (Ctrl+Alt+S)';
 
   @override
   String get reviewLivePreviewRendering =>
-      'Pré-visualização ao vivo (renderizando)';
+      'Pré-visualização em direto (a processar)';
 
   @override
   String get reviewVoiceFemale => 'Feminina';
@@ -925,7 +922,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reviewNoParagraphChange =>
-      'O texto já contém tags <p> — nenhuma alteração';
+      'O texto já contém etiquetas <p> — sem alterações';
 
   @override
   String get reviewParagraphsFormatted => 'Parágrafos formatados ¶';
@@ -939,24 +936,24 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get categoriesSaveSuccess => 'Categorias salvas com sucesso.';
+  String get categoriesSaveSuccess => 'Categorias guardadas com sucesso.';
 
   @override
-  String get categoriesSaveFailed => 'Falha ao salvar traduções.';
+  String get categoriesSaveFailed => 'Falha ao guardar as traduções.';
 
   @override
-  String get categoriesFileEmpty => 'O arquivo está vazio.';
+  String get categoriesFileEmpty => 'O ficheiro está vazio.';
 
   @override
   String get categoriesInvalidJson => 'Formato JSON inválido.';
 
   @override
   String get categoriesNoValidUuids =>
-      'Nenhuma entrada de UUID válida encontrada no arquivo.';
+      'Não foram encontradas entradas UUID válidas no ficheiro.';
 
   @override
   String categoriesImportSuccess(int count) {
-    return '$count categorias importadas do arquivo.';
+    return '$count categorias importadas do ficheiro.';
   }
 
   @override
@@ -964,20 +961,20 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String categoriesTranslatingFor(String lang) {
-    return 'Traduzindo para: $lang';
+    return 'A traduzir para: $lang';
   }
 
   @override
   String get categoriesImportJson => 'Importar JSON';
 
   @override
-  String get categoriesSaving => 'Salvando...';
+  String get categoriesSaving => 'A guardar...';
 
   @override
-  String get categoriesSaveAll => 'Salvar tudo';
+  String get categoriesSaveAll => 'Guardar tudo';
 
   @override
-  String get categoriesLoading => 'Carregando categorias...';
+  String get categoriesLoading => 'A carregar categorias...';
 
   @override
   String categoriesTranslationColumn(String code) {
@@ -985,11 +982,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get categoriesNoneFound => 'Nenhuma categoria encontrada.';
+  String get categoriesNoneFound => 'Não foram encontradas categorias.';
 
   @override
   String categoriesTranslateHint(String name) {
-    return 'Traduzir \"$name\"...';
+    return 'Traduzir «$name»...';
   }
 
   @override
@@ -999,50 +996,50 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginPhotoOn => ' no ';
 
   @override
-  String get loginPleaseSignIn => 'Faça login';
+  String get loginPleaseSignIn => 'Inicie sessão';
 
   @override
-  String get loginUsername => 'Nome de usuário';
+  String get loginUsername => 'Nome de utilizador';
 
   @override
-  String get loginPassword => 'Senha';
+  String get loginPassword => 'Palavra-passe';
 
   @override
-  String get loginRememberMe => 'Lembrar de mim';
+  String get loginRememberMe => 'Manter sessão iniciada';
 
   @override
-  String get loginSignIn => 'ENTRAR';
+  String get loginSignIn => 'INICIAR SESSÃO';
 
   @override
-  String get loginNoAccount => 'Ainda não tem uma conta? ';
+  String get loginNoAccount => 'Ainda não tem conta? ';
 
   @override
-  String get loginRegisterNow => 'Cadastre-se agora';
+  String get loginRegisterNow => 'Registe-se agora';
 
   @override
   String get commonBack => 'Voltar';
 
   @override
-  String get commonNext => 'Próximo';
+  String get commonNext => 'Seguinte';
 
   @override
   String get registerFillRequired => 'Preencha todos os campos obrigatórios.';
 
   @override
-  String get registerPasswordMismatch => 'As senhas não coincidem.';
+  String get registerPasswordMismatch => 'As palavras-passe não coincidem.';
 
   @override
   String get registerPasswordTooShort =>
-      'A senha deve ter pelo menos 8 caracteres.';
+      'A palavra-passe deve ter pelo menos 8 carateres.';
 
   @override
   String get registerSelectLanguage => 'Selecione pelo menos um idioma.';
 
   @override
-  String get registerFailed => 'Falha no cadastro.';
+  String get registerFailed => 'Falha no registo.';
 
   @override
-  String get registerHeaderTitle => 'CADASTRO';
+  String get registerHeaderTitle => 'REGISTO';
 
   @override
   String get registerStepAccount => 'Conta';
@@ -1057,29 +1054,29 @@ class AppLocalizationsPt extends AppLocalizations {
   String get registerStepApiKeys => 'Chaves de API';
 
   @override
-  String get registerYourAccount => 'Sua conta';
+  String get registerYourAccount => 'A sua conta';
 
   @override
   String get registerAvatarOptional => 'Avatar (opcional)';
 
   @override
-  String get registerUsernameRequired => 'Nome de usuário *';
+  String get registerUsernameRequired => 'Nome de utilizador *';
 
   @override
-  String get registerEmailRequired => 'Endereço de e-mail *';
+  String get registerEmailRequired => 'Endereço de email *';
 
   @override
-  String get registerPasswordRequired => 'Senha *';
+  String get registerPasswordRequired => 'Palavra-passe *';
 
   @override
-  String get registerPasswordRepeat => 'Repita a senha *';
+  String get registerPasswordRepeat => 'Repita a palavra-passe *';
 
   @override
-  String get registerYourRole => 'Sua função';
+  String get registerYourRole => 'A sua função';
 
   @override
   String get registerRoleExplanation =>
-      'Tradutores podem traduzir textos, mas não têm acesso à fila de revisão. Revisores verificam e aprovam o conteúdo traduzido.';
+      'Os tradutores podem traduzir textos, mas não têm acesso à fila de revisão. Os revisores verificam e aprovam o conteúdo traduzido.';
 
   @override
   String get registerRoleTranslator => 'Tradutor';
@@ -1091,44 +1088,44 @@ class AppLocalizationsPt extends AppLocalizations {
   String get registerRoleReviewer => 'Revisor';
 
   @override
-  String get registerRoleReviewerDesc => 'Revisar e aprovar traduções.';
+  String get registerRoleReviewerDesc => 'Rever e aprovar traduções.';
 
   @override
   String get registerTargetLanguages => 'Idiomas de destino';
 
   @override
   String get registerLanguagesExplanation =>
-      'Escolha todos os idiomas nos quais deseja trabalhar.';
+      'Escolha todos os idiomas em que pretende trabalhar.';
 
   @override
-  String get registerNoLanguagesAvailable => 'Nenhum idioma disponível.';
+  String get registerNoLanguagesAvailable => 'Não há idiomas disponíveis.';
 
   @override
   String get registerApiKeysTitle => 'Chaves de API';
 
   @override
   String get registerApiKeysExplanation =>
-      'Informe suas próprias chaves de API. Cada usuário usa exclusivamente suas próprias chaves. Você também pode adicioná-las depois no seu perfil.';
+      'Introduza as suas próprias chaves de API. Cada utilizador usa exclusivamente as suas próprias chaves. Também as pode adicionar mais tarde no seu perfil.';
 
   @override
   String get registerKeysEncryptedNote =>
-      'As chaves são armazenadas de forma criptografada e nunca são compartilhadas com outros usuários.';
+      'As chaves são guardadas de forma encriptada e nunca são partilhadas com outros utilizadores.';
 
   @override
   String get registerOptionalSuffix => ' (opcional)';
 
   @override
-  String get registerSuccessTitle => 'Cadastro realizado com sucesso!';
+  String get registerSuccessTitle => 'Registo concluído com sucesso!';
 
   @override
   String get registerSuccessBody =>
-      'Sua conta foi criada e está aguardando aprovação de um administrador. Você será notificado assim que seu acesso for ativado.';
+      'A sua conta foi criada e aguarda aprovação por parte de um administrador. Será notificado assim que o seu acesso for ativado.';
 
   @override
-  String get registerGoToLogin => 'Ir para o login';
+  String get registerGoToLogin => 'Ir para o início de sessão';
 
   @override
-  String get registerSubmit => 'Cadastrar';
+  String get registerSubmit => 'Registar';
 
   @override
   String registerPhotoCredit(String name) {
@@ -1143,37 +1140,38 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String profileSaveError(String error) {
-    return 'Erro ao salvar: $error';
+    return 'Erro ao guardar: $error';
   }
 
   @override
-  String get profilePasswordMismatch => 'As senhas não coincidem!';
+  String get profilePasswordMismatch => 'As palavras-passe não coincidem!';
 
   @override
-  String get profilePasswordChangeSuccess => 'Senha alterada com sucesso!';
+  String get profilePasswordChangeSuccess =>
+      'Palavra-passe alterada com sucesso!';
 
   @override
   String get profilePasswordChangeError =>
-      'Erro ao alterar a senha: senha atual incorreta.';
+      'Erro ao alterar a palavra-passe: palavra-passe atual incorreta.';
 
   @override
-  String get profileAvatarUploadSuccess => 'Avatar enviado com sucesso!';
+  String get profileAvatarUploadSuccess => 'Avatar carregado com sucesso!';
 
   @override
-  String get profileAvatarUploadError => 'Erro ao enviar o avatar.';
+  String get profileAvatarUploadError => 'Erro ao carregar o avatar.';
 
   @override
-  String get profileTitle => 'Perfil e configurações';
+  String get profileTitle => 'Perfil e definições';
 
   @override
   String get profileSubtitle =>
-      'Gerencie seu perfil de usuário, suas APIs de tradução (Gemini e DeepL) e a segurança da sua conta.';
+      'Faça a gestão do seu perfil de utilizador, das suas API de tradução (Gemini e DeepL) e da segurança da sua conta.';
 
   @override
-  String get profileRoleUser => 'Usuário';
+  String get profileRoleUser => 'Utilizador';
 
   @override
-  String get profileNoEmail => 'Nenhum endereço de e-mail informado';
+  String get profileNoEmail => 'Nenhum endereço de email indicado';
 
   @override
   String get profileTabDetails => 'Detalhes do perfil';
@@ -1185,7 +1183,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileTabDeepl => 'Tradução DeepL';
 
   @override
-  String get profileTabPassword => 'Alterar senha';
+  String get profileTabPassword => 'Alterar palavra-passe';
 
   @override
   String get profileSectionInfo => 'INFORMAÇÕES DO PERFIL';
@@ -1194,23 +1192,23 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileFieldName => 'Nome';
 
   @override
-  String get profileFieldNameHint => 'Seu nome completo';
+  String get profileFieldNameHint => 'O seu nome completo';
 
   @override
-  String get profileFieldEmail => 'Endereço de e-mail';
+  String get profileFieldEmail => 'Endereço de email';
 
   @override
-  String get profileFieldEmailHint => 'Seu endereço de e-mail';
+  String get profileFieldEmailHint => 'O seu endereço de email';
 
   @override
-  String get profileSectionGemini => 'CONFIGURAÇÕES DO GEMINI CO-PILOT';
+  String get profileSectionGemini => 'DEFINIÇÕES DO GEMINI CO-PILOT';
 
   @override
   String get profileFieldGeminiKey => 'Chave de API do Google Gemini';
 
   @override
   String get profileFieldGeminiKeyHint =>
-      'Insira sua chave de API gemini-3.1-flash';
+      'Introduza a sua chave de API gemini-3.1-flash';
 
   @override
   String get profileFieldAiPrompt => 'Prompt de IA personalizado';
@@ -1220,11 +1218,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Opcional: personalize o prompt do sistema para o Gemini...';
 
   @override
-  String get profileSectionDeepl => 'CONFIGURAÇÕES DE TRADUÇÃO DO DEEPL';
+  String get profileSectionDeepl => 'DEFINIÇÕES DE TRADUÇÃO DEEPL';
 
   @override
   String get profileDeeplDescription =>
-      'O DeepL oferece tradução automática de alta qualidade com preservação de tags HTML. Contas gratuitas (500.000 caracteres/mês) recebem uma chave com o sufixo \":fx\".';
+      'O DeepL oferece tradução automática de alta qualidade, preservando as etiquetas HTML. As contas gratuitas (500 000 carateres/mês) recebem uma chave com o sufixo «:fx».';
 
   @override
   String get profileFieldDeeplKey => 'Chave de API do DeepL';
@@ -1235,68 +1233,68 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get profileDeeplInfo =>
-      'Chaves gratuitas terminam em \":fx\" e usam api-free.deepl.com. Chaves Pro usam api.deepl.com. A distinção é feita automaticamente.';
+      'As chaves gratuitas terminam em «:fx» e usam api-free.deepl.com. As chaves Pro usam api.deepl.com. A distinção é feita automaticamente.';
 
   @override
   String get profileSectionSecurity => 'SEGURANÇA DA CONTA';
 
   @override
-  String get profileFieldCurrentPassword => 'Senha atual';
+  String get profileFieldCurrentPassword => 'Palavra-passe atual';
 
   @override
-  String get profileFieldCurrentPasswordHint => 'Insira sua senha atual';
+  String get profileFieldCurrentPasswordHint =>
+      'Introduza a sua palavra-passe atual';
 
   @override
-  String get profileFieldNewPassword => 'Nova senha';
+  String get profileFieldNewPassword => 'Nova palavra-passe';
 
   @override
-  String get profileFieldNewPasswordHint => 'Pelo menos 6 caracteres';
+  String get profileFieldNewPasswordHint => 'Pelo menos 6 carateres';
 
   @override
-  String get profileFieldConfirmPassword => 'Confirmar nova senha';
+  String get profileFieldConfirmPassword => 'Confirmar nova palavra-passe';
 
   @override
-  String get profileFieldConfirmPasswordHint => 'Repita a senha';
+  String get profileFieldConfirmPasswordHint => 'Repita a palavra-passe';
 
   @override
-  String get profileChangePasswordButton => 'Alterar senha';
+  String get profileChangePasswordButton => 'Alterar palavra-passe';
 
   @override
-  String get commonDelete => 'Excluir';
+  String get commonDelete => 'Eliminar';
 
   @override
-  String get settingsRegistrationUpdated =>
-      'Configuração de cadastro atualizada';
+  String get settingsRegistrationUpdated => 'Definição de registo atualizada';
 
   @override
   String get settingsUpdateFailed => 'Falha na atualização.';
 
   @override
-  String get settingsUserApproved => 'Usuário aprovado!';
+  String get settingsUserApproved => 'Utilizador aprovado!';
 
   @override
   String get settingsAccountDeactivated => 'Conta desativada.';
 
   @override
-  String get settingsUserDeleted => 'Usuário excluído.';
+  String get settingsUserDeleted => 'Utilizador eliminado.';
 
   @override
-  String get settingsActionFailed => 'Ação falhou.';
+  String get settingsActionFailed => 'A ação falhou.';
 
   @override
-  String get settingsDeleteAccountTitle => 'Excluir conta?';
+  String get settingsDeleteAccountTitle => 'Eliminar conta?';
 
   @override
   String get settingsDeactivateAccountTitle => 'Desativar conta?';
 
   @override
   String settingsDeleteAccountBody(String username) {
-    return 'A conta \"$username\" será excluída permanentemente. Continuar?';
+    return 'A conta «$username» será eliminada permanentemente. Continuar?';
   }
 
   @override
   String settingsDeactivateAccountBody(String username) {
-    return 'A conta \"$username\" será bloqueada. O usuário não poderá mais fazer login, mas a conta será mantida.';
+    return 'A conta «$username» será bloqueada. O utilizador deixará de poder iniciar sessão, mas a conta é mantida.';
   }
 
   @override
@@ -1324,33 +1322,33 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String settingsBackupSuccess(String count) {
-    return 'Backup realizado com sucesso: $count arquivos processados.';
+    return 'Cópia de segurança concluída: $count ficheiros processados.';
   }
 
   @override
-  String get settingsUploadFailed => 'Falha no envio.';
+  String get settingsUploadFailed => 'Falha no carregamento.';
 
   @override
-  String get settingsTitle => 'Configurações';
+  String get settingsTitle => 'Definições';
 
   @override
   String get settingsSystemConfig => 'CONFIGURAÇÃO DO SISTEMA';
 
   @override
-  String get settingsRegistration => 'Cadastro';
+  String get settingsRegistration => 'Registo';
 
   @override
   String get settingsRegistrationHint =>
-      'Ativar ou desativar globalmente a visibilidade do formulário de cadastro.';
+      'Ativar ou desativar globalmente a visibilidade do formulário de registo.';
 
   @override
-  String get settingsPendingUsers => 'Usuários pendentes';
+  String get settingsPendingUsers => 'Utilizadores pendentes';
 
   @override
-  String get settingsNoNewRequests => 'Nenhuma nova solicitação.';
+  String get settingsNoNewRequests => 'Não há novos pedidos.';
 
   @override
-  String get settingsWantsReviewer => 'Deseja ser revisor';
+  String get settingsWantsReviewer => 'Pretende ser revisor';
 
   @override
   String get settingsAssignRole => 'Atribuir função';
@@ -1368,16 +1366,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsReject => 'Rejeitar';
 
   @override
-  String get settingsActiveUsers => 'Usuários ativos';
+  String get settingsActiveUsers => 'Utilizadores ativos';
 
   @override
-  String get settingsNoActiveUsers => 'Nenhum usuário ativo.';
+  String get settingsNoActiveUsers => 'Não há utilizadores ativos.';
 
   @override
   String get settingsDeactivateAccountTooltip => 'Desativar';
 
   @override
-  String get settingsDeleteAccountAction => 'Excluir conta';
+  String get settingsDeleteAccountAction => 'Eliminar conta';
 
   @override
   String get settingsAppearance => 'Aparência';
@@ -1413,24 +1411,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsFontFuturistic => 'Futurista';
 
   @override
-  String get settingsFontTech => 'Tech';
+  String get settingsFontTech => 'Tecnológica';
 
   @override
   String get settingsWorkflowFun => 'Fluxo de trabalho e diversão';
 
   @override
-  String get settingsConfettiTitle => 'Celebração de sucesso (confetes)';
+  String get settingsConfettiTitle => 'Celebração de sucesso (confettis)';
 
   @override
   String get settingsConfettiHint =>
-      'Exibe uma pequena animação ao salvar com sucesso.';
+      'Mostra uma pequena animação ao guardar com sucesso.';
 
   @override
-  String get settingsLargeUiTitle => 'Legibilidade aprimorada (fonte grande)';
+  String get settingsLargeUiTitle => 'Legibilidade melhorada (letra grande)';
 
   @override
   String get settingsLargeUiHint =>
-      'Aumenta o tamanho de fontes e selos para melhor legibilidade.';
+      'Aumenta o tamanho dos tipos de letra e dos emblemas para melhor legibilidade.';
 
   @override
   String get settingsAutoPTitle =>
@@ -1438,21 +1436,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsAutoPHint =>
-      'Envolve automaticamente o texto simples em parágrafos <p> quando um módulo é carregado na tela de revisão. Equivale a clicar manualmente no botão ¶.';
+      'Envolve automaticamente o texto simples em parágrafos <p> quando um módulo é carregado no ecrã de revisão. Equivale a clicar manualmente no botão ¶.';
 
   @override
-  String get settingsDatabaseSync => 'Sincronização do banco de dados';
+  String get settingsDatabaseSync => 'Sincronização da base de dados';
 
   @override
   String get settingsDatabaseSyncTooltip =>
-      'Sincroniza as entradas do banco de dados com os arquivos JSON de tradução.';
+      'Sincroniza as entradas da base de dados com os ficheiros JSON de tradução.';
 
   @override
   String get settingsDatabaseSyncHint =>
-      'Sincroniza as entradas internas do banco de dados com os JSONs de tradução no servidor.';
+      'Sincroniza as entradas internas da base de dados com os JSON de tradução no servidor.';
 
   @override
-  String get settingsSyncing => 'Sincronizando...';
+  String get settingsSyncing => 'A sincronizar...';
 
   @override
   String get settingsSyncNow => 'Sincronizar agora';
@@ -1461,45 +1459,45 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsSyncD11List => 'Sincronizar lista D11';
 
   @override
-  String get settingsUploadBackup => 'Enviar backup (.zip)';
+  String get settingsUploadBackup => 'Carregar cópia de segurança (.zip)';
 
   @override
-  String get settingsSelectZipFile => 'Selecionar arquivo ZIP';
+  String get settingsSelectZipFile => 'Selecionar ficheiro ZIP';
 
   @override
-  String get settingsUploading => 'Enviando...';
+  String get settingsUploading => 'A carregar...';
 
   @override
   String get settingsErrorDiagnostics =>
-      'Diagnóstico de erros e logs do sistema';
+      'Diagnóstico de erros e registos do sistema';
 
   @override
   String get settingsLogsCopied =>
-      'Logs copiados para a área de transferência! 📋';
+      'Registos copiados para a área de transferência! 📋';
 
   @override
-  String get settingsCopyLogs => 'Copiar logs';
+  String get settingsCopyLogs => 'Copiar registos';
 
   @override
-  String get settingsLogsRotated => 'Logs arquivados e rotacionados! 📁';
+  String get settingsLogsRotated => 'Registos arquivados e rodados! 📁';
 
   @override
-  String get settingsRotate => 'Rotacionar';
+  String get settingsRotate => 'Rodar';
 
   @override
   String get settingsClear => 'Limpar';
 
   @override
-  String get settingsLogLimit => 'Limite de logs: ';
+  String get settingsLogLimit => 'Limite de registos: ';
 
   @override
-  String get settingsNoLogs => 'Nenhum log registrado';
+  String get settingsNoLogs => 'Não há registos guardados';
 
   @override
   String get layoutMenu => 'Menu';
 
   @override
-  String get layoutNavAnalytics => 'Análises';
+  String get layoutNavAnalytics => 'Estatísticas';
 
   @override
   String get layoutNavReviewQueue => 'Fila de revisão';
@@ -1514,7 +1512,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get layoutNavHelp => 'Ajuda';
 
   @override
-  String get layoutNavSettings => 'Configurações';
+  String get layoutNavSettings => 'Definições';
 
   @override
   String get layoutPhotoBy => 'Foto de ';
@@ -1526,7 +1524,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get layoutEditProfile => 'Editar perfil';
 
   @override
-  String get layoutLogout => 'Sair';
+  String get layoutLogout => 'Terminar sessão';
 
   @override
   String get layoutThemeLabel => 'TEMA';
@@ -1553,7 +1551,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get layoutTargetLanguage => 'IDIOMA DE DESTINO';
 
   @override
-  String get layoutDeeplUsage => 'USO DO DEEPL';
+  String get layoutDeeplUsage => 'UTILIZAÇÃO DEEPL';
 
   @override
   String get layoutUnavailable => 'Indisponível';
@@ -1562,20 +1560,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get layoutUnlimited => 'ilimitado';
 
   @override
-  String get layoutUsed => 'usado';
+  String get layoutUsed => 'utilizado';
 
   @override
   String get layoutTranslate => 'Traduzir';
 
   @override
   String get analyticsSubtitle =>
-      'Compatibilidade, backlog de tradução e tendências semanais.';
+      'Compatibilidade, trabalho de tradução pendente e tendências semanais.';
 
   @override
-  String get analyticsBacklog => 'Backlog de tradução';
+  String get analyticsBacklog => 'Trabalho de tradução pendente';
 
   @override
-  String get analyticsMissing => 'Ausentes';
+  String get analyticsMissing => 'Em falta';
 
   @override
   String get analyticsStale => 'Desatualizadas';
@@ -1597,11 +1595,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String analyticsLanguageLegend(String lang) {
-    return 'Idioma: $lang · publicadas / em revisão / ausentes';
+    return 'Idioma: $lang · publicadas / em revisão / em falta';
   }
 
   @override
-  String get analyticsLoadingCounts => 'Carregando contagens …';
+  String get analyticsLoadingCounts => 'A carregar contagens …';
 
   @override
   String get analyticsWindow => 'Período:';
@@ -1629,7 +1627,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get analyticsReviewShort => 'Revisão';
 
   @override
-  String get analyticsNoDataInWindow => 'Nenhum dado neste período.';
+  String get analyticsNoDataInWindow => 'Não há dados neste período.';
 
   @override
   String get analyticsAndMore => '… e mais';
@@ -1647,10 +1645,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get glossaryFieldSourceWord =>
-      'Palavra de origem (forma base, como aparece no texto)';
+      'Palavra de origem (forma base, tal como surge no texto)';
 
   @override
-  String get glossaryFieldSourceWordHint => 'ex.: node (nó)';
+  String get glossaryFieldSourceWordHint => 'ex.: node';
 
   @override
   String get glossaryWordForms =>
@@ -1658,7 +1656,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get glossaryWordFormsHint =>
-      'ex.: content (conteúdo) — pressione Enter para adicionar';
+      'ex.: content — prima Enter para adicionar';
 
   @override
   String get glossaryAddForm => 'Adicionar forma';
@@ -1670,12 +1668,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get glossaryFieldPreferredWordHint => 'ex.: conteúdo';
 
   @override
-  String get glossaryFieldExplanation =>
-      'Explicação (exibida na dica de contexto)';
+  String get glossaryFieldExplanation => 'Explicação (mostrada na dica)';
 
   @override
   String get glossaryFieldExplanationHint =>
-      'Por que essa palavra deveria ser traduzida de forma diferente?';
+      'Porque é que esta palavra deve ser traduzida de forma diferente?';
 
   @override
   String get glossaryCreate => 'Criar';
@@ -1696,15 +1693,15 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get glossaryDeleteTitle => 'Excluir termo?';
+  String get glossaryDeleteTitle => 'Eliminar termo?';
 
   @override
   String glossaryDeleteBody(String word) {
-    return '\"$word\" será removido permanentemente do glossário.';
+    return '«$word» será removido permanentemente do glossário.';
   }
 
   @override
-  String get glossaryDeleted => 'Termo excluído.';
+  String get glossaryDeleted => 'Termo eliminado.';
 
   @override
   String get glossaryTitle => 'Glossário de tradução';
@@ -1722,21 +1719,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get glossaryInfoBanner =>
-      'As palavras deste glossário são destacadas no editor de revisão. Uma dica de contexto explica ao passar o mouse por que outra tradução é mais adequada.';
+      'As palavras deste glossário são destacadas no editor de revisão. Uma dica explica ao passar o rato porque é que outra tradução é mais adequada.';
 
   @override
   String get glossaryNoEntries => 'Ainda não há entradas.';
 
   @override
   String get glossaryNoEntriesEditorHint =>
-      'Clique em \"Criar termo\" para criar a primeira entrada.';
+      'Clique em «Criar termo» para criar a primeira entrada.';
 
   @override
   String get glossaryNoEntriesForLanguage =>
       'Ainda não há entradas de glossário para este idioma.';
 
   @override
-  String get diffNoChanges => 'Nenhuma diferença de conteúdo detectada.';
+  String get diffNoChanges => 'Não foram detetadas diferenças de conteúdo.';
 
   @override
   String get diffRemoved => 'Removido';

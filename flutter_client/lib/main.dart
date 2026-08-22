@@ -46,7 +46,20 @@ const _nativeUiLocales = <String, Locale>{
   'es': Locale('es'),
   'tr': Locale('tr'),
   'pt-br': Locale('pt', 'BR'),
+  'pt-pt': Locale('pt'),
   'zh-hans': Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+  'uk': Locale('uk'),
+  'nl': Locale('nl'),
+  'nb': Locale('nb'),
+  'hu': Locale('hu'),
+  'ca': Locale('ca'),
+  'it': Locale('it'),
+  'sv': Locale('sv'),
+  // Still pending (translation batch interrupted by a spend-limit failure on
+  // 2026-08-22): az, pl, id, da, ar, ro, lt, ko, et. Add each back here once
+  // its app_<code>.arb file actually exists — leaving a code in this map
+  // without a matching ARB file makes AppLocalizations.of(context) return
+  // null for that locale and crashes every screen's `!` on it.
 };
 
 class TranslationHubApp extends ConsumerWidget {
