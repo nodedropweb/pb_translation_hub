@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_client.dart';
 import '../services/token_storage.dart';
+import 'language_provider.dart';
 
 // Represents the User model
 class User {
@@ -119,9 +120,12 @@ class AuthNotifier extends Notifier<AuthState> {
       state = AuthState(isLoading: false, user: User.fromJson(userData));
       return true;
     } catch (e) {
+      final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
       state = AuthState(
-        isLoading: false, 
-        error: 'Login fehlgeschlagen. Bitte überprüfe deine Daten.',
+        isLoading: false,
+        error: isGerman
+            ? 'Login fehlgeschlagen. Bitte überprüfe deine Daten.'
+            : 'Login failed. Please check your details.',
         user: null
       );
       return false;

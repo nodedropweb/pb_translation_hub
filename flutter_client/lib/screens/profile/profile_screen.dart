@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_client.dart';
@@ -84,6 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Future<void> _saveProfile() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSavingProfile = true;
       _profileError = null;
@@ -103,16 +105,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       if (res.statusCode == 200) {
         await ref.read(authProvider.notifier).refreshProfile();
         setState(() {
-          _profileSuccess = 'Profil erfolgreich aktualisiert!';
+          _profileSuccess = l10n.profileUpdateSuccess;
         });
       } else {
         setState(() {
-          _profileError = 'Aktualisierung fehlgeschlagen.';
+          _profileError = l10n.profileUpdateFailed;
         });
       }
     } catch (e) {
       setState(() {
-        _profileError = 'Fehler beim Speichern: ${e.toString()}';
+        _profileError = l10n.profileSaveError(e.toString());
       });
     } finally {
       setState(() {
@@ -122,9 +124,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Future<void> _changePassword() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_newPasswordController.text != _confirmPasswordController.text) {
       setState(() {
-        _passwordError = 'Passwörter stimmen nicht überein!';
+        _passwordError = l10n.profilePasswordMismatch;
       });
       return;
     }
@@ -143,7 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
       if (res.statusCode == 200) {
         setState(() {
-          _passwordSuccess = 'Passwort erfolgreich geändert!';
+          _passwordSuccess = l10n.profilePasswordChangeSuccess;
           _currentPasswordController.clear();
           _newPasswordController.clear();
           _confirmPasswordController.clear();
@@ -151,7 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       }
     } catch (e) {
       setState(() {
-        _passwordError = 'Fehler beim Ändern des Passworts: Falsches aktuelles Passwort.';
+        _passwordError = l10n.profilePasswordChangeError;
       });
     } finally {
       setState(() {
@@ -161,6 +164,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Future<void> _pickAndUploadAvatar() async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
@@ -186,12 +190,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
       if (res.data['success'] == true) {
         await ref.read(authProvider.notifier).refreshProfile();
         setState(() {
-          _profileSuccess = 'Profilbild erfolgreich hochgeladen!';
+          _profileSuccess = l10n.profileAvatarUploadSuccess;
         });
       }
     } catch (e) {
       setState(() {
-        _profileError = 'Fehler beim Hochladen des Profilbildes.';
+        _profileError = l10n.profileAvatarUploadError;
       });
     } finally {
       setState(() {
@@ -202,6 +206,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authProvider).user;
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
@@ -229,7 +234,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                         color: attrs.textMuted, size: 22),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    tooltip: 'Zurück',
+                    tooltip: l10n.commonBack,
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
@@ -245,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Profil & Einstellungen',
+                    l10n.profileTitle,
                     style: TextStyle(
                       fontSize: isMobile ? 18 : 24,
                       fontWeight: FontWeight.bold,
@@ -258,7 +263,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             if (!isMobile) ...[
               const SizedBox(height: 8),
               Text(
-                'Verwalte dein Benutzerprofil, deine Übersetzungs-APIs (Gemini & DeepL) und deine Kontosicherheit.',
+                l10n.profileSubtitle,
                 style: TextStyle(color: attrs.textMuted, fontSize: 14),
               ),
             ],
@@ -338,14 +343,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                             Icon(LucideIcons.shield, color: attrs.brand600, size: 14),
                             const SizedBox(width: 6),
                             Text(
-                              (user.role ?? 'Benutzer').toUpperCase(),
+                              (user.role ?? l10n.profileRoleUser).toUpperCase(),
                               style: TextStyle(color: attrs.brand600, fontSize: 12, fontWeight: FontWeight.w900),
                             ),
                             const SizedBox(width: 12),
                             Icon(LucideIcons.mail, color: attrs.textMuted, size: 14),
                             const SizedBox(width: 6),
                             Text(
-                              user.email ?? 'Keine E-Mail angegeben',
+                              user.email ?? l10n.profileNoEmail,
                               style: TextStyle(color: attrs.textMuted, fontSize: 13),
                             ),
                           ],
@@ -371,11 +376,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 unselectedLabelColor: attrs.textMuted,
                 indicatorColor: attrs.brand600,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                tabs: const [
-                  Tab(text: 'Profildetails'),
-                  Tab(text: 'AI translation (Gemini)'),
-                  Tab(text: 'DeepL Übersetzung'),
-                  Tab(text: 'Passwort ändern'),
+                tabs: [
+                  Tab(text: l10n.profileTabDetails),
+                  Tab(text: l10n.profileTabGemini),
+                  Tab(text: l10n.profileTabDeepl),
+                  Tab(text: l10n.profileTabPassword),
                 ],
               ),
             ),
@@ -410,6 +415,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   Widget _buildProfileForm() {
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,19 +462,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('PROFIL INFORMATIONEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(l10n.profileSectionInfo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 24),
               _buildTextField(
                 controller: _nameController,
-                label: 'Name',
-                hint: 'Dein voller Name',
+                label: l10n.profileFieldName,
+                hint: l10n.profileFieldNameHint,
                 icon: LucideIcons.user,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _emailController,
-                label: 'E-Mail Adresse',
-                hint: 'Deine E-Mail Adresse',
+                label: l10n.profileFieldEmail,
+                hint: l10n.profileFieldEmailHint,
                 icon: LucideIcons.mail,
               ),
               const SizedBox(height: 24),
@@ -476,10 +482,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 width: 200,
                 height: 48,
                 child: ElevatedButton.icon(
-                  icon: _isSavingProfile 
+                  icon: _isSavingProfile
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(LucideIcons.save, size: 18),
-                  label: const Text('Speichern', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(l10n.commonSave, style: const TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: attrs.brand600,
                     foregroundColor: Colors.white,
@@ -498,6 +504,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   Widget _buildAiSettingsForm() {
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       child: Column(
@@ -545,14 +552,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('GEMINI CO-PILOT EINSTELLUNGEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(l10n.profileSectionGemini, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 24),
-                
+
                 // Google AI Key Input
                 _buildTextField(
                   controller: _googleAiKeyController,
-                  label: 'Google Gemini API Key',
-                  hint: 'Gib deinen gemini-3.1-flash API-Schlüssel ein',
+                  label: l10n.profileFieldGeminiKey,
+                  hint: l10n.profileFieldGeminiKeyHint,
                   icon: LucideIcons.key,
                   obscureText: _obscureAiKey,
                   suffixIcon: IconButton(
@@ -569,8 +576,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 // Prompt Template
                 _buildTextField(
                   controller: _aiPromptController,
-                  label: 'Individueller AI-Prompt',
-                  hint: 'Optional: Passe den System-Prompt für Gemini an...',
+                  label: l10n.profileFieldAiPrompt,
+                  hint: l10n.profileFieldAiPromptHint,
                   icon: LucideIcons.messageSquare,
                   maxLines: 4,
                 ),
@@ -580,10 +587,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                   width: 200,
                   height: 48,
                   child: ElevatedButton.icon(
-                    icon: _isSavingProfile 
+                    icon: _isSavingProfile
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(LucideIcons.save, size: 18),
-                    label: const Text('Speichern', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(l10n.commonSave, style: const TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: attrs.brand600,
                       foregroundColor: Colors.white,
@@ -603,6 +610,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   Widget _buildDeeplSettingsForm() {
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       child: Column(
@@ -670,16 +678,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'DEEPL ÜBERSETZUNGS-EINSTELLUNGEN',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    Text(
+                      l10n.profileSectionDeepl,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'DeepL bietet hochwertige maschinelle Übersetzung mit HTML-Tag-Erhaltung. '
-                  'Kostenlose Accounts (500.000 Zeichen/Monat) erhalten einen Key mit dem Suffix ":fx".',
+                  l10n.profileDeeplDescription,
                   style: TextStyle(color: attrs.textMuted, fontSize: 13, height: 1.5),
                 ),
                 const SizedBox(height: 24),
@@ -687,8 +694,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 // DeepL API Key Input
                 _buildTextField(
                   controller: _deeplApiKeyController,
-                  label: 'DeepL API Key',
-                  hint: 'z.B. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx',
+                  label: l10n.profileFieldDeeplKey,
+                  hint: l10n.profileFieldDeeplKeyHint,
                   icon: LucideIcons.key,
                   obscureText: _obscureDeeplKey,
                   suffixIcon: IconButton(
@@ -717,8 +724,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Free-Keys enden auf ":fx" und verwenden api-free.deepl.com. '
-                          'Pro-Keys verwenden api.deepl.com. Die Unterscheidung erfolgt automatisch.',
+                          l10n.profileDeeplInfo,
                           style: TextStyle(color: attrs.textMuted, fontSize: 12, height: 1.5),
                         ),
                       ),
@@ -734,7 +740,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                     icon: _isSavingProfile
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(LucideIcons.save, size: 18),
-                    label: const Text('Speichern', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(l10n.commonSave, style: const TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: attrs.brand600,
                       foregroundColor: Colors.white,
@@ -752,6 +758,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Widget _buildPasswordForm() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -797,28 +804,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('KONTOSICHERHEIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(l10n.profileSectionSecurity, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 24),
               _buildTextField(
                 controller: _currentPasswordController,
-                label: 'Aktuelles Passwort',
-                hint: 'Gib dein aktuelles Passwort ein',
+                label: l10n.profileFieldCurrentPassword,
+                hint: l10n.profileFieldCurrentPasswordHint,
                 icon: LucideIcons.lock,
                 obscureText: true,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _newPasswordController,
-                label: 'Neues Passwort',
-                hint: 'Mindestens 6 Zeichen',
+                label: l10n.profileFieldNewPassword,
+                hint: l10n.profileFieldNewPasswordHint,
                 icon: LucideIcons.lock,
                 obscureText: true,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _confirmPasswordController,
-                label: 'Neues Passwort bestätigen',
-                hint: 'Passwort wiederholen',
+                label: l10n.profileFieldConfirmPassword,
+                hint: l10n.profileFieldConfirmPasswordHint,
                 icon: LucideIcons.lock,
                 obscureText: true,
               ),
@@ -827,10 +834,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 width: 200,
                 height: 48,
                 child: ElevatedButton.icon(
-                  icon: _isSavingPassword 
+                  icon: _isSavingPassword
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(LucideIcons.lock, size: 18),
-                  label: const Text('Passwort ändern', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(l10n.profileChangePasswordButton, style: const TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
                     foregroundColor: Colors.white,

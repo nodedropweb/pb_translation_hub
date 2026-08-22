@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_client.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_container.dart';
+import '../../l10n/app_localizations.dart';
 
 class GlossaryScreen extends ConsumerStatefulWidget {
   const GlossaryScreen({super.key});
@@ -51,13 +52,15 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
       final res = await _api.dio.get('/glossary', queryParameters: {'langcode': lang});
       setState(() { _terms = res.data as List<dynamic>; _isLoading = false; });
     } catch (e) {
-      setState(() { _error = 'Fehler beim Laden: $e'; _isLoading = false; });
+      final l10n = AppLocalizations.of(context)!;
+      setState(() { _error = l10n.glossaryLoadError(e.toString()); _isLoading = false; });
     }
   }
 
   Future<void> _showEditDialog({Map<String, dynamic>? existing}) async {
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
     final lang  = ref.read(languageProvider).targetLanguage.code;
+    final l10n  = AppLocalizations.of(context)!;
     final isNew = existing == null;
 
     _sourceWordCtrl.text    = existing?['source_word']    ?? '';
@@ -89,7 +92,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                     Icon(LucideIcons.bookOpen, color: attrs.brand600, size: 20),
                     const SizedBox(width: 10),
                     Text(
-                      isNew ? 'Neuen Begriff anlegen' : 'Begriff bearbeiten',
+                      isNew ? l10n.glossaryNewTerm : l10n.glossaryEditTerm,
                       style: TextStyle(
                         color: attrs.textMain,
                         fontSize: 18,
@@ -98,8 +101,8 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                     ),
                   ]),
                   const SizedBox(height: 24),
-                  _field(attrs, 'Quellwort (Grundform, erscheint im Text)',
-                      'z. B. Knoten', _sourceWordCtrl),
+                  _field(attrs, l10n.glossaryFieldSourceWord,
+                      l10n.glossaryFieldSourceWordHint, _sourceWordCtrl),
                   const SizedBox(height: 14),
 
                   // ── Wortformen ────────────────────────────────────────────
@@ -107,7 +110,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Weitere Wortformen (Plural, Genitiv, Dativ …)',
+                        l10n.glossaryWordForms,
                         style: TextStyle(
                           color: attrs.textMuted,
                           fontSize: 11,
@@ -158,7 +161,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                               style: TextStyle(
                                   color: attrs.textMain, fontSize: 13),
                               decoration: InputDecoration(
-                                hintText: 'z. B. Inhalte — Enter zum Hinzufügen',
+                                hintText: l10n.glossaryWordFormsHint,
                                 hintStyle: TextStyle(
                                     color: attrs.textMuted.withOpacity(0.6)),
                                 filled: true,
@@ -213,7 +216,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                             },
                             icon:
                                 Icon(LucideIcons.plus, color: attrs.brand600),
-                            tooltip: 'Form hinzufügen',
+                            tooltip: l10n.glossaryAddForm,
                             style: IconButton.styleFrom(
                               backgroundColor:
                                   attrs.brand600.withOpacity(0.15),
@@ -227,11 +230,11 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  _field(attrs, 'Bevorzugte Übersetzung',
-                      'z. B. Inhalt', _preferredWordCtrl),
+                  _field(attrs, l10n.glossaryFieldPreferredWord,
+                      l10n.glossaryFieldPreferredWordHint, _preferredWordCtrl),
                   const SizedBox(height: 14),
-                  _field(attrs, 'Erklärung (wird im Tooltip angezeigt)',
-                      'Warum soll dieses Wort anders übersetzt werden?',
+                  _field(attrs, l10n.glossaryFieldExplanation,
+                      l10n.glossaryFieldExplanationHint,
                       _explanationCtrl, maxLines: 4),
                   const SizedBox(height: 24),
                   Row(
@@ -239,7 +242,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('Abbrechen',
+                        child: Text(l10n.commonCancel,
                             style: TextStyle(color: attrs.textMuted)),
                       ),
                       const SizedBox(width: 12),
@@ -256,7 +259,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                         icon: Icon(
                             isNew ? LucideIcons.plus : LucideIcons.save,
                             size: 16),
-                        label: Text(isNew ? 'Anlegen' : 'Speichern',
+                        label: Text(isNew ? l10n.glossaryCreate : l10n.commonSave,
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                       ),
@@ -273,8 +276,8 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
     if (confirmed != true) return;
     if (_sourceWordCtrl.text.trim().isEmpty ||
         _preferredWordCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Quellwort und bevorzugte Übersetzung sind Pflichtfelder.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.glossaryRequiredFields),
         backgroundColor: Colors.redAccent,
       ));
       return;
@@ -298,15 +301,15 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(isNew
-              ? 'Begriff angelegt ✓'
-              : 'Begriff aktualisiert ✓'),
+              ? l10n.glossaryCreated
+              : l10n.glossaryUpdated),
           backgroundColor: const Color(0xFF2E7D32),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Fehler: $e'),
+          content: Text(l10n.glossaryError(e.toString())),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -315,28 +318,29 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
 
   Future<void> _deleteTerm(Map<String, dynamic> term) async {
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1F26),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Begriff löschen?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(l10n.glossaryDeleteTitle,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Text(
-          '"${term['source_word']}" wird dauerhaft aus dem Glossar entfernt.',
+          l10n.glossaryDeleteBody(term['source_word']?.toString() ?? ''),
           style: TextStyle(color: attrs.textMuted),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Abbrechen',
+              child: Text(l10n.commonCancel,
                   style: TextStyle(color: attrs.textMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent),
-            child: const Text('Löschen',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(l10n.commonDelete,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -346,15 +350,15 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
       await _api.dio.delete('/glossary/${term['id']}');
       await _fetchTerms();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Begriff gelöscht.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.glossaryDeleted),
           backgroundColor: Colors.orange,
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Fehler: $e'),
+          content: Text(l10n.glossaryError(e.toString())),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -410,6 +414,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
     final user       = ref.watch(authProvider).user;
     final canEdit    = user?.isReviewer == true;
     final isMobile   = MediaQuery.of(context).size.width < 600;
+    final l10n       = AppLocalizations.of(context)!;
 
     // Re-fetch when language changes
     ref.listen(languageProvider, (prev, next) {
@@ -441,7 +446,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Übersetzungs-Glossar',
+                      l10n.glossaryTitle,
                       style: TextStyle(
                         fontSize: isMobile ? 20 : 28,
                         fontWeight: FontWeight.w900,
@@ -449,8 +454,8 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                       ),
                     ),
                     Text(
-                      'Sprache: ${langState.targetLanguage.name} · '
-                      '${_terms.length} Einträge',
+                      l10n.glossaryLanguageCount(
+                          langState.targetLanguage.name, _terms.length.toString()),
                       style:
                           TextStyle(color: attrs.textMuted, fontSize: 13),
                     ),
@@ -469,7 +474,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                         borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: const Icon(LucideIcons.plus, size: 16),
-                  label: Text(isMobile ? 'Neu' : 'Begriff anlegen',
+                  label: Text(isMobile ? l10n.glossaryNewShort : l10n.glossaryCreateTerm,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
             ],
@@ -487,9 +492,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Wörter aus diesem Glossar werden im Review-Editor '
-                  'farblich hervorgehoben. Ein Tooltip erklärt beim '
-                  'Überfahren warum eine andere Übersetzung besser passt.',
+                  l10n.glossaryInfoBanner,
                   style: TextStyle(color: attrs.textMuted, fontSize: 13),
                 ),
               ),
@@ -516,7 +519,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                 Icon(LucideIcons.bookOpen,
                     size: 48, color: attrs.textMuted),
                 const SizedBox(height: 16),
-                Text('Noch keine Einträge.',
+                Text(l10n.glossaryNoEntries,
                     style: TextStyle(
                         color: attrs.textMain,
                         fontSize: 16,
@@ -524,8 +527,8 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                 const SizedBox(height: 8),
                 Text(
                   canEdit
-                      ? 'Klicke auf „Begriff anlegen" um den ersten Eintrag zu erstellen.'
-                      : 'Noch keine Glossar-Einträge für diese Sprache.',
+                      ? l10n.glossaryNoEntriesEditorHint
+                      : l10n.glossaryNoEntriesForLanguage,
                   style: TextStyle(color: attrs.textMuted, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
@@ -583,6 +586,7 @@ class _TermRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -684,7 +688,7 @@ class _TermRow extends StatelessWidget {
             IconButton(
               icon: Icon(LucideIcons.edit2,
                   size: 15, color: attrs.textMuted),
-              tooltip: 'Bearbeiten',
+              tooltip: l10n.commonEdit,
               onPressed: onEdit,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -693,7 +697,7 @@ class _TermRow extends StatelessWidget {
             IconButton(
               icon: const Icon(LucideIcons.trash2,
                   size: 15, color: Colors.redAccent),
-              tooltip: 'Löschen',
+              tooltip: l10n.commonDelete,
               onPressed: onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

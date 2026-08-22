@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_client.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
@@ -62,9 +63,8 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   }
 
   Future<void> _resetAllPublished() async {
+    final l10n = AppLocalizations.of(context)!;
     final lang = ref.read(languageProvider).targetLanguage.code;
-    final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
-    final isGerman = lang == 'de';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -72,27 +72,23 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
         backgroundColor: const Color(0xFF1A1D23),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          isGerman
-              ? 'Alle veröffentlichten Übersetzungen zurücksetzen?'
-              : 'Reset all published translations?',
+          l10n.reviewResetAllConfirmTitle,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          isGerman
-              ? 'Alle als "Veröffentlicht" markierten Übersetzungen für ${lang.toUpperCase()} werden auf den Review-Status zurückgesetzt. Diese Aktion kann nicht rückgängig gemacht werden.'
-              : 'All translations marked as published for ${lang.toUpperCase()} will be reset to review state. This cannot be undone.',
-          style: TextStyle(color: Colors.white70, height: 1.5),
+          l10n.reviewResetAllConfirmBody(lang.toUpperCase()),
+          style: const TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(isGerman ? 'Abbrechen' : 'Cancel',
-                style: TextStyle(color: Colors.white54)),
+            child: Text(l10n.commonCancel,
+                style: const TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text(isGerman ? 'Zurücksetzen' : 'Reset',
+            child: Text(l10n.commonReset,
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -107,9 +103,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
       final count = res.data['count'] as int? ?? 0;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? '$count Übersetzungen zurück in Review gesetzt.'
-              : '$count translations reset to review state.'),
+          content: Text(l10n.reviewResetAllSuccess(count)),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 4),
         ));
@@ -118,7 +112,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Fehler: $e'),
+          content: Text(l10n.commonErrorPrefix(e.toString())),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -141,10 +135,10 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final themeState = ref.watch(themeProvider);
-    final langState = ref.watch(languageProvider);
+    ref.watch(languageProvider); // rebuild when the target language changes
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = langState.targetLanguage.code == 'de';
 
     // Filtering is now done server-side via the search parameter.
     // The local list already reflects the current search query.
@@ -175,7 +169,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isGerman ? 'Review-Warteschlange' : 'Review Pipeline',
+                        l10n.reviewPipelineTitle,
                         style: TextStyle(
                           fontSize: isNarrow ? 22 : 32,
                           fontWeight: FontWeight.w900,
@@ -184,9 +178,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        isGerman 
-                            ? 'Menschliche Endabnahme für automatische Übersetzungen' 
-                            : 'Human quality assurance pipeline for AI translations',
+                        l10n.reviewPipelineSubtitle,
                         style: TextStyle(
                           color: attrs.textMuted,
                           fontSize: 13,
@@ -207,7 +199,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
             runSpacing: 6,
             children: [null, 9, 10, 11, 12].map((v) {
               final isActive = _coreVersion == v;
-              final label = v == null ? (isGerman ? 'Alle' : 'All') : 'D$v';
+              final label = v == null ? l10n.filterAllShort : 'D$v';
               return InkWell(
                 onTap: () {
                   setState(() => _coreVersion = v);
@@ -250,7 +242,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                 TextFormField(
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
-                    hintText: isGerman ? 'Projekt suchen...' : 'Search projects...',
+                    hintText: l10n.reviewSearchHint,
                     hintStyle: TextStyle(color: attrs.textMuted),
                     prefixIcon: Icon(LucideIcons.search, color: attrs.textMuted, size: 18),
                     filled: true,
@@ -297,7 +289,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                                   strokeWidth: 2, color: attrs.brand600))
                           : Icon(LucideIcons.refreshCw, size: 15, color: attrs.brand600),
                       label: Text(
-                        isGerman ? 'Aktualisieren' : 'Refresh',
+                        l10n.commonRefresh,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -319,7 +311,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                                   strokeWidth: 2, color: Colors.orange))
                           : const Icon(LucideIcons.rotateCcw, size: 15),
                       label: Text(
-                        isGerman ? 'Freigaben zurücksetzen' : 'Reset published',
+                        l10n.reviewResetPublished,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -338,12 +330,8 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                           const SizedBox(width: 8),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? (isGerman
-                                    ? 'Treffer: ${_reviewProjects.length} / $_totalCount'
-                                    : 'Results: ${_reviewProjects.length} / $_totalCount')
-                                : (isGerman
-                                    ? 'Wartend: $_totalCount'
-                                    : 'Pending: $_totalCount'),
+                                ? l10n.reviewResultsCount(_reviewProjects.length, _totalCount)
+                                : l10n.reviewPendingCount(_totalCount),
                             style: TextStyle(
                               color: attrs.brand600,
                               fontWeight: FontWeight.bold,
@@ -377,7 +365,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                   Icon(LucideIcons.checkCircle, size: 48, color: attrs.textMuted),
                   const SizedBox(height: 16),
                   Text(
-                    isGerman ? 'Keine Projekte ausstehend.' : 'No projects pending review.',
+                    l10n.reviewNoProjectsPending,
                     style: TextStyle(
                       color: attrs.textMain,
                       fontWeight: FontWeight.bold,
@@ -386,9 +374,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isGerman
-                        ? 'Alle Übersetzungen wurden bereits geprüft oder es sind keine Übersetzungen vorhanden.'
-                        : 'All translations have already been verified or none exist in this language context.',
+                    l10n.reviewAllVerifiedOrNone,
                     style: TextStyle(color: attrs.textMuted, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
@@ -417,7 +403,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                 final rawSummary = (translation?['summary'] as String?)?.isNotEmpty == true
                     ? translation!['summary'] as String
                     : p['attributes']?['body']?['summary'] ?? '';
-                final summary = _stripHtml(rawSummary.isNotEmpty ? rawSummary : 'Keine Zusammenfassung.');
+                final summary = _stripHtml(rawSummary.isNotEmpty ? rawSummary : l10n.reviewNoSummary);
                 final logoUrl = p['meta']?['logo_url'] as String?;
 
                 return Container(
@@ -558,7 +544,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                                 ),
                                 icon: const Icon(LucideIcons.shieldAlert, size: 14),
                                 label: Text(
-                                  isGerman ? 'AUDIT STARTEN' : 'START AUDIT',
+                                  l10n.reviewStartAudit,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold, fontSize: 12),
                                 ),

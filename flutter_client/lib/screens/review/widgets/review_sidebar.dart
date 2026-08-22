@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_container.dart';
 
 class ReviewSidebar extends StatefulWidget {
   final bool isOpen;
   final ThemeAttributes attrs;
-  final bool isGerman;
   final String machineName;
   final Map<String, dynamic>? project;
   final Map<String, dynamic>? currentTranslation;
@@ -23,7 +23,6 @@ class ReviewSidebar extends StatefulWidget {
     super.key,
     required this.isOpen,
     required this.attrs,
-    required this.isGerman,
     required this.machineName,
     required this.project,
     required this.currentTranslation,
@@ -63,8 +62,8 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n     = AppLocalizations.of(context)!;
     final attrs    = widget.attrs;
-    final isGerman = widget.isGerman;
     final project  = widget.project;
 
     final engTitle   = project?['attributes']?['title'] as String? ?? '';
@@ -101,7 +100,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            isGerman ? 'ENGLISCHE QUELLE' : 'ENGLISH SOURCE',
+                            l10n.editorEnglishSourceHeader,
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: attrs.textMuted, letterSpacing: 1),
                           ),
                           Row(
@@ -109,8 +108,8 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                               // Quellcode / Vorschau toggle
                               Tooltip(
                                 message: _showSourceCode
-                                    ? (isGerman ? 'Vorschau anzeigen' : 'Show preview')
-                                    : (isGerman ? 'HTML-Quellcode' : 'HTML source'),
+                                    ? l10n.editorShowPreview
+                                    : l10n.reviewHtmlSourceShort,
                                 child: IconButton(
                                   icon: Icon(_showSourceCode ? LucideIcons.eye : LucideIcons.code, size: 14, color: Colors.white54),
                                   onPressed: () => setState(() => _showSourceCode = !_showSourceCode),
@@ -119,7 +118,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                               ),
                               // Copy
                               Tooltip(
-                                message: isGerman ? 'Quelltext kopieren' : 'Copy source',
+                                message: l10n.reviewCopySource,
                                 child: IconButton(
                                   icon: const Icon(LucideIcons.copy, size: 14, color: Colors.white54),
                                   onPressed: () {
@@ -158,13 +157,13 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                                   const SizedBox(height: 12),
                                 ],
                                 if (engSummary.isNotEmpty) ...[
-                                  Text(isGerman ? 'Zusammenfassung:' : 'Summary:', style: TextStyle(color: attrs.brand600, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  Text(l10n.editorSummaryLabelColon, style: TextStyle(color: attrs.brand600, fontSize: 11, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 6),
                                   HtmlWidget(engSummary, textStyle: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.6)),
                                   const SizedBox(height: 12),
                                 ],
                                 if (engBody.isNotEmpty) ...[
-                                  Text(isGerman ? 'Beschreibung:' : 'Description:', style: TextStyle(color: attrs.brand600, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  Text(l10n.editorDescriptionLabelColon, style: TextStyle(color: attrs.brand600, fontSize: 11, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 6),
                                   HtmlWidget(engBody, textStyle: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.6)),
                                 ],
@@ -184,11 +183,11 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isGerman ? 'Modul Details' : 'Module Details',
+                      l10n.reviewModuleDetails,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: attrs.textMain),
                     ),
                     const SizedBox(height: 20),
-                    _detailRow(isGerman ? 'Original-Titel' : 'Original Title', project?['attributes']?['title'] ?? '', attrs),
+                    _detailRow(l10n.reviewOriginalTitle, project?['attributes']?['title'] ?? '', attrs),
                     _detailRow('Status', widget.currentTranslation?['is_review'] == true ? 'In Review' : 'Translated', attrs),
                     _detailRow('Machine Name', widget.machineName, attrs),
                     const Divider(height: 32),
@@ -205,7 +204,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                       ),
                       icon: const Icon(LucideIcons.externalLink, size: 14),
                       label: Text(
-                        isGerman ? 'Drupal.org-Projekt' : 'Drupal.org Project',
+                        l10n.reviewDrupalOrgProject,
                         style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -225,7 +224,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          isGerman ? 'Vorschläge' : 'Suggestions',
+                          l10n.reviewSuggestions,
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: attrs.textMain),
                         ),
                         Container(
@@ -245,7 +244,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                     const SizedBox(height: 20),
                     if (widget.suggestions.isEmpty)
                       Text(
-                        isGerman ? 'Keine Vorschläge vorhanden.' : 'No suggestions available.',
+                        l10n.reviewNoSuggestions,
                         style: TextStyle(color: attrs.textMuted, fontSize: 13, fontStyle: FontStyle.italic),
                       )
                     else
@@ -308,7 +307,7 @@ class _ReviewSidebarState extends State<ReviewSidebar> {
                                               backgroundColor: attrs.brand600,
                                               padding: const EdgeInsets.symmetric(vertical: 8),
                                             ),
-                                            child: Text(isGerman ? 'Übernehmen' : 'Apply', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                            child: Text(l10n.reviewApply, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                         const SizedBox(width: 8),

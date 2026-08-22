@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/project_provider.dart';
 import '../../../providers/auth_provider.dart';
@@ -13,8 +14,7 @@ class DashboardFilters extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String id,
-    String labelDe,
-    String labelEn,
+    String label,
     int count,
     String activeFilter,
     ThemeAttributes attrs, {
@@ -39,26 +39,13 @@ class DashboardFilters extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    labelDe,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: isActive ? Colors.white : attrs.textMain,
-                    ),
-                  ),
-                  Text(
-                    labelEn,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isActive ? Colors.white.withOpacity(0.7) : attrs.textMuted,
-                    ),
-                  ),
-                ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: isActive ? Colors.white : attrs.textMain,
+                ),
               ),
               const SizedBox(width: 7),
               Container(
@@ -165,13 +152,15 @@ class DashboardFilters extends ConsumerWidget {
       }
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Drupal-Version-Chips ─────────────────────────────────────────────
         Wrap(
           children: [
-            _buildVersionChip(ref, null, 'Alle', null, activeVersion, attrs),
+            _buildVersionChip(ref, null, l10n.filterAllShort, null, activeVersion, attrs),
             _buildVersionChip(ref, 9,    'D9',  vcCount(9),  activeVersion, attrs),
             _buildVersionChip(ref, 10,   'D10', vcCount(10), activeVersion, attrs),
             _buildVersionChip(ref, 11,   'D11', vcCount(11), activeVersion, attrs),
@@ -182,16 +171,16 @@ class DashboardFilters extends ConsumerWidget {
         // ── Status-Filter-Buttons ────────────────────────────────────────────
         Wrap(
           children: [
-            _buildFilterBtn(context, ref, 'all',        'Alle Projekte', 'All Projects',   filterCounts.all,        activeFilter, attrs),
-            _buildFilterBtn(context, ref, 'missing',    'Fehlend',       'Missing',        filterCounts.missing,    activeFilter, attrs),
-            _buildFilterBtn(context, ref, 'translated', 'Übersetzt',     'Translated',     filterCounts.translated, activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'all',        l10n.dashFilterAll,        filterCounts.all,        activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'missing',    l10n.filterMissing,        filterCounts.missing,    activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'translated', l10n.filterTranslated,     filterCounts.translated, activeFilter, attrs),
             if (ref.watch(authProvider).user?.isReviewer == true)
-              _buildFilterBtn(context, ref, 'review',   'Review',        'Review Queue',   filterCounts.review,     activeFilter, attrs,
+              _buildFilterBtn(context, ref, 'review',   l10n.filterReviewQueue,    filterCounts.review,     activeFilter, attrs,
                   onTapOverride: () => context.go('/review-list')),
-            _buildFilterBtn(context, ref, 'released',   'Freigegeben',   'Released',       filterCounts.released,   activeFilter, attrs),
-            _buildFilterBtn(context, ref, 'stale',      'Veraltet',      'Outdated',       filterCounts.stale,      activeFilter, attrs),
-            _buildFilterBtn(context, ref, 'priority',   'Priorität',     'Priority',       filterCounts.priority,   activeFilter, attrs),
-            _buildFilterBtn(context, ref, 'ignored',    'Ignoriert',     'Ignored',        filterCounts.ignored,    activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'released',   l10n.filterReleased,       filterCounts.released,   activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'stale',      l10n.filterOutdated,       filterCounts.stale,      activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'priority',   l10n.filterPriority,       filterCounts.priority,   activeFilter, attrs),
+            _buildFilterBtn(context, ref, 'ignored',    l10n.filterIgnored,        filterCounts.ignored,    activeFilter, attrs),
           ],
         ),
       ],

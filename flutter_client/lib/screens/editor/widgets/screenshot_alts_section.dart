@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../services/api_client.dart';
 
@@ -26,7 +27,7 @@ class ScreenshotAltsSection extends StatelessWidget {
         const Divider(color: Colors.white10),
         const SizedBox(height: 24),
         Text(
-          'SCREENSHOT ALT-TEXTE',
+          AppLocalizations.of(context)!.screenshotAltsHeader,
           style: TextStyle(
             color: attrs.brand600,
             fontSize: 12,
@@ -36,7 +37,7 @@ class ScreenshotAltsSection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Gib für jeden Screenshot einen beschreibenden Alt-Text in der Zielsprache ein.',
+          AppLocalizations.of(context)!.screenshotAltsIntro,
           style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
         ),
         const SizedBox(height: 20),
@@ -62,7 +63,7 @@ class ScreenshotAltsSection extends StatelessWidget {
               children: [
                 // ── Screenshot label ──────────────────────────────────
                 Text(
-                  'Screenshot ${index + 1}',
+                  AppLocalizations.of(context)!.screenshotLabel(index + 1),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
                     fontSize: 11,
@@ -109,7 +110,7 @@ class ScreenshotAltsSection extends StatelessWidget {
                                     color: Colors.white24, size: 32),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Vorschau nicht verfügbar',
+                                  AppLocalizations.of(context)!.screenshotPreviewUnavailable,
                                   style: TextStyle(
                                       color: Colors.white24, fontSize: 12),
                                 ),
@@ -166,7 +167,7 @@ class ScreenshotAltsSection extends StatelessWidget {
                 TextField(
                   controller: controller,
                   decoration: InputDecoration(
-                    hintText: 'Deutschen Alt-Text eingeben…',
+                    hintText: AppLocalizations.of(context)!.screenshotAltHint,
                     hintStyle: const TextStyle(color: Colors.white24),
                     fillColor: Colors.white.withOpacity(0.07),
                     filled: true,

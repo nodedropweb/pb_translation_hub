@@ -74,7 +74,7 @@ pb_translation_hub/
 │   │       │   ├── dashboard_screen.dart
 │   │       │   └── widgets/
 │   │       │       ├── project_card.dart
-│   │       │       └── dashboard_filters.dart  # Bilingual DE+EN filter labels
+│   │       │       └── dashboard_filters.dart  # Locale-aware filter labels (AppLocalizations)
 │   │       ├── editor/
 │   │       │   ├── editor_screen.dart
 │   │       │   ├── _editor_build_methods.dart
@@ -352,6 +352,24 @@ Use `./hubctl.sh start` for local development — it manages both ports.
 1. **Hotlinking** — always use `photo.urls.regular` directly in `<img>` or CSS backgrounds. Do not re-host.
 2. **Download tracking** — call `POST /api/unsplash/track-download` when a background is selected.
 3. **Attribution links** — always include `?utm_source=pb_translation_hub&utm_medium=referral`.
+
+---
+
+## App UI Localization (i18n)
+
+The Flutter client's own **interface chrome** (buttons, labels, tooltips, section headers — not the translated project *content*) is localized via Flutter ARB files: `flutter_client/lib/l10n/app_de.arb` (template) and `app_en.arb`, compiled with `flutter gen-l10n` into `AppLocalizations`. The active UI locale follows the same target-language dropdown used for content (`languageProvider`), set in `main.dart`.
+
+**Only two UI locales exist today: German (native) and English (fallback for every other target language).** `server/languages.json` lists 88 possible target languages for translation *content*; only `de` gets a native UI. All 87 other target languages below see the **English** app chrome (editor field labels, settings, sidebar nav, etc.) even though users can already submit translated *project content* in their own language — this is a known gap, not a bug.
+
+Screens fully converted to `AppLocalizations` (DE native / EN fallback): editor, dashboard, review + review-list, categories, login + register, profile, settings, layout/sidebar, analytics, glossary, plus shared widgets (`diff_view.dart`, `sync_progress_bar.dart`) and two provider-level strings (`auth_provider.dart`, `project_provider.dart` — these use a local `ref.read(languageProvider)` check instead of `AppLocalizations` since they have no `BuildContext`).
+
+Deliberately **excluded** from this ARB conversion: `help_screen.dart`, `crwb_study_screen.dart`, and `widgets/consent_youtube_player.dart`. These already implement their own richer multi-language *content* system (DE/EN/FR/PT/JA/ZH via an internal `_t(lang, de, en, [ja])` helper) for genuine help/educational text — converting them to the 2-locale ARB scheme would have been a regression.
+
+### Target languages with no native app UI yet (fallback = English)
+
+uk Ukrainian · nl Dutch · fr French · pt-br Portuguese (Brazil) · ru Russian · pt-pt Portuguese (Portugal) · zh-hans Chinese (Simplified) · nb Norwegian Bokmål · es Spanish · hu Hungarian · az Azerbaijani · ja Japanese · pl Polish · id Indonesian · tr Turkish · da Danish · ro Romanian · lt Lithuanian · ca Catalan · ko Korean · it Italian · sv Swedish · et Estonian · fi Finnish · ar Arabic · zh-hant Chinese (Traditional) · cs Czech · el Greek · he Hebrew · lv Latvian · gl Galician · fa Persian/Farsi · sk Slovak · oc Occitan · th Thai · be Belarusian · vi Vietnamese · hi Hindi · hr Croatian · eu Basque · ta Tamil · ms Malay · km Khmer · hy Armenian · cy Welsh · ku Kurdish · is Icelandic · eo Esperanto · sl Slovenian · bg Bulgarian · te Telugu · kk Kazakh · ka Georgian · bs Bosnian · ug Uighur · en-gb English (British) · sq Albanian · kn Kannada · nn Norwegian Nynorsk · gu Gujarati · sr Serbian · af Afrikaans · ne Nepali · my Burmese · am Amharic · dz Dzongkha · mn Mongolian · bn Bengali · mr Marathi · ur Urdu · fil Filipino · ml Malayalam · si Sinhala · fy Frisian (Western) · pa Punjabi · or Odia · ht Haitian Creole · mg Malagasy · br Breton · mk Macedonian · ga Irish · lo Lao · ky Kyrgyz · rw Kinyarwanda · sw Swahili · mt Maltese
+
+To add a native UI for one of these: create `lib/l10n/app_<code>.arb` (copy `app_en.arb`'s keys as a base), translate the values, add the locale to the `locale` resolution logic in `main.dart` (currently a flat `code == 'de' ? de : en` check), and to `supportedLocales`.
 
 ---
 

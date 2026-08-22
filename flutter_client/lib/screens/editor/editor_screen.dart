@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:confetti/confetti.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/api_client.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/theme_provider.dart';
@@ -464,7 +465,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Laden der Projektdaten: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.editorLoadError(e.toString()))),
         );
       }
     }
@@ -560,8 +561,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _screenshotAltControllers[id]?.text = val as String;
             });
           });
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Übersetzung mit Gemini erfolgreich! ✨'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context)!.editorGeminiSuccess),
             backgroundColor: const Color(0xFF2E7D32),
           ));
         }
@@ -573,12 +574,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             : null;
         // Top-level error (e.g. missing key returns HTTP 400).
         final topError = responseData['error'] as String?;
-        final detail = topError ?? firstError ?? 'Unbekannter Fehler';
+        final detail = topError ?? firstError ?? AppLocalizations.of(context)!.editorUnknownError;
 
         if (mounted) {
           _restoreEditors();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Gemini-Übersetzung fehlgeschlagen: $detail'),
+            content: Text(AppLocalizations.of(context)!.editorGeminiFailed(detail)),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 6),
           ));
@@ -590,8 +591,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // Distinguish between a network/server error and a missing key.
         final msg = e.toString().toLowerCase().contains('google_ai_key') ||
                 e.toString().toLowerCase().contains('missing')
-            ? 'Bitte hinterlege deinen Google AI Key in deinem Benutzerprofil (nicht in den Admin-Einstellungen).'
-            : 'Fehler bei der Gemini-Übersetzung. Bitte deinen Google AI Key im Benutzerprofil prüfen.';
+            ? AppLocalizations.of(context)!.editorGeminiKeyMissing
+            : AppLocalizations.of(context)!.editorGeminiError;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(msg),
           backgroundColor: Colors.redAccent,
@@ -632,16 +633,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Übersetzung mit DeepL erfolgreich! 🔵'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context)!.editorDeeplSuccess),
             backgroundColor: Colors.blue,
           ));
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'DeepL Übersetzung fehlgeschlagen: ${res.data['error'] ?? 'Unbekannter Fehler'}'),
+            content: Text(AppLocalizations.of(context)!.editorDeeplFailed(
+                res.data['error'] ?? AppLocalizations.of(context)!.editorUnknownError)),
             backgroundColor: Colors.redAccent,
           ));
         }
@@ -649,14 +650,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } catch (e) {
       if (mounted) {
         // Extract server-side error message if available
-        String message =
-            'Fehler bei der DeepL Übersetzung. Bitte stelle sicher, dass dein DeepL API-Key im Profil hinterlegt ist.';
+        String message = AppLocalizations.of(context)!.editorDeeplGenericError;
         if (e is Exception) {
           final raw = e.toString();
           if (raw.contains('400')) {
-            message = 'Ungültiger DeepL API-Key. Bitte im Profil prüfen.';
+            message = AppLocalizations.of(context)!.editorDeeplInvalidKey;
           } else if (raw.contains('402')) {
-            message = 'DeepL Kontingent erschöpft. Bitte Plan prüfen.';
+            message = AppLocalizations.of(context)!.editorDeeplQuotaExceeded;
           }
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -679,16 +679,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           '/translations/$langcode/${widget.machineName}/unreview');
       if (mounted) {
         setState(() => _isReviewMode = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Übersetzung zurück in Review-Status gesetzt.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.editorReviewReset),
           backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Fehler beim Zurücksetzen: $e'),
+          content: Text(AppLocalizations.of(context)!.editorResetError(e.toString())),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -698,16 +698,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // ── Unignore this module ───────────────────────────────────────────────────
 
   Future<void> _unignoreModule() async {
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
     setState(() => _isUnignoring = true);
     try {
       await _api.dio.delete('/projects/${widget.machineName}/ignore');
       if (mounted) {
         setState(() => _isIgnored = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? 'Modul wurde wieder in die aktive Liste aufgenommen.'
-              : 'Module has been returned to the active list.'),
+          content: Text(AppLocalizations.of(context)!.editorUnignoreSuccess),
           backgroundColor: const Color(0xFF2E7D32),
           behavior: SnackBarBehavior.floating,
           shape:
@@ -717,9 +714,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? 'Fehler beim Einreihen des Moduls.'
-              : 'Failed to unignore the module.'),
+          content: Text(AppLocalizations.of(context)!.editorUnignoreError),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -752,8 +747,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         setState(() => _isReviewMode = false);
         final confettiEnabled = ref.read(themeProvider).confettiEnabled;
         if (confettiEnabled) _confettiController.play();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Übersetzung gespeichert – zurück in Review-Warteschlange.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.editorSaveSuccess),
           backgroundColor: const Color(0xFF2E7D32),
         ));
       }
@@ -761,7 +756,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Fehler beim Speichern: $e'),
+          content: Text(AppLocalizations.of(context)!.editorSaveError(e.toString())),
           backgroundColor: Colors.red,
         ));
       }
@@ -783,16 +778,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       );
       context.go(uri.toString());
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Keine weiteren offenen Projekte in der Liste.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.editorNoMoreProjects),
       ));
       context.go('/');
     }
   }
 
   void _skipAndNext() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Änderungen verworfen, lade nächstes Projekt...'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(AppLocalizations.of(context)!.editorChangesDiscarded),
       backgroundColor: Colors.orange,
     ));
     _goToNext();
@@ -816,10 +811,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       Future.delayed(const Duration(milliseconds: 50),
           () => _syncToSourceIFrame('body', _englishBody));
     }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Englisches Original übernommen — bitte jetzt übersetzen.'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(AppLocalizations.of(context)!.editorEnglishSourceApplied),
       backgroundColor: Colors.teal,
-      duration: Duration(seconds: 3),
+      duration: const Duration(seconds: 3),
     ));
   }
 
@@ -829,7 +824,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Konnte URL nicht öffnen: $url')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.editorCannotOpenUrl(url.toString()))),
         );
       }
     }
@@ -858,9 +853,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             children: [
               CircularProgressIndicator(color: attrs.brand600),
               const SizedBox(height: 16),
-              const Text(
-                'Projektdetails werden geladen...',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.editorLoadingProject,
+                style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 16,
                     fontWeight: FontWeight.bold),

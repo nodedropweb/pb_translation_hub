@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -48,7 +49,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ── Unignore all ────────────────────────────────────────────────────────
 
-  Future<void> _handleUnignoreAll(bool isGerman) async {
+  Future<void> _handleUnignoreAll() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -60,27 +62,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: attrs.borderMain)),
           title: Text(
-            isGerman ? 'Alle ignorieren aufheben?' : 'Unignore all modules?',
+            l10n.dashUnignoreAllConfirmTitle,
             style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold),
           ),
           content: Text(
-            isGerman
-                ? 'Alle ignorierten Module werden wieder in die aktive Liste aufgenommen und stehen erneut zur Übersetzung bereit.'
-                : 'All ignored modules will be returned to the active list and will be available for translation again.',
+            l10n.dashUnignoreAllConfirmBody,
             style: TextStyle(color: attrs.textMuted),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+              child: Text(l10n.commonCancel,
                   style: TextStyle(color: attrs.textMuted)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(
                   backgroundColor: attrs.brand600),
-              child: Text(isGerman ? 'Alle einreihen' : 'Unignore all'),
+              child: Text(l10n.dashUnignoreAllConfirmAction),
             ),
           ],
         );
@@ -96,9 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (mounted) {
         final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? 'Alle ignorierten Module wurden wieder eingereiht.'
-              : 'All ignored modules have been unignored.'),
+          content: Text(l10n.dashUnignoreAllSuccess),
           backgroundColor: attrs.brand600,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -108,9 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? 'Fehler beim Einreihen der Module.'
-              : 'Failed to unignore modules.'),
+          content: Text(l10n.dashUnignoreAllError),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -128,7 +124,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler beim Starten des Syncs: $e'),
+            content: Text(AppLocalizations.of(context)!.dashSyncStartError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -141,8 +137,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       await ref.read(syncProvider.notifier).quickUpdate(days: 7);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Schnell-Update (7 Tage) gestartet ⚡'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.dashQuickUpdateStarted),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -151,7 +147,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler beim Schnell-Update: $e'),
+            content: Text(AppLocalizations.of(context)!.dashQuickUpdateError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -169,7 +165,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erfolgreich synchronisiert: ${title ?? name}'),
+            content: Text(AppLocalizations.of(context)!.dashManualSyncSuccess(title ?? name)),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -181,8 +177,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Modul nicht auf Drupal.org gefunden.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.dashManualSyncNotFound),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -200,14 +196,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final activeFilter = ref.watch(projectProvider.notifier).activeFilter;
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = ref.watch(languageProvider).targetLanguage.code == 'de';
+    ref.watch(languageProvider); // rebuild when the target language changes
     final syncStatus = ref.watch(syncProvider);
     final user = ref.watch(authProvider).user;
     final isMobile = MediaQuery.of(context).size.width < 500;
 
     if (isMobile) {
       return _buildMobileDashboard(
-          projectState, activeFilter, attrs, syncStatus, user, isGerman);
+          projectState, activeFilter, attrs, syncStatus, user);
     }
 
     return CustomScrollView(
@@ -242,7 +238,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         elevation: 8,
                       ),
                       icon: const Icon(LucideIcons.sparkles, size: 18),
-                      label: Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                      label: Text(AppLocalizations.of(context)!.dashAiBulkTranslation,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
                     )
@@ -276,7 +272,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Projekt-Beschreibungen',
+                              AppLocalizations.of(context)!.dashHeaderTitle,
                               style: TextStyle(
                                 fontSize: constraints.maxWidth > 500 ? 32 : 24,
                                 fontWeight: FontWeight.w900,
@@ -284,8 +280,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                             ),
                             Text(
-                              'Übersetzung von Drupal Modulen in das Deutsche. '
-                              'Hilf mit, das Ökosystem zugänglicher zu machen.',
+                              AppLocalizations.of(context)!.dashHeaderSubtitle,
                               style: TextStyle(
                                   fontSize: 14, color: attrs.textMuted),
                             ),
@@ -326,7 +321,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: Text.rich(
                       TextSpan(children: [
                         TextSpan(
-                          text: isMobile ? '' : 'Zuletzt: ',
+                          text: isMobile ? '' : AppLocalizations.of(context)!.dashLastLabel,
                           style: TextStyle(
                               color: attrs.textMuted,
                               fontWeight: FontWeight.bold,
@@ -359,7 +354,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     icon: const Icon(LucideIcons.chevronRight, size: 14),
                     label: Text(
-                      isMobile ? 'Weiter' : 'Weitermachen',
+                      isMobile ? AppLocalizations.of(context)!.dashContinueShort : AppLocalizations.of(context)!.dashContinue,
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 12),
                     ),
@@ -378,15 +373,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (activeFilter == 'ignored') ...[
             const SizedBox(height: 12),
             Builder(builder: (context) {
-              final isGerman =
-                  ref.read(languageProvider).targetLanguage.code == 'de';
               final attrs2 = AppTheme.getAttributes(themeState.themeId);
               return Row(
                 children: [
                   OutlinedButton.icon(
                     onPressed: _unignoringAll
                         ? null
-                        : () => _handleUnignoreAll(isGerman),
+                        : _handleUnignoreAll,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -404,9 +397,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 color: attrs2.brand600))
                         : const Icon(LucideIcons.eyeOff, size: 14),
                     label: Text(
-                      isGerman
-                          ? 'Alle wieder einreihen'
-                          : 'Unignore all modules',
+                      AppLocalizations.of(context)!.dashUnignoreAllButton,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -431,7 +422,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 Expanded(
                   child: Tooltip(
-                    message: 'Schnelles Update (letzte 7 Tage)',
+                    message: AppLocalizations.of(context)!.dashQuickUpdateTooltip,
                     child: OutlinedButton.icon(
                       onPressed: syncStatus.active ? null : _handleQuickUpdate,
                       style: OutlinedButton.styleFrom(
@@ -444,8 +435,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       icon: Icon(LucideIcons.zap,
                           size: 16, color: Colors.amber[500]),
-                      label: const Text('Schnell',
-                          style: TextStyle(
+                      label: Text(AppLocalizations.of(context)!.dashQuickShort,
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),
@@ -453,7 +444,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Tooltip(
-                    message: 'Vollständiger Datenbank-Sync von Drupal.org',
+                    message: AppLocalizations.of(context)!.dashFullSyncTooltip,
                     child: ElevatedButton.icon(
                       onPressed: syncStatus.active ? null : _handleFullSync,
                       style: ElevatedButton.styleFrom(
@@ -480,7 +471,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Einzelnes Modul manuell von Drupal.org laden',
+                  message: AppLocalizations.of(context)!.dashManualLoadTooltip,
                   child: OutlinedButton(
                     onPressed: () =>
                         setState(() => _showManualAdd = !_showManualAdd),
@@ -529,7 +520,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(width: 12),
                 Tooltip(
-                  message: 'Schnelles Update (letzte 7 Tage)',
+                  message: AppLocalizations.of(context)!.dashQuickUpdateTooltip,
                   child: OutlinedButton.icon(
                     onPressed: syncStatus.active ? null : _handleQuickUpdate,
                     style: OutlinedButton.styleFrom(
@@ -542,13 +533,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     icon: Icon(LucideIcons.zap,
                         size: 16, color: Colors.amber[500]),
-                    label: const Text('Schnell',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(AppLocalizations.of(context)!.dashQuickShort,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Vollständiger Datenbank-Sync von Drupal.org',
+                  message: AppLocalizations.of(context)!.dashFullSyncTooltip,
                   child: ElevatedButton.icon(
                     onPressed: syncStatus.active ? null : _handleFullSync,
                     style: ElevatedButton.styleFrom(
@@ -575,7 +566,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Einzelnes Modul manuell von Drupal.org laden',
+                  message: AppLocalizations.of(context)!.dashManualLoadTooltip,
                   child: OutlinedButton.icon(
                     onPressed: () =>
                         setState(() => _showManualAdd = !_showManualAdd),
@@ -606,7 +597,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               : attrs.textMuted),
                     ),
                     label: Text(
-                      'Modul',
+                      AppLocalizations.of(context)!.dashModuleShort,
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: _showManualAdd
@@ -637,7 +628,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Gefunden: ',
+                    Text(AppLocalizations.of(context)!.dashFoundLabel,
                         style: TextStyle(
                             color: attrs.textMuted,
                             fontWeight: FontWeight.bold,
@@ -649,7 +640,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           fontWeight: FontWeight.w900,
                           fontSize: 15),
                     ),
-                    Text(' Module',
+                    Text(AppLocalizations.of(context)!.dashModulesSuffix,
                         style: TextStyle(
                             color: attrs.textMuted,
                             fontWeight: FontWeight.bold,
@@ -678,7 +669,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     items: [50, 100, 250, 500].map((v) {
                       return DropdownMenuItem<int>(
                         value: v,
-                        child: Text('$v pro Seite',
+                        child: Text(AppLocalizations.of(context)!.dashPerPage(v),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -715,7 +706,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Icon(LucideIcons.download,
                               size: 18, color: attrs.brand600),
                           const SizedBox(width: 10),
-                          Text('Modul manuell hinzufügen',
+                          Text(AppLocalizations.of(context)!.dashAddModuleManually,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
@@ -728,7 +719,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               TextStyle(color: attrs.textMain, fontSize: 13),
                           onSubmitted: (_) => _handleManualSync(),
                           decoration: InputDecoration(
-                            hintText: 'machine_name (z. B. pathauto)',
+                            hintText: AppLocalizations.of(context)!.dashMachineNameHint,
                             hintStyle: TextStyle(
                                 color: attrs.textMuted.withOpacity(0.8),
                                 fontSize: 13),
@@ -774,8 +765,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       color: Colors.white),
                                 )
                               : const Icon(LucideIcons.plus, size: 15),
-                          label: const Text('Hinzufügen',
-                              style: TextStyle(
+                          label: Text(AppLocalizations.of(context)!.dashAddButton,
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13)),
                         ),
@@ -790,13 +781,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Modul manuell hinzufügen',
+                              Text(AppLocalizations.of(context)!.dashAddModuleManually,
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                       color: attrs.textMain)),
                               Text(
-                                  'Direkt von Drupal.org per Machine Name laden.',
+                                  AppLocalizations.of(context)!.dashAddModuleSubtitle,
                                   style: TextStyle(
                                       fontSize: 11,
                                       color: attrs.textMuted)),
@@ -813,7 +804,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 color: attrs.textMain, fontSize: 13),
                             onSubmitted: (_) => _handleManualSync(),
                             decoration: InputDecoration(
-                              hintText: 'machine_name (z. B. pathauto)',
+                              hintText: AppLocalizations.of(context)!.dashMachineNameHint,
                               hintStyle: TextStyle(
                                   color: attrs.textMuted.withOpacity(0.8),
                                   fontSize: 13),
@@ -860,8 +851,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       color: Colors.white),
                                 )
                               : const Icon(LucideIcons.plus, size: 15),
-                          label: const Text('Hinzufügen',
-                              style: TextStyle(
+                          label: Text(AppLocalizations.of(context)!.dashAddButton,
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13)),
                         ),
@@ -889,7 +880,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         else if (projectState.projects.isEmpty)
           SliverFillRemaining(
             child: Center(
-                child: Text('Keine Projekte gefunden.',
+                child: Text(AppLocalizations.of(context)!.dashNoProjectsFound,
                     style: TextStyle(color: attrs.textMuted))),
           )
         else
@@ -934,7 +925,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       .read(projectProvider.notifier)
                                       .goToPage(1)
                                   : null,
-                          tooltip: 'Erste Seite',
+                          tooltip: AppLocalizations.of(context)!.dashFirstPage,
                         ),
                         IconButton(
                           icon: const Icon(LucideIcons.chevronLeft,
@@ -946,12 +937,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       .read(projectProvider.notifier)
                                       .prevPage()
                                   : null,
-                          tooltip: 'Vorherige Seite',
+                          tooltip: AppLocalizations.of(context)!.dashPrevPage,
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Seite ${ref.watch(projectProvider.notifier).currentPage} '
-                          'von ${(projectState.totalItems / ref.watch(projectProvider.notifier).limit).ceil()}',
+                          AppLocalizations.of(context)!.dashPageOf(
+                              ref.watch(projectProvider.notifier).currentPage,
+                              (projectState.totalItems / ref.watch(projectProvider.notifier).limit).ceil()),
                           style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -973,7 +965,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   .read(projectProvider.notifier)
                                   .nextPage()
                               : null,
-                          tooltip: 'Nächste Seite',
+                          tooltip: AppLocalizations.of(context)!.dashNextPage,
                         ),
                         IconButton(
                           icon: const Icon(LucideIcons.chevronsRight,
@@ -993,7 +985,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                               .limit)
                                       .ceil())
                               : null,
-                          tooltip: 'Letzte Seite',
+                          tooltip: AppLocalizations.of(context)!.dashLastPage,
                         ),
                       ],
                     ),
@@ -1015,7 +1007,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ThemeAttributes attrs,
     SyncStatus syncStatus,
     dynamic user,
-    bool isGerman,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
@@ -1042,7 +1033,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Projekt-Beschreibungen',
+                      AppLocalizations.of(context)!.dashHeaderTitle,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -1051,7 +1042,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      'Übersetzung von Drupal Modulen.',
+                      AppLocalizations.of(context)!.dashHeaderSubtitleShort,
                       style:
                           TextStyle(fontSize: 12, color: attrs.textMuted),
                     ),
@@ -1079,7 +1070,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(LucideIcons.sparkles, size: 16),
-                label: Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                label: Text(AppLocalizations.of(context)!.dashAiBulkTranslation,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 13)),
               ),
@@ -1124,8 +1115,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(LucideIcons.chevronRight, size: 13),
-                  label: const Text('Weiter',
-                      style: TextStyle(
+                  label: Text(AppLocalizations.of(context)!.dashContinueShort,
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 11)),
                 ),
               ]),
@@ -1237,7 +1228,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 border: Border.all(color: attrs.borderMain),
               ),
               child: Row(children: [
-                Text('Gefunden: ',
+                Text(AppLocalizations.of(context)!.dashFoundLabel,
                     style: TextStyle(
                         color: attrs.textMuted,
                         fontWeight: FontWeight.bold,
@@ -1247,7 +1238,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         color: attrs.brand600,
                         fontWeight: FontWeight.w900,
                         fontSize: 14)),
-                Text(' Module',
+                Text(AppLocalizations.of(context)!.dashModulesSuffix,
                     style: TextStyle(
                         color: attrs.textMuted,
                         fontWeight: FontWeight.bold,
@@ -1279,7 +1270,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   items: [50, 100, 250, 500].map((v) {
                     return DropdownMenuItem<int>(
                       value: v,
-                      child: Text('$v / Seite',
+                      child: Text(AppLocalizations.of(context)!.dashPerPageShort(v),
                           style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -1311,7 +1302,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Icon(LucideIcons.download,
                         size: 16, color: attrs.brand600),
                     const SizedBox(width: 8),
-                    Text('Modul hinzufügen',
+                    Text(AppLocalizations.of(context)!.dashAddModuleShort,
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -1324,7 +1315,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         color: attrs.textMain, fontSize: 13),
                     onSubmitted: (_) => _handleManualSync(),
                     decoration: InputDecoration(
-                      hintText: 'machine_name (z. B. pathauto)',
+                      hintText: AppLocalizations.of(context)!.dashMachineNameHint,
                       hintStyle: TextStyle(
                           color: attrs.textMuted.withOpacity(0.8),
                           fontSize: 13),
@@ -1368,8 +1359,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(LucideIcons.plus, size: 15),
-                    label: const Text('Hinzufügen',
-                        style: TextStyle(
+                    label: Text(AppLocalizations.of(context)!.dashAddButton,
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13)),
                   ),
@@ -1400,7 +1391,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
-                  child: Text('Keine Projekte gefunden.',
+                  child: Text(AppLocalizations.of(context)!.dashNoProjectsFound,
                       style:
                           TextStyle(color: attrs.textMuted))),
             )
@@ -1523,8 +1514,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return;
     }
 
-    final langcode    = ref.read(languageProvider).targetLanguage.code;
-    final isGerman    = langcode == 'de';
+    final l10n        = AppLocalizations.of(context)!;
     final coreVersion = ref.read(projectProvider).coreVersion;
 
     int selectedCount = 25;
@@ -1533,22 +1523,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     String filterName;
     switch (activeFilter) {
       case 'all':
-        filterName = isGerman ? 'Alle Projekte' : 'All Projects';
+        filterName = l10n.dashFilterAll;
         break;
       case 'priority':
         filterName = 'Drupal 12';
         break;
       case 'missing':
-        filterName = isGerman ? 'Fehlende Übersetzungen' : 'Missing Translations';
+        filterName = l10n.dashFilterMissing;
         break;
       case 'review':
-        filterName = isGerman ? 'Review-Warteschlange' : 'Review Queue';
+        filterName = l10n.dashFilterReview;
         break;
       case 'translated':
-        filterName = isGerman ? 'Übersetzte Projekte' : 'Translated Projects';
+        filterName = l10n.dashFilterTranslated;
         break;
       case 'released':
-        filterName = isGerman ? 'Freigegebene Projekte' : 'Released Projects';
+        filterName = l10n.dashFilterReleased;
         break;
       default:
         filterName = activeFilter;
@@ -1593,7 +1583,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                            l10n.dashAiBulkTranslation,
                             style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -1604,9 +1594,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      isGerman
-                          ? 'Übersetze mehrere Module aus dem ausgewählten Filter automatisch mit Google Gemini.'
-                          : 'Automatically translate multiple modules from the selected filter using Google Gemini.',
+                      l10n.dashBulkDialogIntro,
                       style: TextStyle(
                           color: attrs.textMuted.withOpacity(0.8),
                           fontSize: 14,
@@ -1621,7 +1609,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(isGerman ? 'Aktiver Filter' : 'Active Filter',
+                              Text(l10n.dashActiveFilter,
                                   style: TextStyle(
                                       color: attrs.textMuted, fontSize: 12)),
                               const SizedBox(height: 8),
@@ -1661,7 +1649,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(isGerman ? 'Anzahl Module' : 'Module Count',
+                              Text(l10n.dashModuleCount,
                                   style: TextStyle(
                                       color: attrs.textMuted, fontSize: 12)),
                               const SizedBox(height: 8),
@@ -1696,7 +1684,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                         child: Padding(
                                           padding: const EdgeInsets.only(
                                               left: 8.0),
-                                          child: Text('$c Module'),
+                                          child: Text(l10n.dashModulesCountItem(c)),
                                         ),
                                       );
                                     }).toList(),
@@ -1747,16 +1735,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                        isGerman ? 'Drupal 12 Module priorisieren' : 'Prioritise Drupal 12 modules',
+                                        l10n.dashPrioritizeD12Title,
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 13,
                                             color: Colors.white)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      isGerman
-                                          ? 'Übersetzt bevorzugt Module ohne Drupal 12 Unterstützung zuerst'
-                                          : 'Translates modules without Drupal 12 support first',
+                                      l10n.dashPrioritizeD12Subtitle,
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: attrs.textMuted
@@ -1782,19 +1768,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildCostRow(isGerman ? 'Modell' : 'Model', 'Gemini 3.1 Flash-Lite', attrs),
+                          _buildCostRow(l10n.costRowModel, 'Gemini 3.1 Flash-Lite', attrs),
                           Divider(color: attrs.borderMain, height: 24),
-                          _buildCostRow(isGerman ? 'Module gesamt' : 'Total modules', '$selectedCount', attrs),
-                          _buildCostRow(isGerman ? 'Eingabe-Tokens (Schätzung)' : 'Input tokens (est.)', '$estInputTokens', attrs),
-                          _buildCostRow(isGerman ? 'Ausgabe-Tokens (Schätzung)' : 'Output tokens (est.)', '$estOutputTokens', attrs),
+                          _buildCostRow(l10n.dashTotalModules, '$selectedCount', attrs),
+                          _buildCostRow(l10n.dashInputTokensEst, '$estInputTokens', attrs),
+                          _buildCostRow(l10n.dashOutputTokensEst, '$estOutputTokens', attrs),
                           Divider(color: attrs.borderMain, height: 24),
-                          _buildCostRow(isGerman ? 'Preis pro 1M Input' : 'Price per 1M input', '\$0.25', attrs, isValueColorMuted: true),
-                          _buildCostRow(isGerman ? 'Preis pro 1M Output' : 'Price per 1M output', '\$1.50', attrs, isValueColorMuted: true),
+                          _buildCostRow(l10n.costRowPriceInput, '\$0.25', attrs, isValueColorMuted: true),
+                          _buildCostRow(l10n.costRowPriceOutput, '\$1.50', attrs, isValueColorMuted: true),
                           Divider(color: attrs.borderMain, height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(isGerman ? 'Geschätzte Gesamtkosten' : 'Estimated total cost',
+                              Text(l10n.costRowTotalEstimate,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
@@ -1813,9 +1799,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      isGerman
-                          ? '* Die Übersetzung wird in ressourcenschonenden Batches ausgeführt, um Timeouts zu verhindern.'
-                          : '* Translation is executed in resource-efficient batches to prevent timeouts.',
+                      l10n.dashBulkFootnote,
                       style: TextStyle(
                           fontSize: 11,
                           color: attrs.textMuted,
@@ -1834,7 +1818,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 20, vertical: 16),
                               foregroundColor: attrs.textMuted),
-                          child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+                          child: Text(l10n.commonCancel,
                               style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                         const SizedBox(width: 12),
@@ -1849,7 +1833,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
-                          child: Text(isGerman ? 'Massen-Übersetzung starten' : 'Start Bulk Translation',
+                          child: Text(l10n.dashStartBulkTranslation,
                               style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ],
@@ -1866,7 +1850,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (confirmed == true) {
       _executeBulkTranslation(
           context, ref, activeFilter, selectedCount, prioritizeDrupal11, attrs,
-          coreVersion: coreVersion, isGerman: isGerman);
+          coreVersion: coreVersion);
     }
   }
 
@@ -1876,9 +1860,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     WidgetRef ref,
     ThemeAttributes attrs,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = langcode == 'de';
 
     // Fetch all stale machine names before showing the dialog.
     List<String> staleMachineNames = [];
@@ -1897,9 +1881,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (fetchError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(isGerman
-            ? 'Fehler beim Laden der veralteten Module: $fetchError'
-            : 'Error loading outdated modules: $fetchError'),
+        content: Text(l10n.dashStaleLoadError(fetchError)),
         backgroundColor: Colors.redAccent,
       ));
       return;
@@ -1907,9 +1889,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (staleMachineNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(isGerman
-            ? 'Keine veralteten Module gefunden — alles aktuell! ✨'
-            : 'No outdated modules found — everything is up to date! ✨'),
+        content: Text(l10n.dashNoStaleModules),
         backgroundColor: const Color(0xFF2E7D32),
       ));
       return;
@@ -1949,7 +1929,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      isGerman ? 'Veraltete Module neu übersetzen' : 'Re-translate Outdated Modules',
+                      l10n.dashRetranslateOutdatedTitle,
                       style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -1960,9 +1940,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                isGerman
-                    ? 'Alle Übersetzungen, deren englische Quelle sich seit der letzten Übersetzung geändert hat, werden automatisch mit Google Gemini neu übersetzt. Kein manuelles Öffnen jedes Moduls nötig.'
-                    : 'All translations whose English source has changed since the last translation will be automatically re-translated using Google Gemini. No need to open each module manually.',
+                l10n.dashRetranslateOutdatedIntro,
                 style: TextStyle(
                     color: attrs.textMuted.withOpacity(0.8),
                     fontSize: 14,
@@ -1978,24 +1956,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildCostRow(isGerman ? 'Modell' : 'Model', 'Gemini 3.1 Flash-Lite', attrs),
+                    _buildCostRow(l10n.costRowModel, 'Gemini 3.1 Flash-Lite', attrs),
                     Divider(color: attrs.borderMain, height: 24),
                     _buildCostRow(
-                        isGerman ? 'Veraltete Module' : 'Outdated modules', '$count', attrs),
-                    _buildCostRow(isGerman ? 'Eingabe-Tokens (Schätzung)' : 'Input tokens (est.)',
+                        l10n.dashOutdatedModules, '$count', attrs),
+                    _buildCostRow(l10n.dashInputTokensEst,
                         '$estInputTokens', attrs),
-                    _buildCostRow(isGerman ? 'Ausgabe-Tokens (Schätzung)' : 'Output tokens (est.)',
+                    _buildCostRow(l10n.dashOutputTokensEst,
                         '$estOutputTokens', attrs),
                     Divider(color: attrs.borderMain, height: 24),
-                    _buildCostRow(isGerman ? 'Preis pro 1M Input' : 'Price per 1M input', '\$0.25', attrs,
+                    _buildCostRow(l10n.costRowPriceInput, '\$0.25', attrs,
                         isValueColorMuted: true),
-                    _buildCostRow(isGerman ? 'Preis pro 1M Output' : 'Price per 1M output', '\$1.50', attrs,
+                    _buildCostRow(l10n.costRowPriceOutput, '\$1.50', attrs,
                         isValueColorMuted: true),
                     Divider(color: attrs.borderMain, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(isGerman ? 'Geschätzte Gesamtkosten' : 'Estimated total cost',
+                        Text(l10n.costRowTotalEstimate,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -2014,9 +1992,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                isGerman
-                    ? '* Die Übersetzung ersetzt den bisherigen Text und setzt is_reviewed zurück. Ausführung in Batches à 4 Modulen.'
-                    : '* Translation replaces existing text and resets is_reviewed. Executed in batches of 4 modules.',
+                l10n.dashRetranslateOutdatedFootnote,
                 style: TextStyle(
                     fontSize: 11,
                     color: attrs.textMuted,
@@ -2032,7 +2008,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 16),
                         foregroundColor: attrs.textMuted),
-                    child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+                    child: Text(l10n.commonCancel,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 12),
@@ -2048,7 +2024,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     icon: const Icon(LucideIcons.refreshCw, size: 16),
                     label: Text(
-                        isGerman ? 'Alle $count Module neu übersetzen' : 'Re-translate all $count modules',
+                        l10n.dashRetranslateAllCount(count),
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -2062,8 +2038,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (confirmed == true && context.mounted) {
       _executeBulkTranslationWithNames(
           context, ref, staleMachineNames, attrs,
-          isGerman: isGerman,
-          title: isGerman ? 'Veraltete Module werden neu übersetzt…' : 'Re-translating outdated modules…');
+          title: l10n.dashRetranslatingOutdatedTitle);
     }
   }
 
@@ -2101,14 +2076,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool prioritizeDrupal11,
     ThemeAttributes attrs, {
     int? coreVersion,
-    bool isGerman = true,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
 
     final progressNotifier =
         ValueNotifier<Map<String, dynamic>>({
-      'status': isGerman ? 'Projekte werden vom Server abgerufen…' : 'Fetching projects from server…',
+      'status': l10n.dashFetchingProjects,
       'progress': 0.0,
       'processed': 0,
       'total': 0,
@@ -2156,7 +2131,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               strokeWidth: 2, color: attrs.brand600),
                         ),
                         const SizedBox(width: 16),
-                        Text(isGerman ? 'AI Massen-Übersetzung' : 'AI Bulk Translation',
+                        Text(l10n.dashAiBulkTranslation,
                             style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -2180,7 +2155,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '$processedCount von $totalCount Modulen verarbeitet',
+                          l10n.dashModulesProcessed(processedCount, totalCount),
                           style: TextStyle(
                               color: attrs.textMuted, fontSize: 12),
                         ),
@@ -2229,9 +2204,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(isGerman
-                  ? 'Keine übersetzbaren Projekte in diesem Filter gefunden.'
-                  : 'No translatable projects found for this filter.'),
+              content: Text(l10n.dashNoTranslatableProjects),
               backgroundColor: Colors.amber,
             ),
           );
@@ -2240,7 +2213,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': isGerman ? 'Übersetzung wird gestartet…' : 'Starting translation…',
+        'status': l10n.dashStartingTranslation,
         'progress': 0.0,
         'processed': 0,
         'total': totalCount,
@@ -2253,9 +2226,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final batch = machineNames.sublist(i, end);
 
         progressNotifier.value = {
-          'status': isGerman
-              ? 'Übersetze Modul ${i + 1}–$end von $totalCount …'
-              : 'Translating module ${i + 1}–$end of $totalCount …',
+          'status': l10n.dashTranslatingModuleRange(i + 1, end, totalCount),
           'progress': i / totalCount,
           'processed': i,
           'total': totalCount,
@@ -2270,9 +2241,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
 
         progressNotifier.value = {
-          'status': isGerman
-              ? '$end von $totalCount Modulen abgeschlossen.'
-              : '$end of $totalCount modules completed.',
+          'status': l10n.dashModulesCompleted(end, totalCount),
           'progress': end / totalCount,
           'processed': end,
           'total': totalCount,
@@ -2282,7 +2251,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': isGerman ? 'Übersetzung erfolgreich abgeschlossen! ✨' : 'Translation completed successfully! ✨',
+        'status': l10n.dashTranslationCompleted,
         'progress': 1.0,
         'processed': totalCount,
         'total': totalCount,
@@ -2298,9 +2267,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(projectProvider.notifier).setFilter(activeFilter, force: true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman
-                ? 'Massen-Übersetzung von $totalCount Modulen erfolgreich! ✨'
-                : 'Bulk translation of $totalCount modules successful! ✨'),
+            content: Text(l10n.dashBulkTranslationSuccess(totalCount)),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -2313,7 +2280,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Fehler bei der Massen-Übersetzung: $e' : 'Bulk translation error: $e'),
+            content: Text(l10n.dashBulkTranslationError(e.toString())),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 5),
           ),
@@ -2329,14 +2296,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     List<String> machineNames,
     ThemeAttributes attrs, {
     String title = 'AI Bulk Translation',
-    bool isGerman = true,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final ApiClient api = ApiClient();
     final langcode = ref.read(languageProvider).targetLanguage.code;
     final totalCount = machineNames.length;
 
     final progressNotifier = ValueNotifier<Map<String, dynamic>>({
-      'status': isGerman ? 'Übersetzung wird gestartet…' : 'Starting translation…',
+      'status': l10n.dashStartingTranslation,
       'progress': 0.0,
       'processed': 0,
       'total': totalCount,
@@ -2410,9 +2377,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          isGerman
-                              ? '$processedCount von $total Modulen verarbeitet'
-                              : '$processedCount of $total modules processed',
+                          l10n.dashModulesProcessed(processedCount, total),
                           style: TextStyle(
                               color: attrs.textMuted, fontSize: 12),
                         ),
@@ -2441,9 +2406,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final batch = machineNames.sublist(i, end);
 
         progressNotifier.value = {
-          'status': isGerman
-              ? 'Übersetze Modul ${i + 1}–$end von $totalCount …'
-              : 'Translating module ${i + 1}–$end of $totalCount …',
+          'status': l10n.dashTranslatingModuleRange(i + 1, end, totalCount),
           'progress': i / totalCount,
           'processed': i,
           'total': totalCount,
@@ -2456,9 +2419,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
 
         progressNotifier.value = {
-          'status': isGerman
-              ? '$end von $totalCount Modulen abgeschlossen.'
-              : '$end of $totalCount modules completed.',
+          'status': l10n.dashModulesCompleted(end, totalCount),
           'progress': end / totalCount,
           'processed': end,
           'total': totalCount,
@@ -2468,9 +2429,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       progressNotifier.value = {
-        'status': isGerman
-            ? 'Alle $totalCount Module erfolgreich neu übersetzt! ✨'
-            : 'All $totalCount modules successfully re-translated! ✨',
+        'status': l10n.dashAllModulesRetranslated(totalCount),
         'progress': 1.0,
         'processed': totalCount,
         'total': totalCount,
@@ -2486,9 +2445,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(projectProvider.notifier).setFilter('stale', force: true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman
-                ? '$totalCount veraltete Module erfolgreich neu übersetzt! ✨'
-                : '$totalCount outdated modules successfully re-translated! ✨'),
+            content: Text(l10n.dashOutdatedRetranslatedSuccess(totalCount)),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -2501,9 +2458,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman
-                ? 'Fehler bei der Stale-Übersetzung: $e'
-                : 'Error during re-translation: $e'),
+            content: Text(l10n.dashStaleTranslationError(e.toString())),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 5),
           ),

@@ -12,6 +12,7 @@ import '../../services/api_client.dart';
 import '../../services/token_storage.dart';
 import '../../widgets/glass_container.dart';
 import '../../utils/ck_glossary.dart';
+import '../../l10n/app_localizations.dart';
 
 // ── Breakpoint ────────────────────────────────────────────────────────────────
 // Unter 750 dp (Portrait-Modus des M986-EEA ~600–800 dp) wechselt das Layout
@@ -30,7 +31,6 @@ class AppLayout extends ConsumerWidget {
     final langState = ref.watch(languageProvider);
 
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = langState.targetLanguage.code == 'de';
 
     // CKEditor-Tooltip und Glossar-Highlight ans aktive Theme anpassen
     setCkEditorTheme(themeState.themeId);
@@ -57,7 +57,6 @@ class AppLayout extends ConsumerWidget {
           themeState: themeState,
           authState: authState,
           langState: langState,
-          isGerman: isGerman,
           ref: ref,
         );
 
@@ -100,7 +99,6 @@ class AppLayout extends ConsumerWidget {
                     if (!isWide)
                       _NarrowTopBar(
                         attrs: attrs,
-                        isGerman: isGerman,
                         authState: authState,
                       ),
 
@@ -163,18 +161,17 @@ class AppLayout extends ConsumerWidget {
 
 class _NarrowTopBar extends StatelessWidget {
   final ThemeAttributes attrs;
-  final bool isGerman;
   final AuthState authState;
 
   const _NarrowTopBar({
     required this.attrs,
-    required this.isGerman,
     required this.authState,
   });
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final l10n = AppLocalizations.of(context)!;
 
     return ClipRRect(
       child: BackdropFilter(
@@ -192,7 +189,7 @@ class _NarrowTopBar extends StatelessWidget {
               Builder(
                 builder: (ctx) => IconButton(
                   icon: Icon(LucideIcons.menu, color: attrs.textMain, size: 22),
-                  tooltip: isGerman ? 'Navigation' : 'Menu',
+                  tooltip: l10n.layoutMenu,
                   onPressed: () => Scaffold.of(ctx).openDrawer(),
                 ),
               ),
@@ -283,7 +280,6 @@ class _SidebarContent extends StatelessWidget {
   final ThemeState themeState;
   final AuthState authState;
   final LanguageState langState;
-  final bool isGerman;
   final WidgetRef ref;
 
   const _SidebarContent({
@@ -291,12 +287,12 @@ class _SidebarContent extends StatelessWidget {
     required this.themeState,
     required this.authState,
     required this.langState,
-    required this.isGerman,
     required this.ref,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -370,7 +366,7 @@ class _SidebarContent extends StatelessWidget {
               ),
               _NavItem(
                 icon: LucideIcons.chartColumnBig,
-                label: isGerman ? 'Statistik' : 'Analytics',
+                label: l10n.layoutNavAnalytics,
                 route: '/analytics',
                 isActive:
                     GoRouterState.of(context).uri.path == '/analytics',
@@ -379,7 +375,7 @@ class _SidebarContent extends StatelessWidget {
               if (ref.watch(authProvider).user?.isReviewer == true) ...[
                 _NavItem(
                   icon: LucideIcons.shieldCheck,
-                  label: isGerman ? 'Review Warteschlange' : 'Review Queue',
+                  label: l10n.layoutNavReviewQueue,
                   route: '/review-list',
                   isActive: GoRouterState.of(context).uri.path ==
                       '/review-list',
@@ -387,7 +383,7 @@ class _SidebarContent extends StatelessWidget {
                 ),
                 _NavItem(
                   icon: LucideIcons.bookOpen,
-                  label: isGerman ? 'Glossar' : 'Glossary',
+                  label: l10n.layoutNavGlossary,
                   route: '/glossary',
                   isActive: GoRouterState.of(context).uri.path == '/glossary',
                   attrs: attrs,
@@ -395,7 +391,7 @@ class _SidebarContent extends StatelessWidget {
               ],
               _NavItem(
                 icon: LucideIcons.filter,
-                label: isGerman ? 'Kategorien' : 'Categories',
+                label: l10n.layoutNavCategories,
                 route: '/categories',
                 isActive: GoRouterState.of(context).uri.path ==
                     '/categories',
@@ -403,7 +399,7 @@ class _SidebarContent extends StatelessWidget {
               ),
               _NavItem(
                 icon: LucideIcons.helpCircle,
-                label: isGerman ? 'Hilfe' : 'Help',
+                label: l10n.layoutNavHelp,
                 route: '/help',
                 isActive:
                     GoRouterState.of(context).uri.path == '/help',
@@ -411,7 +407,7 @@ class _SidebarContent extends StatelessWidget {
               ),
               _NavItem(
                 icon: LucideIcons.settings,
-                label: isGerman ? 'Einstellungen' : 'Settings',
+                label: l10n.layoutNavSettings,
                 route: '/settings',
                 isActive: GoRouterState.of(context).uri.path ==
                     '/settings',
@@ -451,9 +447,7 @@ class _SidebarContent extends StatelessWidget {
                         ),
                         children: [
                           TextSpan(
-                              text: isGerman
-                                  ? 'Foto von '
-                                  : 'Photo by '),
+                              text: l10n.layoutPhotoBy),
                           WidgetSpan(
                             alignment:
                                 PlaceholderAlignment.middle,
@@ -489,7 +483,7 @@ class _SidebarContent extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                              text: isGerman ? ' auf ' : ' on '),
+                              text: l10n.layoutPhotoOn),
                           WidgetSpan(
                             alignment:
                                 PlaceholderAlignment.middle,
@@ -529,7 +523,7 @@ class _SidebarContent extends StatelessWidget {
         if (authState.user?.deeplApiKey != null) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: _DeeplUsageWidget(attrs: attrs, isGerman: isGerman),
+            child: _DeeplUsageWidget(attrs: attrs),
           ),
           const SizedBox(height: 8),
         ],
@@ -602,9 +596,7 @@ class _SidebarContent extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              isGerman
-                                  ? 'Profil bearbeiten'
-                                  : 'Edit Profile',
+                              l10n.layoutEditProfile,
                               style: TextStyle(
                                 color: attrs.textMuted,
                                 fontSize: 9,
@@ -627,8 +619,7 @@ class _SidebarContent extends StatelessWidget {
                               .read(authProvider.notifier)
                               .logout();
                         },
-                        tooltip:
-                            isGerman ? 'Abmelden' : 'Logout',
+                        tooltip: l10n.layoutLogout,
                       ),
                     ],
                   ),
@@ -664,7 +655,7 @@ class _SidebarContent extends StatelessWidget {
                                 size: 14, color: attrs.brand600),
                             const SizedBox(width: 6),
                             Text(
-                              isGerman ? 'DESIGN' : 'THEME',
+                              l10n.layoutThemeLabel,
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
@@ -702,27 +693,27 @@ class _SidebarContent extends StatelessWidget {
                       childAspectRatio: 2.2,
                       children: [
                         _themeBtn(ref, 'pearl',
-                            isGerman ? 'Hell' : 'Light',
+                            l10n.layoutThemePearl,
                             LucideIcons.sun,
                             themeState.themeId, attrs),
                         _themeBtn(ref, 'dark',
-                            isGerman ? 'Dunkel' : 'Dark',
+                            l10n.layoutThemeDark,
                             LucideIcons.moon,
                             themeState.themeId, attrs),
                         _themeBtn(ref, 'glassy',
-                            isGerman ? 'Glasig' : 'Glassy',
+                            l10n.layoutThemeGlassy,
                             LucideIcons.palette,
                             themeState.themeId, attrs),
                         _themeBtn(ref, 'nature',
-                            isGerman ? 'Natur' : 'Nature',
+                            l10n.layoutThemeNature,
                             LucideIcons.droplets,
                             themeState.themeId, attrs),
                         _themeBtn(ref, 'liquid',
-                            isGerman ? 'Flüssig' : 'Liquid',
+                            l10n.layoutThemeLiquid,
                             LucideIcons.zap,
                             themeState.themeId, attrs),
                         _themeBtn(ref, 'stage',
-                            isGerman ? 'Bühne' : 'Stage',
+                            l10n.layoutThemeStage,
                             LucideIcons.music2,
                             themeState.themeId, attrs),
                       ],
@@ -749,9 +740,7 @@ class _SidebarContent extends StatelessWidget {
                             size: 14, color: attrs.brand600),
                         const SizedBox(width: 6),
                         Text(
-                          isGerman
-                              ? 'ZIELSPRACHE'
-                              : 'TARGET LANGUAGE',
+                          l10n.layoutTargetLanguage,
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
@@ -864,9 +853,8 @@ class _SidebarContent extends StatelessWidget {
 
 class _DeeplUsageWidget extends ConsumerStatefulWidget {
   final ThemeAttributes attrs;
-  final bool isGerman;
 
-  const _DeeplUsageWidget({required this.attrs, required this.isGerman});
+  const _DeeplUsageWidget({required this.attrs});
 
   @override
   ConsumerState<_DeeplUsageWidget> createState() => _DeeplUsageWidgetState();
@@ -905,7 +893,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
   @override
   Widget build(BuildContext context) {
     final attrs = widget.attrs;
-    final isGerman = widget.isGerman;
+    final l10n = AppLocalizations.of(context)!;
 
     final count = _data?['character_count'] as int?;
     final limit = _data?['character_limit'] as int?;
@@ -940,7 +928,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  isGerman ? 'DEEPL VERBRAUCH' : 'DEEPL USAGE',
+                  l10n.layoutDeeplUsage,
                   style: TextStyle(
                     fontSize: 9, fontWeight: FontWeight.w900,
                     letterSpacing: 0.5, color: attrs.textMuted,
@@ -962,7 +950,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
                         icon: Icon(LucideIcons.refreshCw,
                             size: 12, color: attrs.textMuted),
                         onPressed: _fetch,
-                        tooltip: isGerman ? 'Aktualisieren' : 'Refresh',
+                        tooltip: l10n.commonRefresh,
                       ),
               ),
             ],
@@ -971,7 +959,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
           if (_error != null) ...[
             const SizedBox(height: 6),
             Text(
-              isGerman ? 'Nicht verfügbar' : 'Unavailable',
+              l10n.layoutUnavailable,
               style: TextStyle(color: attrs.textMuted, fontSize: 10),
             ),
           ] else if (!_loading && _data != null) ...[
@@ -991,7 +979,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
                 ),
                 Text(
                   isUnlimited
-                      ? (isGerman ? 'unbegrenzt' : 'unlimited')
+                      ? l10n.layoutUnlimited
                       : '/ ${_fmt(limit)}',
                   style: TextStyle(color: attrs.textMuted, fontSize: 10),
                 ),
@@ -1012,7 +1000,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
               ),
               const SizedBox(height: 4),
               Text(
-                '$pct % ${isGerman ? "verbraucht" : "used"}',
+                '$pct % ${l10n.layoutUsed}',
                 style: TextStyle(color: attrs.textMuted, fontSize: 9),
               ),
             ],
@@ -1030,7 +1018,7 @@ class _DeeplUsageWidgetState extends ConsumerState<_DeeplUsageWidget> {
                     children: [
                       Text(
                         type == 'translate'
-                            ? (isGerman ? 'Übersetzen' : 'Translate')
+                            ? l10n.layoutTranslate
                             : 'Write',
                         style: TextStyle(color: attrs.textMuted, fontSize: 9),
                       ),

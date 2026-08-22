@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:diff_match_patch/diff_match_patch.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_container.dart';
 
 class ReviewDiffView extends StatelessWidget {
   final ThemeAttributes attrs;
   final String viewMode; // 'visual_diff' or 'source'
-  final bool isGerman;
   final String baseTitle;
   final String baseSummary;
   final String baseBody;
@@ -20,7 +20,6 @@ class ReviewDiffView extends StatelessWidget {
     super.key,
     required this.attrs,
     required this.viewMode,
-    required this.isGerman,
     required this.baseTitle,
     required this.baseSummary,
     required this.baseBody,
@@ -113,7 +112,7 @@ class ReviewDiffView extends StatelessWidget {
     );
   }
 
-  Widget _renderHtmlDiff(String oldText, String newText, ThemeAttributes attrs) {
+  Widget _renderHtmlDiff(String oldText, String newText, ThemeAttributes attrs, AppLocalizations l10n) {
     // Keine Änderungen — nur eine Box anzeigen
     if (oldText == newText) {
       return Container(
@@ -125,7 +124,7 @@ class ReviewDiffView extends StatelessWidget {
           border: Border.all(color: attrs.borderMain),
         ),
         child: Text(
-          isGerman ? 'Keine Änderungen' : 'No changes',
+          l10n.reviewNoChanges,
           style: TextStyle(color: attrs.textMuted, fontSize: 13, fontStyle: FontStyle.italic),
         ),
       );
@@ -158,7 +157,7 @@ class ReviewDiffView extends StatelessWidget {
                     const Icon(Icons.remove_circle_outline, size: 14, color: Color(0xFFF87171)),
                     const SizedBox(width: 6),
                     Text(
-                      isGerman ? 'Original (vor der Korrektur)' : 'Original (before correction)',
+                      l10n.reviewOriginalBeforeCorrection,
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF87171)),
                     ),
                   ],
@@ -196,7 +195,7 @@ class ReviewDiffView extends StatelessWidget {
                     const Icon(Icons.add_circle_outline, size: 14, color: Color(0xFF4ADE80)),
                     const SizedBox(width: 6),
                     Text(
-                      isGerman ? 'Korrigiert (aktuelle Version)' : 'Corrected (current version)',
+                      l10n.reviewCorrectedCurrentVersion,
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4ADE80)),
                     ),
                   ],
@@ -213,7 +212,7 @@ class ReviewDiffView extends StatelessWidget {
     );
   }
 
-  Widget _rawSourceRow(String label, String base, String review, ThemeAttributes attrs, bool isGerman) {
+  Widget _rawSourceRow(String label, String base, String review, ThemeAttributes attrs, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -235,7 +234,7 @@ class ReviewDiffView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isGerman ? 'Basis (Original)' : 'Base (Original)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: attrs.textMuted)),
+                    Text(l10n.reviewBaseOriginal, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: attrs.textMuted)),
                     const SizedBox(height: 8),
                     SelectableText(base, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.white70)),
                   ],
@@ -250,7 +249,7 @@ class ReviewDiffView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isGerman ? 'Deine Korrektur' : 'Your Correction', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: attrs.brand600)),
+                    Text(l10n.reviewYourCorrection, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: attrs.brand600)),
                     const SizedBox(height: 8),
                     SelectableText(review, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.white70)),
                   ],
@@ -265,6 +264,7 @@ class ReviewDiffView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (viewMode == 'visual_diff') {
       return GlassContainer(
         border: Border.all(color: attrs.borderMain),
@@ -276,7 +276,7 @@ class ReviewDiffView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isGerman ? 'Änderungen prüfen (Visuell)' : 'Review Your Changes (Visual)',
+                  l10n.reviewChangesVisual,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: attrs.textMain),
                 ),
                 listenButton,
@@ -287,19 +287,19 @@ class ReviewDiffView extends StatelessWidget {
             // Title Diff
             _diffSectionTitle('Title Changes', attrs),
             const SizedBox(height: 12),
-            _renderHtmlDiff(baseTitle, currentTitle, attrs),
+            _renderHtmlDiff(baseTitle, currentTitle, attrs, l10n),
             const SizedBox(height: 32),
 
             // Summary Diff
             _diffSectionTitle('Summary Changes', attrs),
             const SizedBox(height: 12),
-            _renderHtmlDiff(baseSummary, currentSummary, attrs),
+            _renderHtmlDiff(baseSummary, currentSummary, attrs, l10n),
             const SizedBox(height: 32),
 
             // Body Diff
             _diffSectionTitle('Body Content Changes', attrs),
             const SizedBox(height: 12),
-            _renderHtmlDiff(baseBody, currentBody, attrs),
+            _renderHtmlDiff(baseBody, currentBody, attrs, l10n),
           ],
         ),
       );
@@ -307,11 +307,11 @@ class ReviewDiffView extends StatelessWidget {
       // Raw Source comparative blocks (viewMode == 'source')
       return Column(
         children: [
-          _rawSourceRow('Title / Titel', baseTitle, currentTitle, attrs, isGerman),
+          _rawSourceRow('Title / Titel', baseTitle, currentTitle, attrs, l10n),
           const SizedBox(height: 24),
-          _rawSourceRow('Summary / Zusammenfassung', baseSummary, currentSummary, attrs, isGerman),
+          _rawSourceRow('Summary / Zusammenfassung', baseSummary, currentSummary, attrs, l10n),
           const SizedBox(height: 24),
-          _rawSourceRow('Body Content / Hauptinhalt', baseBody, currentBody, attrs, isGerman),
+          _rawSourceRow('Body Content / Hauptinhalt', baseBody, currentBody, attrs, l10n),
         ],
       );
     }

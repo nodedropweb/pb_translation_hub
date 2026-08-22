@@ -155,7 +155,9 @@ class ProjectNotifier extends Notifier<ProjectState> {
           summary = attributes['body']['summary'] ?? '';
         }
         if (summary.isEmpty) {
-          summary = 'Keine Zusammenfassung verfügbar.';
+          summary = ref.read(languageProvider).targetLanguage.code == 'de'
+              ? 'Keine Zusammenfassung verfügbar.'
+              : 'No summary available.';
         }
 
         return Project(

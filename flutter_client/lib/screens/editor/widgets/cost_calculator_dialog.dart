@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_container.dart';
 
@@ -76,10 +77,10 @@ class CostCalculatorDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Kosten-Vorkalkulation (AI)',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.costDialogTitle,
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -90,7 +91,7 @@ class CostCalculatorDialog extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Das ausgewählte Modul wird mit Google Gemini AI übersetzt. Hier ist die geschätzte Kostenaufstellung für diesen Vorgang:',
+              AppLocalizations.of(context)!.costDialogIntro,
               style: TextStyle(
                 color: attrs.textMuted,
                 fontSize: 14,
@@ -107,20 +108,22 @@ class CostCalculatorDialog extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildCostRow('Modell', 'Gemini 3.1 Flash-Lite'),
+                  _buildCostRow(AppLocalizations.of(context)!.costRowModel, 'Gemini 3.1 Flash-Lite'),
                   Divider(color: attrs.borderMain, height: 24),
-                  _buildCostRow('Eingabe-Tokens', '$estInputTokens (~$summaryLength Zeichen)'),
-                  _buildCostRow('Ausgabe-Tokens (Schätzung)', '$estOutputTokens (~${(summaryLength + bodyLength) * 1.1 ~/ 1} Zeichen)'),
+                  _buildCostRow(AppLocalizations.of(context)!.costRowInputTokens,
+                      AppLocalizations.of(context)!.costTokenChars(estInputTokens, summaryLength)),
+                  _buildCostRow(AppLocalizations.of(context)!.costRowOutputTokens,
+                      AppLocalizations.of(context)!.costTokenChars(estOutputTokens, (summaryLength + bodyLength) * 1.1 ~/ 1)),
                   Divider(color: attrs.borderMain, height: 24),
-                  _buildCostRow('Preis pro 1M Input', '\$0.25', isValueColorMuted: true),
-                  _buildCostRow('Preis pro 1M Output', '\$1.50', isValueColorMuted: true),
+                  _buildCostRow(AppLocalizations.of(context)!.costRowPriceInput, '\$0.25', isValueColorMuted: true),
+                  _buildCostRow(AppLocalizations.of(context)!.costRowPriceOutput, '\$1.50', isValueColorMuted: true),
                   Divider(color: attrs.borderMain, height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Geschätzte Gesamtkosten',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.costRowTotalEstimate,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: Colors.white,
@@ -141,7 +144,7 @@ class CostCalculatorDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '* Hinweis: Dies ist eine Schätzung basierend auf dem aktuellen Google Pay-as-you-go Preismodell. Der tatsächliche Verbrauch kann minimal variieren.',
+              AppLocalizations.of(context)!.costDialogFootnote,
               style: TextStyle(
                 fontSize: 11,
                 color: attrs.textMuted,
@@ -158,7 +161,7 @@ class CostCalculatorDialog extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     foregroundColor: attrs.textMuted,
                   ),
-                  child: const Text('Abbrechen', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(AppLocalizations.of(context)!.commonCancel, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
@@ -171,7 +174,7 @@ class CostCalculatorDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Übersetzung starten', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(AppLocalizations.of(context)!.costDialogStartTranslation, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

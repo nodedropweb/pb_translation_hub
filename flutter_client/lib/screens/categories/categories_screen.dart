@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 // utf8 is part of dart:convert (already imported above)
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Fehler beim Laden der Kategorien: $e';
+        _error = AppLocalizations.of(context)!.categoriesLoadError(e.toString());
         _isLoading = false;
       });
     }
@@ -70,7 +71,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       _isSaving = true;
     });
 
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final langcode = ref.read(languageProvider).targetLanguage.code;
@@ -82,9 +83,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? 'Kategorien erfolgreich gespeichert.' 
-              : 'Categories saved successfully.'),
+            content: Text(l10n.categoriesSaveSuccess),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -93,9 +92,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? 'Fehler beim Speichern.' 
-              : 'Failed to save translations: $e'),
+            content: Text(l10n.categoriesSaveFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -109,7 +106,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   Future<void> _handleImport() async {
     final langcode = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = langcode == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -123,7 +120,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     if (raw.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman ? 'Datei ist leer.' : 'File is empty.'),
+          content: Text(l10n.categoriesFileEmpty),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -136,7 +133,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman ? 'Ungültiges JSON-Format.' : 'Invalid JSON format.'),
+          content: Text(l10n.categoriesInvalidJson),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -153,9 +150,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     if (translations.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? 'Keine gültigen UUID-Einträge gefunden.'
-              : 'No valid UUID entries found in file.'),
+          content: Text(l10n.categoriesNoValidUuids),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -170,9 +165,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman
-              ? '${translations.length} Kategorien aus Datei importiert.'
-              : '${translations.length} categories imported from file.'),
+          content: Text(l10n.categoriesImportSuccess(translations.length)),
           backgroundColor: const Color(0xFF2E7D32),
         ));
       }
@@ -180,7 +173,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isGerman ? 'Fehler beim Speichern.' : 'Failed to save: $e'),
+          content: Text(l10n.categoriesSaveFailed),
           backgroundColor: Colors.redAccent,
         ));
       }
@@ -189,10 +182,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final themeState = ref.watch(themeProvider);
     final langState = ref.watch(languageProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = langState.targetLanguage.code == 'de';
 
     // Reload categories if language changes
     ref.listen(languageProvider, (previous, next) {
@@ -214,7 +207,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isGerman ? 'Kategorien' : 'Categories',
+                      l10n.categoriesTitle,
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
@@ -223,7 +216,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${isGerman ? "Übersetzung für" : "Translating for"}: ${langState.targetLanguage.name}',
+                      l10n.categoriesTranslatingFor(langState.targetLanguage.name),
                       style: TextStyle(
                         fontSize: 14,
                         color: attrs.textMuted,
@@ -243,7 +236,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ),
                     icon: Icon(LucideIcons.upload, size: 16, color: attrs.brand600),
                     label: Text(
-                      isGerman ? 'JSON importieren' : 'Import JSON',
+                      l10n.categoriesImportJson,
                       style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -264,9 +257,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           )
                         : const Icon(LucideIcons.save, size: 16),
                     label: Text(
-                      _isSaving 
-                          ? (isGerman ? 'Speichert...' : 'Saving...')
-                          : (isGerman ? 'Alle speichern' : 'Save All'),
+                      _isSaving
+                          ? l10n.categoriesSaving
+                          : l10n.categoriesSaveAll,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -286,7 +279,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     CircularProgressIndicator(color: attrs.brand600),
                     const SizedBox(height: 16),
                     Text(
-                      isGerman ? 'Lade Kategorien...' : 'Loading categories...',
+                      l10n.categoriesLoading,
                       style: TextStyle(color: attrs.textMuted),
                     )
                   ],
@@ -305,7 +298,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _fetchCategories,
-                      child: Text(isGerman ? 'Erneut versuchen' : 'Retry'),
+                      child: Text(l10n.commonRetry),
                     )
                   ],
                 ),
@@ -333,7 +326,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            isGerman ? 'Original (EN)' : 'Original (EN)',
+                            'Original (EN)',
                             style: TextStyle(
                               color: attrs.textMuted,
                               fontWeight: FontWeight.w900,
@@ -344,7 +337,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         ),
                         Expanded(
                           child: Text(
-                            isGerman ? 'Übersetzung (${langState.targetLanguage.code})' : 'Translation (${langState.targetLanguage.code})',
+                            l10n.categoriesTranslationColumn(langState.targetLanguage.code),
                             style: TextStyle(
                               color: attrs.textMuted,
                               fontWeight: FontWeight.w900,
@@ -363,7 +356,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       padding: const EdgeInsets.all(48.0),
                       child: Center(
                         child: Text(
-                          isGerman ? 'Keine Kategorien gefunden.' : 'No categories found.',
+                          l10n.categoriesNoneFound,
                           style: TextStyle(color: attrs.textMuted),
                         ),
                       ),
@@ -402,7 +395,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                     _translations[id] = val;
                                   },
                                   decoration: InputDecoration(
-                                    hintText: isGerman ? 'Übersetze "$name"...' : 'Translate "$name"...',
+                                    hintText: l10n.categoriesTranslateHint(name),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   ),
                                   style: TextStyle(color: attrs.textMain, fontSize: 14),

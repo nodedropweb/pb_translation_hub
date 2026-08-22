@@ -6,11 +6,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:dio/dio.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../../providers/language_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_client.dart';
 import '../../services/log_service.dart';
 import '../../widgets/glass_container.dart';
+import '../../l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -83,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _toggleRegistration() async {
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
     final currentVal = _adminSettings['registration_enabled']?.toString() ?? '1';
     final newVal = currentVal == '1' ? '0' : '1';
 
@@ -95,9 +95,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? 'Registrierungseinstellung aktualisiert' 
-              : 'Registration setting updated'),
+            content: Text(l10n.settingsRegistrationUpdated),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -106,7 +104,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Update fehlgeschlagen.' : 'Update failed.'),
+            content: Text(l10n.settingsUpdateFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -115,7 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleUserAction(String userId, String action, {String? userType}) async {
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
     try {
       if (action == 'approve') {
         await _api.dio.post(
@@ -124,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(isGerman ? 'Nutzer freigeschaltet!' : 'User approved!'),
+            content: Text(l10n.settingsUserApproved),
             backgroundColor: const Color(0xFF2E7D32),
           ));
         }
@@ -137,7 +135,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await _api.dio.patch('/admin/users/$userId/deactivate');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(isGerman ? 'Konto gesperrt.' : 'Account deactivated.'),
+            content: Text(l10n.settingsAccountDeactivated),
             backgroundColor: Colors.orange,
           ));
         }
@@ -148,7 +146,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await _api.dio.delete('/admin/users/$userId');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(isGerman ? 'Nutzer gelöscht.' : 'User deleted.'),
+            content: Text(l10n.settingsUserDeleted),
             backgroundColor: Colors.redAccent,
           ));
         }
@@ -160,8 +158,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Aktion fehlgeschlagen.'),
+          SnackBar(
+            content: Text(l10n.settingsActionFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -173,20 +171,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String id,
     required String username,
     required String action,
-    required bool isGerman,
+    required AppLocalizations l10n,
     required ThemeAttributes attrs,
   }) async {
     final isDelete = action == 'delete';
-    final title = isDelete
-        ? (isGerman ? 'Konto löschen?' : 'Delete account?')
-        : (isGerman ? 'Konto sperren?' : 'Deactivate account?');
+    final title = isDelete ? l10n.settingsDeleteAccountTitle : l10n.settingsDeactivateAccountTitle;
     final body = isDelete
-        ? (isGerman
-            ? 'Das Konto von "$username" wird unwiderruflich gelöscht. Fortfahren?'
-            : 'The account "$username" will be permanently deleted. Continue?')
-        : (isGerman
-            ? 'Das Konto von "$username" wird gesperrt. Der Nutzer kann sich nicht mehr anmelden, das Konto bleibt aber erhalten.'
-            : 'The account "$username" will be locked. The user cannot log in anymore, but the account is kept.');
+        ? l10n.settingsDeleteAccountBody(username)
+        : l10n.settingsDeactivateAccountBody(username);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -198,7 +190,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(isGerman ? 'Abbrechen' : 'Cancel',
+            child: Text(l10n.commonCancel,
                 style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
@@ -207,9 +199,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(isDelete
-                ? (isGerman ? 'Löschen' : 'Delete')
-                : (isGerman ? 'Sperren' : 'Deactivate')),
+            child: Text(isDelete ? l10n.commonDelete : l10n.settingsDeactivate),
           ),
         ],
       ),
@@ -225,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _syncing = true;
     });
 
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final res = await _api.dio.post('/sync/translations');
@@ -233,9 +223,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? '$count Übersetzungen synchronisiert!' 
-              : '$count translations synced!'),
+            content: Text(l10n.settingsSyncSuccess(count.toString())),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -244,7 +232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Fehler bei der Synchronisation' : 'Sync error: $e'),
+            content: Text(l10n.settingsSyncError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -261,7 +249,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _syncing = true;
     });
 
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final res = await _api.dio.post('/sync/priority');
@@ -269,9 +257,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? '$count Priority-Module synchronisiert!' 
-              : '$count priority modules synced!'),
+            content: Text(l10n.settingsPrioritySyncSuccess(count.toString())),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -280,9 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman 
-              ? 'Fehler beim Synchronisieren der Priority-Liste. Wurde die Liste schon generiert?' 
-              : 'Error syncing priority list: $e'),
+            content: Text(l10n.settingsPrioritySyncError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -294,7 +278,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _pickAndUploadBackup(ThemeAttributes attrs, bool isGerman) async {
+  Future<void> _pickAndUploadBackup(ThemeAttributes attrs, AppLocalizations l10n) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['zip'],
@@ -335,9 +319,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman
-                ? 'Backup erfolgreich: $count Dateien verarbeitet.'
-                : 'Backup successful: $count files processed.'),
+            content: Text(l10n.settingsBackupSuccess(count.toString())),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -346,7 +328,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Upload fehlgeschlagen.' : 'Upload failed.'),
+            content: Text(l10n.settingsUploadFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -362,9 +344,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final themeState = ref.watch(themeProvider);
-    final langState = ref.watch(languageProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = langState.targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     final isAdmin = user != null && user.role == 'admin';
     final isRegEnabled = _adminSettings['registration_enabled']?.toString() == '1';
@@ -390,7 +371,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isGerman ? 'Einstellungen' : 'Settings',
+                    l10n.settingsTitle,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -399,7 +380,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isGerman ? 'SYSTEM-KONFIGURATION' : 'SYSTEM CONFIGURATION',
+                    l10n.settingsSystemConfig,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -434,7 +415,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 Icon(LucideIcons.lock, size: 20, color: attrs.brand600),
                                 const SizedBox(width: 8),
                                 Text(
-                                  isGerman ? 'Registrierung' : 'Registration',
+                                  l10n.settingsRegistration,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -452,9 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isGerman 
-                              ? 'Schalte das Registrierungsformular global an oder aus.' 
-                              : 'Toggle the global registration form visibility.',
+                          l10n.settingsRegistrationHint,
                           style: TextStyle(color: attrs.textMuted, fontSize: 13),
                         ),
                       ],
@@ -476,7 +455,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             Icon(LucideIcons.userPlus, size: 20, color: attrs.brand600),
                             const SizedBox(width: 8),
                             Text(
-                              isGerman ? 'Wartende Nutzer' : 'Pending Users',
+                              l10n.settingsPendingUsers,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -510,7 +489,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const Center(child: CircularProgressIndicator())
                         else if (_pendingUsers.isEmpty)
                           Text(
-                            isGerman ? 'Keine neuen Anfragen.' : 'No new requests.',
+                            l10n.settingsNoNewRequests,
                             style: TextStyle(
                               color: attrs.textMuted,
                               fontStyle: FontStyle.italic,
@@ -571,7 +550,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                 const Icon(LucideIcons.star, size: 10, color: Colors.amber),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  isGerman ? 'Möchte Reviewer werden' : 'Wants to be Reviewer',
+                                                  l10n.settingsWantsReviewer,
                                                   style: const TextStyle(fontSize: 10, color: Colors.amber, fontWeight: FontWeight.bold),
                                                 ),
                                               ],
@@ -601,7 +580,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           child: DropdownButtonFormField<String>(
                                             value: approveType,
                                             decoration: InputDecoration(
-                                              labelText: isGerman ? 'Rolle zuweisen' : 'Assign role',
+                                              labelText: l10n.settingsAssignRole,
                                               isDense: true,
                                               contentPadding: const EdgeInsets.symmetric(
                                                   horizontal: 10, vertical: 8),
@@ -609,12 +588,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             items: [
                                               DropdownMenuItem(
                                                 value: 'translator',
-                                                child: Text(isGerman ? 'Übersetzer' : 'Translator',
+                                                child: Text(l10n.settingsRoleTranslator,
                                                     style: const TextStyle(fontSize: 13)),
                                               ),
                                               DropdownMenuItem(
                                                 value: 'reviewer',
-                                                child: Text(isGerman ? 'Reviewer' : 'Reviewer',
+                                                child: Text(l10n.settingsRoleReviewer,
                                                     style: const TextStyle(fontSize: 13)),
                                               ),
                                             ],
@@ -631,13 +610,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                               size: 20, color: Colors.green),
                                           onPressed: () =>
                                               _handleUserAction(id, 'approve', userType: approveType),
-                                          tooltip: isGerman ? 'Freischalten' : 'Approve',
+                                          tooltip: l10n.settingsApprove,
                                         ),
                                         IconButton(
                                           icon: const Icon(LucideIcons.trash2,
                                               size: 18, color: Colors.redAccent),
                                           onPressed: () => _handleUserAction(id, 'delete'),
-                                          tooltip: isGerman ? 'Ablehnen' : 'Reject',
+                                          tooltip: l10n.settingsReject,
                                         ),
                                       ],
                                     ),
@@ -666,7 +645,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Icon(LucideIcons.users, size: 20, color: attrs.brand600),
                       const SizedBox(width: 8),
                       Text(
-                        isGerman ? 'Aktive Benutzer' : 'Active Users',
+                        l10n.settingsActiveUsers,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                       const SizedBox(width: 10),
@@ -686,7 +665,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   if (_loadingAdmin)
                     const Center(child: CircularProgressIndicator())
                   else if (_activeUsers.isEmpty)
-                    Text(isGerman ? 'Keine aktiven Benutzer.' : 'No active users.',
+                    Text(l10n.settingsNoActiveUsers,
                         style: TextStyle(color: attrs.textMuted, fontSize: 13))
                   else
                     ListView.builder(
@@ -749,8 +728,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           ),
                                           child: Text(
                                             userType == 'reviewer'
-                                                ? (isGerman ? 'Reviewer' : 'Reviewer')
-                                                : (isGerman ? 'Übersetzer' : 'Translator'),
+                                                ? l10n.settingsRoleReviewer
+                                                : l10n.settingsRoleTranslator,
                                             style: TextStyle(
                                               fontSize: 10,
                                               color: userType == 'reviewer' ? Colors.green : attrs.brand600,
@@ -772,23 +751,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               // Actions
                               IconButton(
                                 icon: Icon(LucideIcons.lock, size: 17, color: Colors.orange.shade400),
-                                tooltip: isGerman ? 'Konto sperren' : 'Deactivate',
+                                tooltip: l10n.settingsDeactivateAccountTooltip,
                                 onPressed: () => _confirmAndAct(
                                   id: id,
                                   username: username,
                                   action: 'deactivate',
-                                  isGerman: isGerman,
+                                  l10n: l10n,
                                   attrs: attrs,
                                 ),
                               ),
                               IconButton(
                                 icon: const Icon(LucideIcons.trash2, size: 17, color: Colors.redAccent),
-                                tooltip: isGerman ? 'Konto löschen' : 'Delete account',
+                                tooltip: l10n.settingsDeleteAccountAction,
                                 onPressed: () => _confirmAndAct(
                                   id: id,
                                   username: username,
                                   action: 'delete',
-                                  isGerman: isGerman,
+                                  l10n: l10n,
                                   attrs: attrs,
                                 ),
                               ),
@@ -823,7 +802,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Icon(LucideIcons.palette, size: 20, color: attrs.brand600),
                               const SizedBox(width: 8),
                               Text(
-                                isGerman ? 'Erscheinungsbild' : 'Appearance',
+                                l10n.settingsAppearance,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -836,12 +815,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ...['pearl', 'dark', 'glassy', 'nature', 'liquid', 'stage'].map((themeId) {
                             final isSel = themeState.themeId == themeId;
                             String tName = themeId.toUpperCase();
-                            if (themeId == 'pearl')  tName = isGerman ? 'HELL (PERLE)' : 'LIGHT (PEARL)';
-                            if (themeId == 'dark')   tName = isGerman ? 'DUNKEL' : 'DARK';
-                            if (themeId == 'glassy') tName = isGerman ? 'GLASIG' : 'GLASSY';
-                            if (themeId == 'nature') tName = isGerman ? 'NATUR' : 'NATURE';
-                            if (themeId == 'liquid') tName = isGerman ? 'FLÜSSIG' : 'LIQUID';
-                            if (themeId == 'stage')  tName = isGerman ? 'BÜHNE' : 'STAGE';
+                            if (themeId == 'pearl')  tName = l10n.settingsThemePearl;
+                            if (themeId == 'dark')   tName = l10n.settingsThemeDark;
+                            if (themeId == 'glassy') tName = l10n.settingsThemeGlassy;
+                            if (themeId == 'nature') tName = l10n.settingsThemeNature;
+                            if (themeId == 'liquid') tName = l10n.settingsThemeLiquid;
+                            if (themeId == 'stage')  tName = l10n.settingsThemeStage;
 
                             IconData tIcon = LucideIcons.palette;
                             if (themeId == 'pearl')  tIcon = LucideIcons.sun;
@@ -903,7 +882,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Icon(LucideIcons.type, size: 20, color: attrs.brand600),
                               const SizedBox(width: 8),
                               Text(
-                                isGerman ? 'Typografie' : 'Typography',
+                                l10n.settingsTypography,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -914,19 +893,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            isGerman 
-                                ? 'Schriftstil der Benutzeroberfläche ändern.'
-                                : 'Modify interface font family.',
+                            l10n.settingsFontHint,
                             style: TextStyle(color: attrs.textMuted, fontSize: 13),
                           ),
                           const SizedBox(height: 20),
                           Row(
                             children: [
-                              _fontButton('inter', 'Inter', isGerman ? 'Klar' : 'Clean', themeState.fontStyle, attrs),
+                              _fontButton('inter', 'Inter', l10n.settingsFontClean, themeState.fontStyle, attrs),
                               const SizedBox(width: 8),
-                              _fontButton('outfit', 'Outfit', isGerman ? 'Futuristisch' : 'Futuristic', themeState.fontStyle, attrs),
+                              _fontButton('outfit', 'Outfit', l10n.settingsFontFuturistic, themeState.fontStyle, attrs),
                               const SizedBox(width: 8),
-                              _fontButton('sora', 'Sora', isGerman ? 'Tech' : 'Tech', themeState.fontStyle, attrs),
+                              _fontButton('sora', 'Sora', l10n.settingsFontTech, themeState.fontStyle, attrs),
                             ],
                           ),
                         ],
@@ -953,7 +930,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Icon(LucideIcons.zap, size: 20, color: attrs.brand600),
                               const SizedBox(width: 8),
                               Text(
-                                isGerman ? 'Workflow & Spaß' : 'Workflow & Fun',
+                                l10n.settingsWorkflowFun,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -973,14 +950,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      isGerman ? 'Erfolgs-Feier (Konfetti)' : 'Success Celebration (Confetti)',
+                                      l10n.settingsConfettiTitle,
                                       style: TextStyle(fontWeight: FontWeight.bold, color: attrs.textMain),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      isGerman 
-                                          ? 'Zeigt eine kleine Animation beim erfolgreichen Speichern.' 
-                                          : 'Shows a small animation when successfully saving.',
+                                      l10n.settingsConfettiHint,
                                       style: TextStyle(color: attrs.textMuted, fontSize: 11),
                                     ),
                                   ],
@@ -1004,14 +979,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      isGerman ? 'Verbesserte Lesbarkeit (Große Schrift)' : 'Enhanced Readability (Large Font)',
+                                      l10n.settingsLargeUiTitle,
                                       style: TextStyle(fontWeight: FontWeight.bold, color: attrs.textMain),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      isGerman
-                                          ? 'Vergrößert die Schrift und Badges für bessere Sichtbarkeit.'
-                                          : 'Increases the fonts and badges sizing for readability.',
+                                      l10n.settingsLargeUiHint,
                                       style: TextStyle(color: attrs.textMuted, fontSize: 11),
                                     ),
                                   ],
@@ -1035,16 +1008,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      isGerman
-                                          ? 'Automatische Absatzformatierung (¶ Auto-P)'
-                                          : 'Automatic Paragraph Formatting (¶ Auto-P)',
+                                      l10n.settingsAutoPTitle,
                                       style: TextStyle(fontWeight: FontWeight.bold, color: attrs.textMain),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      isGerman
-                                          ? 'Wandelt einfachen Text automatisch in <p>-Absätze um, sobald ein Modul im Review-Screen geladen wird. Entspricht dem manuellen Klick auf den ¶-Button.'
-                                          : 'Automatically wraps plain text in <p> paragraphs when a module is loaded in the Review Screen. Equivalent to clicking the ¶ button manually.',
+                                      l10n.settingsAutoPHint,
                                       style: TextStyle(color: attrs.textMuted, fontSize: 11),
                                     ),
                                   ],
@@ -1078,7 +1047,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   Icon(LucideIcons.database, size: 20, color: attrs.brand600),
                                   const SizedBox(width: 8),
                                   Text(
-                                    isGerman ? 'Datenbank-Sync' : 'Database Sync',
+                                    l10n.settingsDatabaseSync,
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -1088,18 +1057,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ],
                               ),
                               Tooltip(
-                                message: isGerman 
-                                    ? 'Gleicht die DB mit den JSON-Dateien auf dem Server ab.'
-                                    : 'Synchronizes db entries with json translation files.',
+                                message: l10n.settingsDatabaseSyncTooltip,
                                 child: Icon(LucideIcons.helpCircle, size: 16, color: attrs.textMuted),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            isGerman 
-                                ? 'Gleicht die internen Datenbank-Einträge mit den JSON-Dateien auf dem Server ab.' 
-                                : 'Syncs internal database entries with translation JSONs on the server.',
+                            l10n.settingsDatabaseSyncHint,
                             style: TextStyle(color: attrs.textMuted, fontSize: 13),
                           ),
                           const SizedBox(height: 20),
@@ -1116,9 +1081,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                       : const Icon(LucideIcons.refreshCw, size: 16),
                                   label: Text(
-                                    _syncing 
-                                        ? (isGerman ? 'Synchronisiere...' : 'Syncing...')
-                                        : (isGerman ? 'Jetzt synchronisieren' : 'Sync Now'),
+                                    _syncing
+                                        ? l10n.settingsSyncing
+                                        : l10n.settingsSyncNow,
                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -1134,7 +1099,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                   icon: Icon(LucideIcons.zap, size: 16, color: Colors.amber[600]),
                                   label: Text(
-                                    isGerman ? 'D11 Liste einlesen' : 'Sync D11 List',
+                                    l10n.settingsSyncD11List,
                                     style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -1158,7 +1123,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Icon(LucideIcons.upload, size: 20, color: attrs.brand600),
                               const SizedBox(width: 8),
                               Text(
-                                isGerman ? 'Backup einspielen (.zip)' : 'Upload Backup (.zip)',
+                                l10n.settingsUploadBackup,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -1170,7 +1135,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const SizedBox(height: 20),
                           if (!_isUploading)
                             ElevatedButton.icon(
-                              onPressed: () => _pickAndUploadBackup(attrs, isGerman),
+                              onPressed: () => _pickAndUploadBackup(attrs, l10n),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size.fromHeight(50),
                                 backgroundColor: attrs.bgInput,
@@ -1183,7 +1148,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                               icon: const Icon(LucideIcons.plus, size: 18),
                               label: Text(
-                                isGerman ? 'ZIP Datei auswählen' : 'Select ZIP File',
+                                l10n.settingsSelectZipFile,
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             )
@@ -1195,7 +1160,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      isGerman ? 'Lade hoch...' : 'Uploading...',
+                                      l10n.settingsUploading,
                                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: attrs.textMuted),
                                     ),
                                     Text(
@@ -1232,7 +1197,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   Icon(LucideIcons.terminal, size: 20, color: attrs.brand600),
                                   const SizedBox(width: 8),
                                   Text(
-                                    isGerman ? 'Fehler-Diagnose & System-Logs' : 'Error Diagnostics & System Logs',
+                                    l10n.settingsErrorDiagnostics,
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -1249,13 +1214,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       Clipboard.setData(ClipboardData(text: text));
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text(isGerman ? 'Logs in Zwischenablage kopiert! 📋' : 'Logs copied to clipboard! 📋'),
+                                          content: Text(l10n.settingsLogsCopied),
                                           backgroundColor: const Color(0xFF2E7D32),
                                         ),
                                       );
                                     },
                                     icon: const Icon(LucideIcons.copy, size: 14),
-                                    label: Text(isGerman ? 'Kopieren' : 'Copy Logs'),
+                                    label: Text(l10n.settingsCopyLogs),
                                     style: TextButton.styleFrom(foregroundColor: attrs.textMuted),
                                   ),
                                   const SizedBox(width: 8),
@@ -1264,13 +1229,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       LogService.rotate();
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text(isGerman ? 'Logs archiviert und rotiert! 📁' : 'Logs archived and rotated! 📁'),
+                                          content: Text(l10n.settingsLogsRotated),
                                           backgroundColor: const Color(0xFF2E7D32),
                                         ),
                                       );
                                     },
                                     icon: const Icon(LucideIcons.archive, size: 14),
-                                    label: Text(isGerman ? 'Rotieren' : 'Rotate'),
+                                    label: Text(l10n.settingsRotate),
                                     style: TextButton.styleFrom(foregroundColor: attrs.brand600),
                                   ),
                                   const SizedBox(width: 8),
@@ -1279,7 +1244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       LogService.clear();
                                     },
                                     icon: const Icon(LucideIcons.trash2, size: 14),
-                                    label: Text(isGerman ? 'Löschen' : 'Clear'),
+                                    label: Text(l10n.settingsClear),
                                     style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
                                   ),
                                 ],
@@ -1334,7 +1299,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Row(
                                 children: [
                                   Text(
-                                    isGerman ? 'Loglimit: ' : 'Log Limit: ',
+                                    l10n.settingsLogLimit,
                                     style: TextStyle(fontSize: 12, color: attrs.textMuted, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(width: 8),
@@ -1391,7 +1356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               if (filteredLogs.isEmpty) {
                                 return Center(
                                   child: Text(
-                                    isGerman ? 'Keine Logs vorhanden' : 'No logs recorded',
+                                    l10n.settingsNoLogs,
                                     style: TextStyle(color: attrs.textMuted, fontFamily: 'monospace'),
                                   ),
                                 );

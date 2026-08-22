@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../providers/sync_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Shows a progress bar with a Stop button while a sync is active.
 /// Renders nothing (SizedBox.shrink) when no sync is running.
@@ -14,6 +15,7 @@ class SyncProgressBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final syncStatus = ref.watch(syncProvider);
     final attrs = AppTheme.getAttributes(ref.watch(themeProvider).themeId);
+    final l10n = AppLocalizations.of(context)!;
 
     if (!syncStatus.active) return const SizedBox.shrink();
 
@@ -56,10 +58,10 @@ class SyncProgressBar extends ConsumerWidget {
                     children: [
                       Text(
                         syncStatus.syncType == 'quick'
-                            ? 'Quick Sync: ${syncStatus.current} geänderte Module …'
+                            ? l10n.syncBarQuickSync(syncStatus.current.toString())
                             : syncStatus.total > 0
-                                ? 'Full Sync: ${syncStatus.current} / ${syncStatus.total} Module'
-                                : 'Full Sync: ${syncStatus.current} Module …',
+                                ? l10n.syncBarFullSyncProgress(syncStatus.current.toString(), syncStatus.total.toString())
+                                : l10n.syncBarFullSync(syncStatus.current.toString()),
                         style: TextStyle(
                           color: attrs.textMain,
                           fontWeight: FontWeight.bold,

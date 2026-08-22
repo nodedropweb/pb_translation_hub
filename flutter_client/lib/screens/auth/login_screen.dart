@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
@@ -149,10 +150,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final authState = ref.watch(authProvider);
     final themeState = ref.watch(themeProvider);
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final de = PlatformDispatcher.instance.locale.languageCode == 'de';
 
     final hasSlide = _slides.isNotEmpty;
     final slide = hasSlide ? _slides[_current] : null;
@@ -238,9 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                de
-                                    ? (_autoPlay ? 'Pause' : 'Auto')
-                                    : (_autoPlay ? 'Pause' : 'Auto'),
+                                _autoPlay ? 'Pause' : 'Auto',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -316,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: Colors.white.withValues(alpha: 0.7)),
                         const SizedBox(width: 5),
                         Text(
-                          de ? 'Foto von ' : 'Photo by ',
+                          l10n.loginPhotoBy,
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 10),
@@ -346,7 +345,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         Text(
-                          de ? ' auf ' : ' on ',
+                          l10n.loginPhotoOn,
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 10),
@@ -419,7 +418,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          de ? 'Bitte melde dich an' : 'Please sign in',
+                          l10n.loginPleaseSignIn,
                           style: TextStyle(color: attrs.textMuted),
                         ),
                         const SizedBox(height: 32),
@@ -450,8 +449,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           controller: _usernameController,
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
-                            labelText:
-                                de ? 'Benutzername' : 'Username',
+                            labelText: l10n.loginUsername,
                             prefixIcon: const Icon(LucideIcons.user),
                           ),
                         ),
@@ -462,7 +460,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _handleLogin(),
                           decoration: InputDecoration(
-                            labelText: de ? 'Passwort' : 'Password',
+                            labelText: l10n.loginPassword,
                             prefixIcon: const Icon(LucideIcons.lock),
                           ),
                         ),
@@ -484,9 +482,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              de
-                                  ? 'Angemeldet bleiben'
-                                  : 'Remember me',
+                              l10n.loginRememberMe,
                               style: TextStyle(
                                   color: attrs.textMuted, fontSize: 14),
                             ),
@@ -504,7 +500,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? const CircularProgressIndicator(
                                     color: Colors.white)
                                 : Text(
-                                    de ? 'ANMELDEN' : 'SIGN IN',
+                                    l10n.loginSignIn,
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1),
@@ -512,7 +508,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _RegistrationLinkButton(de: de),
+                        const _RegistrationLinkButton(),
                       ],
                     ),
                   ),
@@ -597,8 +593,7 @@ class _SliderBtnState extends State<_SliderBtn>
 // ── Registrierungs-Link (unten im Formular) ───────────────────────────────────
 
 class _RegistrationLinkButton extends ConsumerStatefulWidget {
-  const _RegistrationLinkButton({required this.de});
-  final bool de;
+  const _RegistrationLinkButton();
 
   @override
   ConsumerState<_RegistrationLinkButton> createState() =>
@@ -629,14 +624,14 @@ class _RegistrationLinkButtonState
   @override
   Widget build(BuildContext context) {
     if (_registrationEnabled != true) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
     final attrs =
         AppTheme.getAttributes(ref.watch(themeProvider).themeId);
-    final de = widget.de;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          de ? 'Noch kein Account? ' : 'No account yet? ',
+          l10n.loginNoAccount,
           style: TextStyle(color: attrs.textMuted, fontSize: 13),
         ),
         GestureDetector(
@@ -644,7 +639,7 @@ class _RegistrationLinkButtonState
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: Text(
-              de ? 'Jetzt registrieren' : 'Register now',
+              l10n.loginRegisterNow,
               style: TextStyle(
                 color: attrs.brand600,
                 fontSize: 13,

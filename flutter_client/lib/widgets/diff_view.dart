@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/diff_utils.dart';
+import '../l10n/app_localizations.dart';
 
 /// Side-by-side diff widget.
 /// [leftText] and [rightText] are HTML strings — they get stripped before display.
@@ -131,6 +132,7 @@ class _DiffViewState extends State<DiffView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasChanges = _spans.any((s) => s.op != DiffOp.equal);
 
     if (!hasChanges) {
@@ -146,7 +148,7 @@ class _DiffViewState extends State<DiffView> {
             Icon(Icons.check_circle_outline, color: Colors.green.shade400, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Keine inhaltlichen Unterschiede erkannt.',
+              l10n.diffNoChanges,
               style: TextStyle(color: Colors.green.shade300, fontSize: 13),
             ),
           ],
@@ -161,9 +163,9 @@ class _DiffViewState extends State<DiffView> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              _legendChip(Icons.remove_circle_outline, Colors.red.shade400, 'Entfernt'),
+              _legendChip(Icons.remove_circle_outline, Colors.red.shade400, l10n.diffRemoved),
               const SizedBox(width: 12),
-              _legendChip(Icons.add_circle_outline, Colors.green.shade400, 'Hinzugefügt'),
+              _legendChip(Icons.add_circle_outline, Colors.green.shade400, l10n.diffAdded),
             ],
           ),
         ),

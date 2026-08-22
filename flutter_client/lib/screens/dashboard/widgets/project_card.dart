@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/module_logo.dart';
 
@@ -235,14 +236,14 @@ class ProjectCard extends StatelessWidget {
                         side: BorderSide(color: attrs.borderMain),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Bearbeiten',
-                            style: TextStyle(
+                        Text(AppLocalizations.of(context)!.commonEdit,
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 12)),
-                        SizedBox(width: 6),
-                        Icon(LucideIcons.chevronRight, size: 14),
+                        const SizedBox(width: 6),
+                        const Icon(LucideIcons.chevronRight, size: 14),
                       ],
                     ),
                   ),

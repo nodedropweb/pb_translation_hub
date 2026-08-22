@@ -9,6 +9,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_client.dart';
@@ -107,21 +108,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   int get _totalSteps => _Step.values.length - 1; // exclude 'done'
 
   void _goNext() {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _errorMessage = null);
     switch (_currentStep) {
       case _Step.account:
         if (_usernameCtrl.text.trim().isEmpty ||
             _emailCtrl.text.trim().isEmpty ||
             _passwordCtrl.text.isEmpty) {
-          setState(() => _errorMessage = 'Bitte alle Pflichtfelder ausfüllen.');
+          setState(() => _errorMessage = l10n.registerFillRequired);
           return;
         }
         if (_passwordCtrl.text != _password2Ctrl.text) {
-          setState(() => _errorMessage = 'Passwörter stimmen nicht überein.');
+          setState(() => _errorMessage = l10n.registerPasswordMismatch);
           return;
         }
         if (_passwordCtrl.text.length < 8) {
-          setState(() => _errorMessage = 'Passwort muss mindestens 8 Zeichen haben.');
+          setState(() => _errorMessage = l10n.registerPasswordTooShort);
           return;
         }
         setState(() => _currentStep = _Step.role);
@@ -129,7 +131,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         setState(() => _currentStep = _Step.languages);
       case _Step.languages:
         if (_selectedLanguages.isEmpty) {
-          setState(() => _errorMessage = 'Bitte mindestens eine Sprache wählen.');
+          setState(() => _errorMessage = l10n.registerSelectLanguage);
           return;
         }
         setState(() => _currentStep = _Step.apiKeys);
@@ -147,6 +149,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   }
 
   Future<void> _submitRegistration() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -170,7 +173,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         _currentStep = _Step.done;
       });
     } on DioException catch (e) {
-      final msg = e.response?.data?['error'] ?? 'Registrierung fehlgeschlagen.';
+      final msg = e.response?.data?['error'] ?? l10n.registerFailed;
       setState(() {
         _isSubmitting = false;
         _errorMessage = msg.toString();
@@ -178,7 +181,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     } catch (_) {
       setState(() {
         _isSubmitting = false;
-        _errorMessage = 'Registrierung fehlgeschlagen.';
+        _errorMessage = l10n.registerFailed;
       });
     }
   }
@@ -257,6 +260,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   }
 
   Widget _buildHeader(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Container(
@@ -270,9 +274,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           child: const Icon(LucideIcons.userPlus, color: Colors.white, size: 28),
         ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 16),
-        const Text(
-          'REGISTRIERUNG',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2),
+        Text(
+          l10n.registerHeaderTitle,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2),
         ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
         const SizedBox(height: 6),
         Text(
@@ -284,7 +288,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   }
 
   Widget _buildProgressBar(ThemeAttributes attrs) {
-    final labels = ['Account', 'Rolle', 'Sprachen', 'API-Keys'];
+    final l10n = AppLocalizations.of(context)!;
+    final labels = [l10n.registerStepAccount, l10n.registerStepRole, l10n.registerStepLanguages, l10n.registerStepApiKeys];
     final stepIdx = _stepIndex.clamp(0, labels.length - 1);
 
     return Row(
@@ -378,10 +383,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Step 1: Account ────────────────────────────────────────────────────────
 
   Widget _buildAccountStep(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stepTitle('Dein Account', LucideIcons.user, attrs),
+        _stepTitle(l10n.registerYourAccount, LucideIcons.user, attrs),
         const SizedBox(height: 20),
 
         // Avatar picker
@@ -431,19 +437,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         Center(
           child: Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text('Avatar (optional)', style: TextStyle(fontSize: 11, color: attrs.textMuted)),
+            child: Text(l10n.registerAvatarOptional, style: TextStyle(fontSize: 11, color: attrs.textMuted)),
           ),
         ),
         const SizedBox(height: 20),
 
-        _textField(_usernameCtrl, 'Benutzername *', LucideIcons.atSign, attrs),
+        _textField(_usernameCtrl, l10n.registerUsernameRequired, LucideIcons.atSign, attrs),
         const SizedBox(height: 14),
-        _textField(_emailCtrl, 'E-Mail-Adresse *', LucideIcons.mail, attrs,
+        _textField(_emailCtrl, l10n.registerEmailRequired, LucideIcons.mail, attrs,
             keyboardType: TextInputType.emailAddress),
         const SizedBox(height: 14),
-        _passwordField(_passwordCtrl, 'Passwort *', attrs),
+        _passwordField(_passwordCtrl, l10n.registerPasswordRequired, attrs),
         const SizedBox(height: 14),
-        _passwordField(_password2Ctrl, 'Passwort wiederholen *', attrs),
+        _passwordField(_password2Ctrl, l10n.registerPasswordRepeat, attrs),
       ],
     );
   }
@@ -451,30 +457,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Step 2: Role ───────────────────────────────────────────────────────────
 
   Widget _buildRoleStep(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stepTitle('Deine Rolle', LucideIcons.shield, attrs),
+        _stepTitle(l10n.registerYourRole, LucideIcons.shield, attrs),
         const SizedBox(height: 8),
         Text(
-          'Übersetzer können Texte übersetzen, haben aber keinen Zugriff auf die Review-Warteschlange. '
-          'Reviewer prüfen und geben übersetzte Inhalte frei.',
+          l10n.registerRoleExplanation,
           style: TextStyle(fontSize: 12, color: attrs.textMuted, height: 1.5),
         ),
         const SizedBox(height: 24),
         _roleCard(
           value: 'translator',
           icon: LucideIcons.penLine,
-          title: 'Übersetzer',
-          subtitle: 'Erstelle und bearbeite Übersetzungen.',
+          title: l10n.registerRoleTranslator,
+          subtitle: l10n.registerRoleTranslatorDesc,
           attrs: attrs,
         ),
         const SizedBox(height: 12),
         _roleCard(
           value: 'reviewer',
           icon: LucideIcons.checkCircle,
-          title: 'Reviewer',
-          subtitle: 'Prüfe und gebe Übersetzungen frei.',
+          title: l10n.registerRoleReviewer,
+          subtitle: l10n.registerRoleReviewerDesc,
           attrs: attrs,
         ),
       ],
@@ -535,20 +541,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Step 3: Languages ──────────────────────────────────────────────────────
 
   Widget _buildLanguagesStep(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stepTitle('Zielsprachen', LucideIcons.languages, attrs),
+        _stepTitle(l10n.registerTargetLanguages, LucideIcons.languages, attrs),
         const SizedBox(height: 8),
         Text(
-          'Wähle alle Sprachen, für die du tätig sein möchtest.',
+          l10n.registerLanguagesExplanation,
           style: TextStyle(fontSize: 12, color: attrs.textMuted),
         ),
         const SizedBox(height: 20),
         if (_loadingLanguages)
           const Center(child: CircularProgressIndicator())
         else if (_availableLanguages.isEmpty)
-          Text('Keine Sprachen verfügbar.', style: TextStyle(color: attrs.textMuted))
+          Text(l10n.registerNoLanguagesAvailable, style: TextStyle(color: attrs.textMuted))
         else
           Wrap(
             spacing: 8,
@@ -603,14 +610,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Step 4: API Keys ───────────────────────────────────────────────────────
 
   Widget _buildApiKeysStep(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stepTitle('API-Keys', LucideIcons.key, attrs),
+        _stepTitle(l10n.registerApiKeysTitle, LucideIcons.key, attrs),
         const SizedBox(height: 8),
         Text(
-          'Trage deine eigenen API-Keys ein. Jeder Nutzer verwendet ausschließlich seine eigenen Keys. '
-          'Du kannst diese auch später in deinem Profil nachtragen.',
+          l10n.registerApiKeysExplanation,
           style: TextStyle(fontSize: 12, color: attrs.textMuted, height: 1.5),
         ),
         const SizedBox(height: 20),
@@ -643,7 +650,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Keys werden verschlüsselt gespeichert und niemals mit anderen Nutzern geteilt.',
+                  l10n.registerKeysEncryptedNote,
                   style: TextStyle(fontSize: 11, color: attrs.textMuted, height: 1.4),
                 ),
               ),
@@ -661,6 +668,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     required TextEditingController controller,
     required ThemeAttributes attrs,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -669,7 +677,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             Icon(icon, size: 14, color: attrs.textMuted),
             const SizedBox(width: 6),
             Text(label, style: TextStyle(fontSize: 12, color: attrs.textMuted)),
-            Text(' (optional)', style: TextStyle(fontSize: 11, color: attrs.textMuted.withValues(alpha: 0.6))),
+            Text(l10n.registerOptionalSuffix, style: TextStyle(fontSize: 11, color: attrs.textMuted.withValues(alpha: 0.6))),
           ],
         ),
         const SizedBox(height: 6),
@@ -685,6 +693,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Done ───────────────────────────────────────────────────────────────────
 
   Widget _buildDoneStep(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -702,15 +711,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             .scale(duration: 500.ms, curve: Curves.easeOutBack)
             .fadeIn(duration: 400.ms),
         const SizedBox(height: 20),
-        const Text(
-          'Registrierung erfolgreich!',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          l10n.registerSuccessTitle,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
         const SizedBox(height: 12),
         Text(
-          'Dein Account wurde angelegt und wartet auf die Freischaltung durch einen Administrator. '
-          'Du wirst benachrichtigt, sobald dein Zugang aktiviert wurde.',
+          l10n.registerSuccessBody,
           style: TextStyle(color: attrs.textMuted, fontSize: 13, height: 1.6),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
@@ -720,7 +728,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           height: 50,
           child: ElevatedButton.icon(
             icon: const Icon(LucideIcons.logIn, size: 16),
-            label: const Text('Zur Anmeldung'),
+            label: Text(l10n.registerGoToLogin),
             onPressed: () => context.go('/login'),
           ),
         ).animate().fadeIn(delay: 500.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
@@ -731,6 +739,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Widget _buildNavButtons(ThemeAttributes attrs) {
+    final l10n = AppLocalizations.of(context)!;
     final isFirst = _stepIndex == 0;
     final isLast = _currentStep == _Step.apiKeys;
 
@@ -740,7 +749,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           Expanded(
             child: OutlinedButton.icon(
               icon: const Icon(LucideIcons.arrowLeft, size: 16),
-              label: const Text('Zurück'),
+              label: Text(l10n.commonBack),
               onPressed: _goBack,
             ),
           ),
@@ -753,7 +762,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                     width: 16, height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Icon(isLast ? LucideIcons.send : LucideIcons.arrowRight, size: 16),
-            label: Text(isLast ? 'Registrieren' : 'Weiter'),
+            label: Text(isLast ? l10n.registerSubmit : l10n.commonNext),
             onPressed: _isSubmitting ? null : _goNext,
           ),
         ),
@@ -823,6 +832,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   }
 
   Widget _buildUnsplashCredit(ThemeState themeState) {
+    final l10n = AppLocalizations.of(context)!;
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: BackdropFilter(
@@ -840,7 +850,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
               const Icon(LucideIcons.camera, size: 11, color: Colors.white70),
               const SizedBox(width: 5),
               Text(
-                'Foto von ${themeState.photographer!['name'] ?? ''} auf Unsplash',
+                l10n.registerPhotoCredit(themeState.photographer!['name'] ?? ''),
                 style: const TextStyle(color: Colors.white70, fontSize: 10),
               ),
             ],

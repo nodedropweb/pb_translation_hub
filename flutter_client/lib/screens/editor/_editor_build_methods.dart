@@ -72,8 +72,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
           // Source drawer toggle (icon only)
           Tooltip(
             message: _sourceDrawerOpen
-                ? 'Englische Quelle schließen'
-                : 'Englische Quelle einblenden',
+                ? AppLocalizations.of(context)!.editorCloseEnglishSource
+                : AppLocalizations.of(context)!.editorShowEnglishSource,
             child: IconButton(
               icon: Icon(
                 LucideIcons.panelLeft,
@@ -92,9 +92,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         Row(children: [
           if (_isIgnored) ...[
             Tooltip(
-              message: ref.read(languageProvider).targetLanguage.code == 'de'
-                  ? 'Modul wieder einreihen'
-                  : 'Unignore module',
+              message: AppLocalizations.of(context)!.editorUnignoreShortTooltip,
               child: _isUnignoring
                   ? const SizedBox(
                       width: 18,
@@ -113,7 +111,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
           ],
           if (_isReviewMode) ...[
             Tooltip(
-              message: 'Zurück in Review setzen',
+              message: AppLocalizations.of(context)!.editorBackToReviewTooltip,
               child: IconButton(
                 icon: const Icon(LucideIcons.rotateCcw,
                     color: Colors.orange, size: 18),
@@ -134,9 +132,9 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(LucideIcons.save, size: 14),
-              label: const Text('Speichern',
+              label: Text(AppLocalizations.of(context)!.commonSave,
                   style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: attrs.brand600,
                 foregroundColor: Colors.white,
@@ -152,9 +150,9 @@ extension EditorBuildMethodsExt on _EditorScreenState {
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : () => _save(andNext: true),
               icon: const Icon(LucideIcons.chevronsRight, size: 14),
-              label: const Text('& Weiter',
+              label: Text(AppLocalizations.of(context)!.editorAndNext,
                   style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 foregroundColor: Colors.white,
@@ -177,15 +175,15 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         IconButton(
           icon: const Icon(LucideIcons.arrowLeft, color: Colors.white70),
           onPressed: () => context.go('/'),
-          tooltip: 'Zurück zum Dashboard',
+          tooltip: AppLocalizations.of(context)!.editorBackToDashboard,
         ),
         const SizedBox(width: 4),
 
         // Source drawer toggle
         Tooltip(
           message: _sourceDrawerOpen
-              ? 'Englische Quelle schließen'
-              : 'Englische Quelle einblenden',
+              ? AppLocalizations.of(context)!.editorCloseEnglishSource
+              : AppLocalizations.of(context)!.editorShowEnglishSource,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
@@ -261,7 +259,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                 final lang =
                     ref.watch(languageProvider).targetLanguage;
                 return Text(
-                  'Übersetze nach ${lang.name} (${lang.code})',
+                  AppLocalizations.of(context)!.editorTranslatingInto(lang.name, lang.code),
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.1),
                       fontSize: 12),
@@ -283,7 +281,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                   color: Colors.amber.withValues(alpha: 0.15)),
             ),
             child: Text(
-              '$_remainingPriorityCount verbleibend',
+              AppLocalizations.of(context)!.editorRemainingCount(_remainingPriorityCount!),
               style: const TextStyle(
                   color: Colors.amber,
                   fontSize: 11,
@@ -296,12 +294,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         // "Unignore" button — shown when module is ignored
         if (_isIgnored) ...[
           Builder(builder: (ctx) {
-            final isGerman =
-                ref.read(languageProvider).targetLanguage.code == 'de';
             return Tooltip(
-              message: isGerman
-                  ? 'Modul wieder in die aktive Liste aufnehmen'
-                  : 'Return module to active list',
+              message: AppLocalizations.of(ctx)!.editorUnignoreLongTooltip,
               child: OutlinedButton.icon(
                 onPressed: _isUnignoring ? null : _unignoreModule,
                 icon: _isUnignoring
@@ -311,7 +305,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.teal))
                     : const Icon(LucideIcons.eye, size: 14),
-                label: Text(isGerman ? 'Einreihen' : 'Unignore'),
+                label: Text(AppLocalizations.of(ctx)!.editorUnignoreLabel),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.teal,
                   side: const BorderSide(color: Colors.teal, width: 1),
@@ -329,12 +323,11 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         // "Un-publish" button
         if (_isReviewMode) ...[
           Tooltip(
-            message:
-                'Veröffentlichung zurücknehmen und zurück in Review setzen',
+            message: AppLocalizations.of(context)!.editorUnpublishTooltip,
             child: OutlinedButton.icon(
               onPressed: _resetReview,
               icon: const Icon(LucideIcons.rotateCcw, size: 14),
-              label: const Text('Zurück in Review'),
+              label: Text(AppLocalizations.of(context)!.editorBackToReview),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange,
                 side: const BorderSide(color: Colors.orange, width: 1),
@@ -358,7 +351,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
               : const Icon(LucideIcons.save, size: 16),
-          label: const Text('Speichern'),
+          label: Text(AppLocalizations.of(context)!.commonSave),
           style: ElevatedButton.styleFrom(
             backgroundColor: attrs.brand600,
             foregroundColor: Colors.white,
@@ -374,7 +367,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         ElevatedButton.icon(
           onPressed: _isSaving ? null : () => _save(andNext: true),
           icon: const Icon(LucideIcons.chevronsRight, size: 16),
-          label: const Text('Speichern & Weiter'),
+          label: Text(AppLocalizations.of(context)!.editorSaveAndNext),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white.withValues(alpha: 0.1),
             foregroundColor: Colors.white,
@@ -456,7 +449,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'ENGLISCHE QUELLE',
+                  AppLocalizations.of(context)!.editorEnglishSourceHeader,
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.1),
                       fontSize: 11,
@@ -470,12 +463,12 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                     // Opens the explanation modal (same as the banner button).
                     if (_isStale) ...[
                       Tooltip(
-                        message: 'Erklärung anzeigen & englischen Text übernehmen',
+                        message: AppLocalizations.of(context)!.editorStaleTooltip,
                         child: TextButton.icon(
                           onPressed: _showStaleDialog,
                           icon: const Icon(Icons.warning_amber_rounded,
                               size: 13, color: Colors.orange),
-                          label: const Text('Veraltet — Details',
+                          label: Text(AppLocalizations.of(context)!.editorStaleDetailsLabel,
                               style: TextStyle(
                                   color: Colors.orange,
                                   fontSize: 11,
@@ -515,11 +508,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                     // ── Prompt copy ──────────────────────────────────────
                     Builder(builder: (context) {
                       final lang = ref.watch(languageProvider);
-                      final isGerman = lang.targetLanguage.code == 'de';
                       return Tooltip(
-                        message: isGerman
-                            ? 'Quelltext + Übersetzungsprompt kopieren'
-                            : 'Copy source + translation prompt',
+                        message: AppLocalizations.of(context)!.editorCopyPromptTooltip,
                         child: IconButton(
                           icon: const Icon(LucideIcons.clipboard,
                               size: 16, color: Colors.white54),
@@ -532,9 +522,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                             Clipboard.setData(ClipboardData(text: prompt));
                             ScaffoldMessenger.of(context)
                                 .showSnackBar(SnackBar(
-                              content: Text(isGerman
-                                  ? 'Prompt in die Zwischenablage kopiert 📋'
-                                  : 'Prompt copied to clipboard 📋'),
+                              content: Text(AppLocalizations.of(context)!.editorPromptCopied),
                               backgroundColor: Colors.teal,
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
@@ -553,8 +541,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                       onPressed: () =>
                           setState(() => _showSourceCode = !_showSourceCode),
                       tooltip: _showSourceCode
-                          ? 'Vorschau anzeigen'
-                          : 'HTML-Quellcode anzeigen',
+                          ? AppLocalizations.of(context)!.editorShowPreview
+                          : AppLocalizations.of(context)!.editorShowHtmlSource,
                     ),
                     const SizedBox(width: 4),
                     IconButton(
@@ -562,7 +550,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           size: 16, color: Colors.white54),
                       onPressed: () =>
                           setState(() => _sourceDrawerOpen = false),
-                      tooltip: 'Schließen',
+                      tooltip: AppLocalizations.of(context)!.commonClose,
                     ),
                   ],
                 ),
@@ -583,7 +571,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                         border: Border.all(color: Colors.white10),
                       ),
                       child: SelectableText(
-                        'ZUSAMMENFASSUNG:\n$_englishSummary\n\nHAUPTBESCHREIBUNG:\n$_englishBody',
+                        AppLocalizations.of(context)!.editorSourceDumpTemplate(_englishSummary, _englishBody),
                         style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12,
@@ -612,7 +600,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Zusammenfassung:',
+                                Text(AppLocalizations.of(context)!.editorSummaryLabelColon,
                                     style: TextStyle(
                                         color: attrs.brand600,
                                         fontSize: 12,
@@ -631,7 +619,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           ),
                           const SizedBox(height: 24),
                         ],
-                        Text('Beschreibung:',
+                        Text(AppLocalizations.of(context)!.editorDescriptionLabelColon,
                             style: TextStyle(
                                 color: attrs.brand600,
                                 fontSize: 12,
@@ -674,7 +662,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Englische Quelle hat sich geändert',
+                AppLocalizations.of(context)!.editorStaleDialogTitle,
                 style: TextStyle(
                   color: Colors.orange.shade300,
                   fontSize: 16,
@@ -691,10 +679,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Die vorhandene Übersetzung basiert auf einem veralteten englischen Originaltext. '
-                'Seit der letzten Übersetzung hat der Modulentwickler den englischen Text auf '
-                'Drupal.org geändert — der Inhalt der alten deutschen Übersetzung ist daher '
-                'möglicherweise nicht mehr korrekt oder vollständig.',
+                AppLocalizations.of(context)!.editorStaleExplanation,
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.75),
                     fontSize: 13,
@@ -710,10 +695,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Tipp: Klicke auf "Englisch übernehmen", um den aktuellen englischen '
-                  'Originaltext direkt in den Editor zu laden. Du kannst ihn dann als '
-                  'Ausgangspunkt für eine vollständige Neuübersetzung verwenden. '
-                  'Das englische Original ist zusätzlich im linken Panel sichtbar.',
+                  AppLocalizations.of(context)!.editorStaleTip,
                   style: TextStyle(
                       color: Colors.teal.shade200,
                       fontSize: 12,
@@ -726,8 +708,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Schließen',
-                style: TextStyle(color: Colors.white54)),
+            child: Text(AppLocalizations.of(context)!.commonClose,
+                style: const TextStyle(color: Colors.white54)),
           ),
           OutlinedButton.icon(
             onPressed: () {
@@ -736,13 +718,13 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                 context,
                 leftText: _englishBody,
                 rightText: _bodyController.text,
-                leftLabel: 'Englische Quelle',
-                rightLabel: 'Bisherige Übersetzung',
-                title: 'Was hat sich geändert?',
+                leftLabel: AppLocalizations.of(context)!.editorEnglishSourceShort,
+                rightLabel: AppLocalizations.of(context)!.editorPreviousTranslation,
+                title: AppLocalizations.of(context)!.editorWhatChangedTitle,
               );
             },
             icon: const Icon(Icons.compare_arrows, size: 14),
-            label: const Text('Diff anzeigen',
+            label: Text(AppLocalizations.of(context)!.editorShowDiff,
                 style:
                     TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             style: OutlinedButton.styleFrom(
@@ -762,7 +744,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
             },
             icon: const Icon(Icons.download_for_offline_outlined,
                 size: 15),
-            label: const Text('Englisch übernehmen',
+            label: Text(AppLocalizations.of(context)!.editorUseEnglish,
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w700)),
             style: ElevatedButton.styleFrom(
@@ -799,7 +781,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Englische Quelle hat sich geändert — Übersetzung veraltet',
+              AppLocalizations.of(context)!.editorStaleBannerText,
               style: TextStyle(
                   color: Colors.orange.shade300,
                   fontSize: 13,
@@ -819,7 +801,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               textStyle: const TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w600),
             ),
-            child: const Text('Details & Übernehmen'),
+            child: Text(AppLocalizations.of(context)!.editorDetailsAndApply),
           ),
         ],
       ),
@@ -841,20 +823,22 @@ extension EditorBuildMethodsExt on _EditorScreenState {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'DEUTSCHE ÜBERSETZUNG',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1),
-                ),
+                Builder(builder: (context) {
+                  final langName = ref.watch(languageProvider).targetLanguage.name;
+                  return Text(
+                    AppLocalizations.of(context)!.editorTranslationSectionHeader(langName.toUpperCase()),
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1),
+                  );
+                }),
                 Row(
                   children: [
                     // ── Manual prompt copy ──────────────────────────────
                     Builder(builder: (context) {
                       final lang = ref.watch(languageProvider);
-                      final isGerman = lang.targetLanguage.code == 'de';
                       return TextButton.icon(
                         onPressed: () {
                           final langcode = lang.targetLanguage.code;
@@ -865,18 +849,16 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           );
                           Clipboard.setData(ClipboardData(text: prompt));
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(isGerman
-                                ? 'Prompt in die Zwischenablage kopiert 📋'
-                                : 'Prompt copied to clipboard 📋'),
+                            content: Text(AppLocalizations.of(context)!.editorPromptCopied),
                             backgroundColor: Colors.teal,
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                           ));
                         },
                         icon: const Icon(LucideIcons.clipboard, size: 14),
-                        label: Text(
-                          isGerman ? 'Prompt' : 'Prompt',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        label: const Text(
+                          'Prompt',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -937,7 +919,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           : Icon(LucideIcons.sparkles,
                               size: 14, color: Colors.white),
                       label: Text(
-                        _isAiTranslating ? 'Übersetze...' : 'Gemini',
+                        _isAiTranslating ? AppLocalizations.of(context)!.editorTranslatingEllipsis : 'Gemini',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: TextButton.styleFrom(
@@ -960,8 +942,8 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                               : LucideIcons.eye,
                           size: 14),
                       label: Text(_showPreview
-                          ? 'Editor anzeigen'
-                          : 'Vorschau anzeigen'),
+                          ? AppLocalizations.of(context)!.editorShowEditor
+                          : AppLocalizations.of(context)!.editorShowPreview),
                       style: TextButton.styleFrom(
                         foregroundColor: attrs.brand600,
                         padding: const EdgeInsets.symmetric(
@@ -984,7 +966,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Module title (read-only)
-                        _buildLabel('Modul-Titel (Englisch)'),
+                        _buildLabel(AppLocalizations.of(context)!.editorModuleTitleLabel),
                         TextField(
                           controller: TextEditingController(
                               text: _englishTitle),
@@ -1009,7 +991,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
 
                         // ── Summary editor ─────────────────────────────
                         _buildFieldModeToggle(
-                          'Zusammenfassung',
+                          AppLocalizations.of(context)!.editorSummaryFieldLabel,
                           _showSummaryHtml,
                           (val) {
                             setState(() => _showSummaryHtml = val);
@@ -1028,9 +1010,9 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                               Future.delayed(const Duration(milliseconds: 50),
                                   () => _syncToSourceIFrame('summary', cleaned));
                             }
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                              content: Text('HTML bereinigt'),
-                              duration: Duration(seconds: 2),
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(AppLocalizations.of(context)!.editorHtmlCleaned),
+                              duration: const Duration(seconds: 2),
                             ));
                           },
                         ),
@@ -1075,7 +1057,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
 
                         // ── Body editor ────────────────────────────────
                         _buildFieldModeToggle(
-                          'Hauptbeschreibung',
+                          AppLocalizations.of(context)!.editorBodyFieldLabel,
                           _showBodyHtml,
                           (val) {
                             setState(() => _showBodyHtml = val);
@@ -1094,9 +1076,9 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                               Future.delayed(const Duration(milliseconds: 50),
                                   () => _syncToSourceIFrame('body', cleaned));
                             }
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                              content: Text('HTML bereinigt'),
-                              duration: Duration(seconds: 2),
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(AppLocalizations.of(context)!.editorHtmlCleaned),
+                              duration: const Duration(seconds: 2),
                             ));
                           },
                         ),
@@ -1167,7 +1149,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               children: [
                 Icon(LucideIcons.eye, size: 14, color: attrs.brand600),
                 const SizedBox(width: 8),
-                Text('LIVE-VORSCHAU',
+                Text(AppLocalizations.of(context)!.editorLivePreviewHeader,
                     style: TextStyle(
                         color: attrs.brand600.withValues(alpha: 0.2),
                         fontSize: 11,
@@ -1195,7 +1177,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Zusammenfassung:',
+                    Text(AppLocalizations.of(context)!.editorSummaryLabelColon,
                         style: TextStyle(
                             color: attrs.brand600,
                             fontSize: 12,
@@ -1213,7 +1195,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               ),
               const SizedBox(height: 24),
             ],
-            Text('Beschreibung:',
+            Text(AppLocalizations.of(context)!.editorDescriptionLabelColon,
                 style: TextStyle(
                     color: attrs.brand600,
                     fontSize: 12,
@@ -1318,7 +1300,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
               if (onTidy != null) ...[
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'HTML bereinigen (DeepL-Artefakte entfernen)',
+                  message: AppLocalizations.of(context)!.editorTidyHtmlTooltip,
                   child: InkWell(
                     onTap: onTidy,
                     borderRadius: BorderRadius.circular(4),
@@ -1358,7 +1340,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           left: Radius.circular(5)),
                     ),
                     child: Text(
-                      'VISUELL',
+                      AppLocalizations.of(context)!.editorVisualMode,
                       style: TextStyle(
                         color: !showHtml
                             ? attrs.brand600
@@ -1389,7 +1371,7 @@ extension EditorBuildMethodsExt on _EditorScreenState {
                           right: Radius.circular(5)),
                     ),
                     child: Text(
-                      'QUELLCODE (HTML)',
+                      AppLocalizations.of(context)!.editorSourceCodeMode,
                       style: TextStyle(
                         color: showHtml
                             ? attrs.brand600

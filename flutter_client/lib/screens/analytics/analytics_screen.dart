@@ -9,6 +9,7 @@ import '../../providers/project_provider.dart';
 import '../../providers/analytics_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_container.dart';
+import '../../l10n/app_localizations.dart';
 
 // Akzentfarben für die Statusabschnitte (themenunabhängig).
 const _cReleased = Color(0xFF22C55E); // freigegeben
@@ -40,7 +41,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final attrs = AppTheme.getAttributes(ref.watch(themeProvider).themeId);
-    final isGerman = ref.watch(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
     final lang = ref.watch(languageProvider).targetLanguage;
     final counts = ref.watch(filterCountsProvider);
     final analytics = ref.watch(analyticsProvider);
@@ -71,7 +72,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isGerman ? 'Statistik' : 'Analytics',
+                      l10n.layoutNavAnalytics,
                       style: TextStyle(
                         fontSize: isMobile ? 22 : 32,
                         fontWeight: FontWeight.w900,
@@ -79,16 +80,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       ),
                     ),
                     Text(
-                      isGerman
-                          ? 'Kompatibilität, Übersetzungsbedarf und Wochen-Verlauf.'
-                          : 'Compatibility, translation backlog and weekly trends.',
+                      l10n.analyticsSubtitle,
                       style: TextStyle(fontSize: 13, color: attrs.textMuted),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                tooltip: isGerman ? 'Aktualisieren' : 'Refresh',
+                tooltip: l10n.commonRefresh,
                 onPressed: () {
                   ref.read(analyticsProvider.notifier).refresh();
                   ref
@@ -102,24 +101,24 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           const SizedBox(height: 28),
 
           // ── Übersetzungsbedarf ──────────────────────────────────────────
-          _sectionTitle(isGerman ? 'Übersetzungsbedarf' : 'Translation backlog',
+          _sectionTitle(l10n.analyticsBacklog,
               LucideIcons.languages, attrs),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _statCard(attrs, isGerman ? 'Fehlend' : 'Missing',
+              _statCard(attrs, l10n.analyticsMissing,
                   counts.missing, _cMissing, LucideIcons.circleDashed),
-              _statCard(attrs, isGerman ? 'Veraltet' : 'Stale', counts.stale,
+              _statCard(attrs, l10n.analyticsStale, counts.stale,
                   _cStale, LucideIcons.triangleAlert),
-              _statCard(attrs, isGerman ? 'Im Review' : 'In review',
+              _statCard(attrs, l10n.analyticsInReview,
                   counts.review, _cReview, LucideIcons.clock),
-              _statCard(attrs, isGerman ? 'Freigegeben' : 'Released',
+              _statCard(attrs, l10n.analyticsReleased,
                   counts.released, _cReleased, LucideIcons.circleCheck),
-              _statCard(attrs, isGerman ? 'Übersetzt' : 'Translated',
+              _statCard(attrs, l10n.analyticsTranslated,
                   counts.translated, attrs.brand600, LucideIcons.check),
-              _statCard(attrs, isGerman ? 'Module gesamt' : 'Total modules',
+              _statCard(attrs, l10n.analyticsTotalModules,
                   counts.all, attrs.textMuted, LucideIcons.boxes),
             ],
           ),
@@ -127,28 +126,24 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
           // ── Kompatibilität pro Drupal-Version ───────────────────────────
           _sectionTitle(
-              isGerman
-                  ? 'Kompatibilität pro Drupal-Version'
-                  : 'Compatibility by Drupal version',
+              l10n.analyticsCompatByVersion,
               LucideIcons.layers,
               attrs),
           const SizedBox(height: 4),
           Text(
-            isGerman
-                ? 'Sprache: ${lang.name} · freigegeben / im Review / fehlend'
-                : 'Language: ${lang.name} · released / in review / missing',
+            l10n.analyticsLanguageLegend(lang.name),
             style: TextStyle(fontSize: 12, color: attrs.textMuted),
           ),
           const SizedBox(height: 12),
           if (counts.versionCounts.isEmpty)
-            _emptyHint(attrs, isGerman ? 'Lade Zähler …' : 'Loading counts …')
+            _emptyHint(attrs, l10n.analyticsLoadingCounts)
           else
             Wrap(
               spacing: 16,
               runSpacing: 16,
               children: (counts.versionCounts.keys.toList()..sort())
                   .map((v) => _versionCard(
-                      attrs, v, counts.versionCounts[v]!, isMobile, isGerman))
+                      attrs, v, counts.versionCounts[v]!, isMobile))
                   .toList(),
             ),
           const SizedBox(height: 32),
@@ -156,7 +151,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           // ── Wochen-Auswahl ──────────────────────────────────────────────
           Row(
             children: [
-              Text(isGerman ? 'Zeitraum:' : 'Window:',
+              Text(l10n.analyticsWindow,
                   style: TextStyle(
                       color: attrs.textMuted, fontWeight: FontWeight.bold)),
               const SizedBox(width: 10),
@@ -182,7 +177,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       return DropdownMenuItem<int>(
                         value: v,
                         child: Text(
-                          isGerman ? '$v Wochen' : '$v weeks',
+                          l10n.analyticsWeeks(v.toString()),
                           style: TextStyle(
                               color: attrs.textMain,
                               fontWeight: FontWeight.bold,
@@ -211,26 +206,21 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
           // ── Wochenliste: Neue Beschreibungen ────────────────────────────
           _sectionTitle(
-              isGerman
-                  ? 'Neue Projektbeschreibungen pro Woche'
-                  : 'New project descriptions per week',
+              l10n.analyticsNewDescriptionsPerWeek,
               LucideIcons.filePlus,
               attrs),
           const SizedBox(height: 12),
-          _weekList(attrs, analytics.weeklyNew, _expandedNew, attrs.brand600,
-              isGerman),
+          _weekList(attrs, analytics.weeklyNew, _expandedNew, attrs.brand600),
           const SizedBox(height: 32),
 
           // ── Wochenliste: Veraltet markiert ──────────────────────────────
           _sectionTitle(
-              isGerman
-                  ? 'Als veraltet markiert pro Woche (${lang.name})'
-                  : 'Marked outdated per week (${lang.name})',
+              l10n.analyticsMarkedOutdatedPerWeek(lang.name),
               LucideIcons.triangleAlert,
               attrs),
           const SizedBox(height: 12),
           _weekList(
-              attrs, analytics.weeklyStale, _expandedStale, _cStale, isGerman),
+              attrs, analytics.weeklyStale, _expandedStale, _cStale),
           const SizedBox(height: 40),
         ],
       ),
@@ -290,7 +280,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _versionCard(ThemeAttributes attrs, int version, VersionCount vc,
-      bool isMobile, bool isGerman) {
+      bool isMobile) {
+    final l10n = AppLocalizations.of(context)!;
     final total = vc.all == 0 ? 1 : vc.all;
     return Container(
       width: isMobile ? double.infinity : 320,
@@ -320,9 +311,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               ),
               const Spacer(),
               Text(
-                  isGerman
-                      ? '${_fmt(vc.all)} Module'
-                      : '${_fmt(vc.all)} modules',
+                  l10n.analyticsModuleCount(_fmt(vc.all)),
                   style: TextStyle(
                       color: attrs.textMuted,
                       fontWeight: FontWeight.bold,
@@ -347,10 +336,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             runSpacing: 6,
             children: [
               _legend(_cReleased,
-                  isGerman ? 'Freigegeben' : 'Released', vc.released, attrs),
-              _legend(_cReview, isGerman ? 'Review' : 'Review', vc.review,
+                  l10n.analyticsReleased, vc.released, attrs),
+              _legend(_cReview, l10n.analyticsReviewShort, vc.review,
                   attrs),
-              _legend(_cMissing, isGerman ? 'Fehlend' : 'Missing', vc.missing,
+              _legend(_cMissing, l10n.analyticsMissing, vc.missing,
                   attrs),
             ],
           ),
@@ -388,10 +377,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _weekList(ThemeAttributes attrs, List<WeekBucket> weeks,
-      Set<String> expanded, Color barColor, bool isGerman) {
+      Set<String> expanded, Color barColor) {
+    final l10n = AppLocalizations.of(context)!;
     if (weeks.isEmpty) {
       return _emptyHint(
-          attrs, isGerman ? 'Keine Daten im Zeitraum.' : 'No data in window.');
+          attrs, l10n.analyticsNoDataInWindow);
     }
     final maxCount =
         weeks.map((w) => w.count).fold<int>(1, (a, b) => b > a ? b : a);
@@ -430,7 +420,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       const SizedBox(width: 8),
                       SizedBox(
                         width: 110,
-                        child: Text(_weekLabel(w.weekStart, isGerman),
+                        child: Text(_weekLabel(w.weekStart, l10n),
                             style: TextStyle(
                                 color: attrs.textMain,
                                 fontWeight: FontWeight.bold,
@@ -481,9 +471,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       ...w.modules.map((m) => _moduleChip(attrs, m)),
                       if (w.truncated)
                         Text(
-                            isGerman
-                                ? '… und weitere'
-                                : '… and more',
+                            l10n.analyticsAndMore,
                             style: TextStyle(
                                 color: attrs.textMuted,
                                 fontStyle: FontStyle.italic,
@@ -547,12 +535,12 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     return buf.toString();
   }
 
-  String _weekLabel(String isoDate, bool isGerman) {
+  String _weekLabel(String isoDate, AppLocalizations l10n) {
     // isoDate = YYYY-MM-DD (Montag). Als "KW ab DD.MM.YYYY" darstellen.
     if (isoDate.length < 10) return isoDate;
     final y = isoDate.substring(0, 4);
     final m = isoDate.substring(5, 7);
     final d = isoDate.substring(8, 10);
-    return isGerman ? '$d.$m.$y' : '$y-$m-$d';
+    return l10n.localeName == 'de' ? '$d.$m.$y' : '$y-$m-$d';
   }
 }

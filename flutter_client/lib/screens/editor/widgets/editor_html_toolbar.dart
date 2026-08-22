@@ -1,6 +1,7 @@
 import 'package:fleather/fleather.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 /// WYSIWYG toolbar that acts directly on a [FleatherController].
@@ -71,8 +72,8 @@ class EditorHtmlToolbar extends StatelessWidget {
         backgroundColor: const Color(0xFF1E222B),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Link einfügen',
-            style: TextStyle(
+        title: Text(AppLocalizations.of(context)!.htmlToolbarInsertLink,
+            style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: urlController,
@@ -90,8 +91,8 @@ class EditorHtmlToolbar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Abbrechen',
-                style: TextStyle(color: Colors.white70)),
+            child: Text(AppLocalizations.of(context)!.commonCancel,
+                style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, urlController.text),
@@ -100,7 +101,7 @@ class EditorHtmlToolbar extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Einfügen'),
+            child: Text(AppLocalizations.of(context)!.htmlToolbarInsert),
           ),
         ],
       ),
@@ -124,26 +125,26 @@ class EditorHtmlToolbar extends StatelessWidget {
         children: [
           if (!isSimple) ...[
             _btn('H2', () => _toggle(ParchmentAttribute.h2),
-                tooltip: 'Überschrift 2'),
+                tooltip: AppLocalizations.of(context)!.htmlToolbarHeading2),
             _btn('H3', () => _toggle(ParchmentAttribute.h3),
-                tooltip: 'Überschrift 3'),
+                tooltip: AppLocalizations.of(context)!.htmlToolbarHeading3),
             const SizedBox(width: 8),
             Container(width: 1, height: 20, color: Colors.white12),
             const SizedBox(width: 8),
           ],
           _btn('B', () => _toggle(ParchmentAttribute.bold),
-              tooltip: 'Fett (strong)'),
+              tooltip: AppLocalizations.of(context)!.htmlToolbarBold),
           _btn('I', () => _toggle(ParchmentAttribute.italic),
-              tooltip: 'Kursiv (em)'),
+              tooltip: AppLocalizations.of(context)!.htmlToolbarItalic),
           _btn('Link', () => _insertLink(context),
-              icon: LucideIcons.link, tooltip: 'Link einfügen (a)'),
+              icon: LucideIcons.link, tooltip: AppLocalizations.of(context)!.htmlToolbarLinkTooltip),
           if (!isSimple) ...[
             _btn('List', () => _toggle(ParchmentAttribute.ul),
-                icon: LucideIcons.list, tooltip: 'Aufzählung (ul)'),
+                icon: LucideIcons.list, tooltip: AppLocalizations.of(context)!.htmlToolbarBulletList),
             _btn('Num', () => _toggle(ParchmentAttribute.ol),
-                icon: LucideIcons.listOrdered, tooltip: 'Nummerierung (ol)'),
+                icon: LucideIcons.listOrdered, tooltip: AppLocalizations.of(context)!.htmlToolbarNumberedList),
             _btn('Quote', () => _toggle(ParchmentAttribute.bq),
-                icon: LucideIcons.quote, tooltip: 'Zitat (blockquote)'),
+                icon: LucideIcons.quote, tooltip: AppLocalizations.of(context)!.htmlToolbarQuote),
           ],
         ],
       ),

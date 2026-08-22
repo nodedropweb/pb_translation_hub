@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:confetti/confetti.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_client.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
@@ -506,8 +507,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _handleApprove() async {
+    final l10n = AppLocalizations.of(context)!;
     final lang = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = lang == 'de';
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
 
     final title = _titleController.text.trim();
@@ -521,17 +522,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF1E222B),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(isGerman ? 'Leeres Projekt' : 'Empty Project', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: Text(l10n.reviewEmptyProjectTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             content: Text(
-              isGerman 
-                ? 'Dieses Projekt ist leer (kein Titel, Zusammenfassung oder Inhalt) und kann nicht freigegeben werden. Bitte überspringen Sie es.'
-                : 'This project is empty (no title, summary, or body) and cannot be approved. Please skip it.',
+              l10n.reviewEmptyProjectBody,
               style: const TextStyle(color: Colors.white70),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(isGerman ? 'Abbrechen' : 'Cancel', style: const TextStyle(color: Colors.white70)),
+                child: Text(l10n.commonCancel, style: const TextStyle(color: Colors.white70)),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -542,7 +541,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   backgroundColor: attrs.brand600,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text(isGerman ? 'Überspringen' : 'Skip'),
+                child: Text(l10n.commonSkip),
               ),
             ],
           ),
@@ -568,7 +567,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       final confettiEnabled = ref.read(themeProvider).confettiEnabled;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isGerman ? 'Übersetzung freigegeben! 🎉' : 'Translation approved! 🎉'),
+          content: Text(l10n.reviewApprovedSuccess),
           backgroundColor: const Color(0xFF2E7D32),
           duration: const Duration(seconds: 2),
         ),
@@ -598,9 +597,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman
-                ? '⚠️ Freigabe von "$machine" fehlgeschlagen — bitte erneut versuchen.'
-                : '⚠️ Approval of "$machine" failed — please retry.'),
+            content: Text(l10n.reviewApprovalFailed(machine)),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 6),
           ),
@@ -612,8 +609,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _handleToggleIgnore() async {
-    final lang = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = lang == 'de';
+    final l10n = AppLocalizations.of(context)!;
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
 
     if (_isIgnored) {
@@ -635,7 +631,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               backgroundColor: attrs.brand600,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              content: Text(isGerman ? 'Ignorieren aufgehoben. Modul ist wieder aktiv!' : 'Unignored. Module is active again!'),
+              content: Text(l10n.reviewUnignoredSuccess),
             ),
           );
         }
@@ -647,7 +643,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              content: Text(isGerman ? 'Aktion fehlgeschlagen.' : 'Action failed.'),
+              content: Text(l10n.reviewActionFailed),
             ),
           );
         }
@@ -668,24 +664,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         backgroundColor: const Color(0xFF1A1F26),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: attrs.borderMain)),
         title: Text(
-          isGerman ? 'Modul ignorieren?' : 'Ignore Module?',
+          l10n.reviewIgnoreModuleTitle,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          isGerman 
-              ? 'Dieses Modul wird dauerhaft aus allen Listen ausgeblendet. Du bleibst nicht mehr daran hängen.'
-              : 'This module will be permanently hidden from all lists. You will no longer get stuck on it.',
+          l10n.reviewIgnoreModuleBody,
           style: TextStyle(color: attrs.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(isGerman ? 'Abbrechen' : 'Cancel', style: TextStyle(color: attrs.textMuted)),
+            child: Text(l10n.commonCancel, style: TextStyle(color: attrs.textMuted)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: Text(isGerman ? 'Ignorieren' : 'Ignore', style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(l10n.commonIgnore, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -706,7 +700,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            content: Text(isGerman ? 'Modul dauerhaft ausgeblendet.' : 'Module permanently ignored.'),
+            content: Text(l10n.reviewModulePermanentlyIgnored),
           ),
         );
         // Automatically skip to the next project
@@ -720,7 +714,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            content: Text(isGerman ? 'Ignorieren fehlgeschlagen.' : 'Failed to ignore module.'),
+            content: Text(l10n.reviewIgnoreFailed),
           ),
         );
       }
@@ -738,8 +732,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _loading = true;
     });
 
+    final l10n = AppLocalizations.of(context)!;
     final lang = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = lang == 'de';
 
     try {
       await _api.dio.post('/suggestions/$lang/${widget.machineName}', data: {
@@ -756,7 +750,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Vorschlag gespeichert! 💾' : 'Suggestion draft saved! 💾'),
+            content: Text(l10n.reviewSuggestionSaved),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -769,7 +763,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Speichern fehlgeschlagen.' : 'Failed to save suggestion draft.'),
+            content: Text(l10n.reviewSaveSuggestionFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -781,8 +775,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _deleteSuggestion(String id) async {
-    final lang = ref.read(languageProvider).targetLanguage.code;
-    final isGerman = lang == 'de';
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       await _api.dio.delete('/suggestions/$id');
@@ -792,7 +785,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isGerman ? 'Vorschlag gelöscht.' : 'Suggestion deleted.'),
+            content: Text(l10n.reviewSuggestionDeleted),
             backgroundColor: Colors.orange,
           ),
         );
@@ -800,14 +793,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Löschen fehlgeschlagen.'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(l10n.reviewDeleteFailed), backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
   void _applySuggestion(Map<String, dynamic> suggestion) {
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _titleController.text = suggestion['title'] ?? _titleController.text;
       _summaryController.text = suggestion['summary'] ?? '';
@@ -821,7 +814,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isGerman ? 'Vorschlag übernommen.' : 'Suggestion applied.'),
+        content: Text(l10n.reviewSuggestionApplied),
         backgroundColor: Colors.blueAccent,
       ),
     );
@@ -1043,10 +1036,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final themeState = ref.watch(themeProvider);
-    final langState = ref.watch(languageProvider);
+    ref.watch(languageProvider); // rebuild when the target language changes
     final attrs = AppTheme.getAttributes(themeState.themeId);
-    final isGerman = langState.targetLanguage.code == 'de';
     // Use the accurate total from filterCountsProvider (same source as the
     // Dashboard "Review" tab) instead of the capped _queue list length.
     final reviewCount = ref.watch(filterCountsProvider).review;
@@ -1069,7 +1062,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               CircularProgressIndicator(color: attrs.brand600),
               const SizedBox(height: 16),
               Text(
-                isGerman ? 'Review-Daten werden vorbereitet...' : 'Preparing review data...',
+                l10n.reviewPreparingData,
                 style: TextStyle(color: attrs.textMuted, fontWeight: FontWeight.bold),
               ),
             ],
@@ -1112,10 +1105,10 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   horizontal: isMobile ? 12 : 24,
                   vertical: isMobile ? 10 : 16),
               child: isMobile
-                  ? _buildReviewHeaderMobile(attrs, isGerman, reviewCount)
+                  ? _buildReviewHeaderMobile(attrs, l10n, reviewCount)
                   : isTablet
-                      ? _buildReviewHeaderTablet(attrs, isGerman, reviewCount)
-                      : _buildReviewHeaderDesktop(attrs, isGerman, reviewCount),
+                      ? _buildReviewHeaderTablet(attrs, l10n, reviewCount)
+                      : _buildReviewHeaderDesktop(attrs, l10n, reviewCount),
             ),
             const SizedBox(height: 32),
 
@@ -1125,7 +1118,6 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                 ReviewSidebar(
                   isOpen: _sidebarOpen,
                   attrs: attrs,
-                  isGerman: isGerman,
                   machineName: widget.machineName,
                   project: _project,
                   currentTranslation: _currentTranslation,
@@ -1154,14 +1146,14 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                           children: [
                             Row(
                               children: [
-                                _tabButton('edit', LucideIcons.edit3, isGerman ? 'Direkt-Editor' : 'Direct Edit'),
-                                _tabButton('preview', LucideIcons.eye, isGerman ? 'Vorschau' : 'Live Preview'),
+                                _tabButton('edit', LucideIcons.edit3, l10n.reviewDirectEdit),
+                                _tabButton('preview', LucideIcons.eye, l10n.reviewLivePreview),
                               ],
                             ),
                             Row(
                               children: [
                                 Text(
-                                  isGerman ? 'Vergleichen mit:' : 'Compare with:',
+                                  l10n.reviewCompareWith,
                                   style: TextStyle(color: attrs.textMuted, fontSize: 12, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(width: 8),
@@ -1171,7 +1163,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                                   style: TextStyle(color: attrs.textMain, fontSize: 12, fontWeight: FontWeight.bold),
                                   underline: const SizedBox(),
                                   items: [
-                                    DropdownMenuItem(value: 'current', child: Text(isGerman ? 'Produktions-Version' : 'Production Version')),
+                                    DropdownMenuItem(value: 'current', child: Text(l10n.reviewProductionVersion)),
                                     ..._suggestions.map((s) {
                                       final id = s['id']?.toString() ?? '';
                                       return DropdownMenuItem(value: id, child: Text('Suggestion #$id'));
@@ -1189,7 +1181,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       const SizedBox(height: 24),
 
                       // Canvas Content
-                      _buildCanvasContent(attrs, isGerman, baseTitle, baseSummary, baseBody, isMobile),
+                      _buildCanvasContent(attrs, l10n, baseTitle, baseSummary, baseBody, isMobile),
                     ],
                   ),
                 ),
@@ -1227,7 +1219,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
   // ── Responsive Header Helpers ────────────────────────────────────────────
 
   /// Kompaktes Suchfeld — navigiert direkt zum Review des gewählten Moduls.
-  Widget _buildReviewSearch(ThemeAttributes attrs, bool isGerman,
+  Widget _buildReviewSearch(ThemeAttributes attrs, AppLocalizations l10n,
       {double width = 240}) {
     final search = SearchWithAutocomplete(
       initialValue: '',
@@ -1245,7 +1237,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
         : SizedBox(width: width, child: search);
   }
 
-  void _copyPromptToClipboard(bool isGerman) {
+  void _copyPromptToClipboard(AppLocalizations l10n) {
     final lang = ref.read(languageProvider).targetLanguage.code;
     final srcSummary = _project?['attributes']?['body']?['summary'] ?? '';
     final srcBody    = _project?['attributes']?['body']?['value'] ?? '';
@@ -1256,9 +1248,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
     );
     Clipboard.setData(ClipboardData(text: prompt));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(isGerman
-          ? 'Prompt in die Zwischenablage kopiert 📋'
-          : 'Prompt copied to clipboard 📋'),
+      content: Text(l10n.editorPromptCopied),
       backgroundColor: Colors.teal,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 2),
@@ -1267,7 +1257,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
 
   /// Mobile-Header: zwei Zeilen — Titelzeile + Aktionszeile
   Widget _buildReviewHeaderMobile(
-      ThemeAttributes attrs, bool isGerman, int reviewCount) {
+      ThemeAttributes attrs, AppLocalizations l10n, int reviewCount) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -1302,7 +1292,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       color: attrs.brand600, size: 14),
                   const SizedBox(width: 4),
                   Text(
-                    isGerman ? 'Redaktionelle Überarbeitung' : 'Editorial Review',
+                    l10n.reviewEditorialReview,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
@@ -1339,9 +1329,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           ),
           if (reviewCount > 0)
             Tooltip(
-              message: isGerman
-                  ? 'Review-Warteschlange öffnen'
-                  : 'Open review queue',
+              message: l10n.reviewOpenQueue,
               child: InkWell(
                 onTap: () => context.go('/review-list'),
                 borderRadius: BorderRadius.circular(8),
@@ -1367,17 +1355,15 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
         ]),
         const SizedBox(height: 8),
         // Zeile 2: Suche (volle Breite)
-        _buildReviewSearch(attrs, isGerman, width: double.infinity),
+        _buildReviewSearch(attrs, l10n, width: double.infinity),
         const SizedBox(height: 8),
         // Zeile 3: Aktions-Buttons als gleichmäßige Row
         Row(children: [
           // Prompt (icon only)
           Tooltip(
-            message: isGerman
-                ? 'Prompt kopieren'
-                : 'Copy prompt',
+            message: l10n.reviewCopyPromptShort,
             child: OutlinedButton(
-              onPressed: () => _copyPromptToClipboard(isGerman),
+              onPressed: () => _copyPromptToClipboard(l10n),
               style: OutlinedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -1392,8 +1378,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           // Ignore (icon only)
           Tooltip(
             message: _isIgnored
-                ? (isGerman ? 'Ignorieren aufheben' : 'Unignore')
-                : (isGerman ? 'Ignorieren' : 'Ignore'),
+                ? l10n.reviewUnignoreShort
+                : l10n.commonIgnore,
             child: OutlinedButton(
               onPressed: _ignoring ? null : _handleToggleIgnore,
               style: OutlinedButton.styleFrom(
@@ -1421,7 +1407,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           const SizedBox(width: 6),
           // Skip
           Tooltip(
-            message: isGerman ? 'Überspringen' : 'Skip',
+            message: l10n.commonSkip,
             child: OutlinedButton(
               onPressed: () => _goToNextReview(),
               style: OutlinedButton.styleFrom(
@@ -1452,7 +1438,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(LucideIcons.checkCircle, size: 14),
               label: Text(
-                isGerman ? 'FREIGEBEN' : 'APPROVE',
+                l10n.reviewApproveButton,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 12),
               ),
@@ -1465,7 +1451,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
 
   /// Desktop-Header: Titel links | Suche Mitte | Aktionen rechts
   Widget _buildReviewHeaderDesktop(
-      ThemeAttributes attrs, bool isGerman, int reviewCount) {
+      ThemeAttributes attrs, AppLocalizations l10n, int reviewCount) {
     return Row(
       children: [
         // ── Links: Zurück + Sidebar + Titel ──────────────────────────────────
@@ -1480,10 +1466,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               const SizedBox(width: 4),
               Tooltip(
                 message: _sidebarOpen
-                    ? (isGerman ? 'Details ausblenden' : 'Hide details')
-                    : (isGerman
-                        ? 'Details & Englische Quelle'
-                        : 'Details & English Source'),
+                    ? l10n.reviewHideDetails
+                    : l10n.reviewDetailsAndEnglishSource,
                 child: IconButton(
                   onPressed: () =>
                       setState(() => _sidebarOpen = !_sidebarOpen),
@@ -1513,9 +1497,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                           color: attrs.brand600, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        isGerman
-                            ? 'Redaktionelle Überarbeitung'
-                            : 'Editorial Review',
+                        l10n.reviewEditorialReview,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
@@ -1546,9 +1528,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       if (reviewCount > 0) ...[
                         const SizedBox(width: 16),
                         Tooltip(
-                          message: isGerman
-                              ? 'Review-Warteschlange öffnen'
-                              : 'Open review queue',
+                          message: l10n.reviewOpenQueue,
                           child: InkWell(
                             onTap: () => context.go('/review-list'),
                             borderRadius: BorderRadius.circular(8),
@@ -1562,9 +1542,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                                       size: 14, color: attrs.brand600),
                                   const SizedBox(width: 6),
                                   Text(
-                                    isGerman
-                                        ? '$reviewCount ausstehend'
-                                        : '$reviewCount pending',
+                                    l10n.reviewPendingCountShort(reviewCount),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -1581,7 +1559,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${isGerman ? "Überprüfung von" : "Reviewing"} ${widget.machineName}',
+                    l10n.reviewReviewingModule(widget.machineName),
                     style: TextStyle(color: attrs.textMuted, fontSize: 13),
                   ),
                 ],
@@ -1595,7 +1573,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           flex: 2,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildReviewSearch(attrs, isGerman),
+            child: _buildReviewSearch(attrs, l10n),
           ),
         ),
 
@@ -1604,17 +1582,15 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           mainAxisSize: MainAxisSize.min,
           children: [
             Tooltip(
-              message: isGerman
-                  ? 'Übersetzung mit englischer Quelle vergleichen'
-                  : 'Compare translation with English source',
+              message: l10n.reviewCompareTranslationTooltip,
               child: OutlinedButton.icon(
                 onPressed: () => showDiffSheet(
                   context,
                   leftText: _project?['attributes']?['body']?['value'] ?? '',
                   rightText: _bodyController.text,
-                  leftLabel: isGerman ? 'Englische Quelle' : 'English Source',
-                  rightLabel: isGerman ? 'Übersetzung' : 'Translation',
-                  title: isGerman ? 'Vergleich' : 'Comparison',
+                  leftLabel: l10n.editorEnglishSourceShort,
+                  rightLabel: l10n.reviewTranslationLabel,
+                  title: l10n.reviewComparisonTitle,
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1622,17 +1598,15 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   foregroundColor: attrs.textMuted,
                 ),
                 icon: const Icon(Icons.compare_arrows, size: 16),
-                label: Text(isGerman ? 'DIFF' : 'DIFF',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text('DIFF',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(width: 8),
             Tooltip(
-              message: isGerman
-                  ? 'Quelltext + Übersetzungsprompt in die Zwischenablage kopieren'
-                  : 'Copy source text + translation prompt to clipboard',
+              message: l10n.reviewCopyPromptLongTooltip,
               child: OutlinedButton.icon(
-                onPressed: () => _copyPromptToClipboard(isGerman),
+                onPressed: () => _copyPromptToClipboard(l10n),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 16),
@@ -1672,8 +1646,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       size: 16),
               label: Text(
                 _isIgnored
-                    ? (isGerman ? 'IGNORIEREN AUFHEBEN' : 'UNIGNORE')
-                    : (isGerman ? 'IGNORIEREN' : 'IGNORE'),
+                    ? l10n.reviewUnignoreCaps
+                    : l10n.reviewIgnoreCaps,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -1687,7 +1661,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               ),
               icon: const Icon(LucideIcons.arrowRight, size: 16),
               label: Text(
-                isGerman ? 'ÜBERSPRINGEN (Strg+→)' : 'SKIP (Ctrl+→)',
+                l10n.reviewSkipShortcut,
                 style: TextStyle(
                     color: attrs.textMain, fontWeight: FontWeight.bold),
               ),
@@ -1708,9 +1682,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(LucideIcons.checkCircle, size: 16),
               label: Text(
-                isGerman
-                    ? 'FREIGEBEN FÜR PRODUKTION (Strg+Enter)'
-                    : 'APPROVE FOR PRODUCTION (Ctrl+Enter)',
+                l10n.reviewApproveForProduction,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -1722,7 +1694,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
 
   /// Tablet-Header (600–1099 dp): Zeile 1 Titel+Suche, Zeile 2 Buttons
   Widget _buildReviewHeaderTablet(
-      ThemeAttributes attrs, bool isGerman, int reviewCount) {
+      ThemeAttributes attrs, AppLocalizations l10n, int reviewCount) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -1737,10 +1709,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
             const SizedBox(width: 4),
             Tooltip(
               message: _sidebarOpen
-                  ? (isGerman ? 'Details ausblenden' : 'Hide details')
-                  : (isGerman
-                      ? 'Details & Englische Quelle'
-                      : 'Details & English Source'),
+                  ? l10n.reviewHideDetails
+                  : l10n.reviewDetailsAndEnglishSource,
               child: IconButton(
                 onPressed: () =>
                     setState(() => _sidebarOpen = !_sidebarOpen),
@@ -1770,7 +1740,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                         color: attrs.brand600, size: 16),
                     const SizedBox(width: 6),
                     Text(
-                      isGerman ? 'Redakt. Überarbeitung' : 'Editorial Review',
+                      l10n.reviewEditorialReviewShort,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -1797,9 +1767,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                     if (reviewCount > 0) ...[
                       const SizedBox(width: 8),
                       Tooltip(
-                        message: isGerman
-                            ? 'Review-Warteschlange öffnen'
-                            : 'Open review queue',
+                        message: l10n.reviewOpenQueue,
                         child: InkWell(
                           onTap: () => context.go('/review-list'),
                           borderRadius: BorderRadius.circular(8),
@@ -1831,7 +1799,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
             ),
             const Spacer(),
             // Suchfeld rechts in Zeile 1
-            _buildReviewSearch(attrs, isGerman, width: 220),
+            _buildReviewSearch(attrs, l10n, width: 220),
           ],
         ),
         const SizedBox(height: 8),
@@ -1841,11 +1809,9 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Tooltip(
-              message: isGerman
-                  ? 'Quelltext + Übersetzungsprompt kopieren'
-                  : 'Copy source + translation prompt',
+              message: l10n.editorCopyPromptTooltip,
               child: OutlinedButton.icon(
-                onPressed: () => _copyPromptToClipboard(isGerman),
+                onPressed: () => _copyPromptToClipboard(l10n),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 12),
@@ -1884,8 +1850,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       size: 13),
               label: Text(
                 _isIgnored
-                    ? (isGerman ? 'EINREIHEN' : 'UNIGNORE')
-                    : (isGerman ? 'IGNORIEREN' : 'IGNORE'),
+                    ? l10n.reviewUnignoreTablet
+                    : l10n.reviewIgnoreCaps,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 11),
               ),
@@ -1900,7 +1866,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               ),
               icon: const Icon(LucideIcons.arrowRight, size: 13),
               label: Text(
-                isGerman ? 'ÜBERSPRINGEN' : 'SKIP',
+                l10n.commonSkip.toUpperCase(),
                 style: TextStyle(
                     color: attrs.textMain,
                     fontWeight: FontWeight.bold,
@@ -1923,7 +1889,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(LucideIcons.checkCircle, size: 13),
               label: Text(
-                isGerman ? 'FREIGEBEN' : 'APPROVE',
+                l10n.reviewApproveButton,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 11),
               ),
@@ -1953,7 +1919,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
     );
   }
 
-  Widget _buildCanvasContent(ThemeAttributes attrs, bool isGerman, String baseTitle, String baseSummary, String baseBody, [bool isMobile = false]) {
+  Widget _buildCanvasContent(ThemeAttributes attrs, AppLocalizations l10n, String baseTitle, String baseSummary, String baseBody, [bool isMobile = false]) {
     // Viewport-proportional editor heights — scales across desktop, tablet and web.
     final vh = MediaQuery.of(context).size.height;
     final summaryEditorHeight = (vh * 0.20).clamp(160.0, 420.0);
@@ -2018,7 +1984,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isGerman ? 'Manuelle Korrektur' : 'Direct Refinement',
+              l10n.reviewDirectRefinement,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: attrs.textMain),
             ),
             const Divider(height: 32),
@@ -2028,7 +1994,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isGerman ? 'Titel' : 'Title',
+                  l10n.reviewTitleField,
                   style: TextStyle(color: attrs.brand600, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 TextButton.icon(
@@ -2084,7 +2050,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
 
             // Summary
             _buildFieldModeToggle(
-              isGerman ? 'Zusammenfassung (Summary)' : 'Summary',
+              l10n.reviewSummaryField,
               _showSummaryHtml,
               (val) {
                 setState(() => _showSummaryHtml = val);
@@ -2102,17 +2068,17 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   Future.delayed(const Duration(milliseconds: 50),
                       () => _syncToSourceIFrame('summary', cleaned));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('HTML bereinigt'),
-                  duration: Duration(seconds: 2),
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n.editorHtmlCleaned),
+                  duration: const Duration(seconds: 2),
                 ));
               },
               onAutop: () {
                 final converted = autop_util.autop(_summaryController.text);
                 if (converted == _summaryController.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
-                    duration: Duration(seconds: 2),
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(l10n.reviewNoParagraphChange),
+                    duration: const Duration(seconds: 2),
                   ));
                   return;
                 }
@@ -2121,9 +2087,9 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   Future.delayed(const Duration(milliseconds: 50),
                       () => _syncToSourceIFrame('summary', converted));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Absätze formatiert ¶'),
-                  duration: Duration(seconds: 2),
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n.reviewParagraphsFormatted),
+                  duration: const Duration(seconds: 2),
                 ));
               },
             ),
@@ -2153,7 +2119,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
 
             // Body
             _buildFieldModeToggle(
-              isGerman ? 'Hauptinhalt (Body)' : 'Body Content',
+              l10n.reviewBodyField,
               _showBodyHtml,
               (val) {
                 setState(() => _showBodyHtml = val);
@@ -2171,17 +2137,17 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   Future.delayed(const Duration(milliseconds: 50),
                       () => _syncToSourceIFrame('body', cleaned));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('HTML bereinigt'),
-                  duration: Duration(seconds: 2),
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n.editorHtmlCleaned),
+                  duration: const Duration(seconds: 2),
                 ));
               },
               onAutop: () {
                 final converted = autop_util.autop(_bodyController.text);
                 if (converted == _bodyController.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Text enthält bereits <p>-Tags — keine Änderung'),
-                    duration: Duration(seconds: 2),
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(l10n.reviewNoParagraphChange),
+                    duration: const Duration(seconds: 2),
                   ));
                   return;
                 }
@@ -2190,9 +2156,9 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   Future.delayed(const Duration(milliseconds: 50),
                       () => _syncToSourceIFrame('body', converted));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Absätze formatiert ¶'),
-                  duration: Duration(seconds: 2),
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n.reviewParagraphsFormatted),
+                  duration: const Duration(seconds: 2),
                 ));
               },
             ),
@@ -2232,7 +2198,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                   ),
                   icon: const Icon(LucideIcons.save, size: 16),
                   label: Text(
-                    isGerman ? 'SPEICHERN (Strg+Alt+S)' : 'SAVE (Ctrl+Alt+S)',
+                    l10n.reviewSaveShortcut,
                     style: TextStyle(color: attrs.textMain, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -2252,7 +2218,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isGerman ? 'Live Vorschau (Rendering)' : 'Live Preview (Rendering)',
+                  l10n.reviewLivePreviewRendering,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: attrs.textMain),
                 ),
                 _listenButton(
@@ -2297,8 +2263,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
   }
 
   Widget _listenButton(String fieldKey) {
+    final l10n = AppLocalizations.of(context)!;
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
-    final isGerman = ref.read(languageProvider).targetLanguage.code == 'de';
     final isPlaying = _currentlyPlayingField == fieldKey;
 
     return Row(
@@ -2311,8 +2277,8 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
             style: TextStyle(color: attrs.textMain, fontSize: 11, fontWeight: FontWeight.bold),
             icon: Icon(LucideIcons.chevronDown, size: 12, color: attrs.textMuted),
             items: [
-              DropdownMenuItem(value: 'female', child: Text(isGerman ? 'Weiblich' : 'Female')),
-              DropdownMenuItem(value: 'male', child: Text(isGerman ? 'Männlich' : 'Male')),
+              DropdownMenuItem(value: 'female', child: Text(l10n.reviewVoiceFemale)),
+              DropdownMenuItem(value: 'male', child: Text(l10n.reviewVoiceMale)),
             ],
             onChanged: (val) {
               if (val != null) setState(() => _voiceGender = val);
@@ -2331,9 +2297,9 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
           },
           icon: Icon(isPlaying ? LucideIcons.stopCircle : LucideIcons.volume2, size: 14),
           label: Text(
-            isPlaying 
-                ? (isGerman ? 'Stoppen' : 'Stop')
-                : (isGerman ? 'Anhören' : 'Listen'),
+            isPlaying
+                ? l10n.reviewStopListening
+                : l10n.reviewListen,
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
           ),
           style: TextButton.styleFrom(
@@ -2348,6 +2314,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
   }
 
   Widget _buildFieldModeToggle(String label, bool showHtml, ValueChanged<bool> onChanged, {Widget? action, VoidCallback? onTidy, VoidCallback? onAutop}) {
+    final l10n = AppLocalizations.of(context)!;
     final attrs = AppTheme.getAttributes(ref.read(themeProvider).themeId);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -2364,7 +2331,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               if (onTidy != null) ...[
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'HTML bereinigen (DeepL-Artefakte entfernen)',
+                  message: l10n.editorTidyHtmlTooltip,
                   child: InkWell(
                     onTap: onTidy,
                     borderRadius: BorderRadius.circular(4),
@@ -2378,7 +2345,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
               if (onAutop != null) ...[
                 const SizedBox(width: 4),
                 Tooltip(
-                  message: 'Absätze automatisch formatieren (Zeilenumbrüche → <p>)',
+                  message: l10n.reviewAutopTooltip,
                   child: InkWell(
                     onTap: onAutop,
                     borderRadius: BorderRadius.circular(4),
@@ -2417,7 +2384,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
                     ),
                     child: Text(
-                      'VISUELL',
+                      l10n.editorVisualMode,
                       style: TextStyle(
                         color: !showHtml ? attrs.brand600 : Colors.white60,
                         fontSize: 10,
@@ -2440,7 +2407,7 @@ const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => _goTo
                       borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
                     ),
                     child: Text(
-                      'QUELLCODE',
+                      l10n.reviewSourceCodeShort,
                       style: TextStyle(
                         color: showHtml ? attrs.brand600 : Colors.white60,
                         fontSize: 10,
