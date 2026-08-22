@@ -9,10 +9,14 @@ const TRANSLATIONS_DIR = path.join(DATA_DIR, 'translations');
 async function migrate() {
   console.log('Starting migration to MariaDB...');
   
+  if (!process.env.DB_PASSWORD) {
+    console.error('FATAL: DB_PASSWORD environment variable is not set.');
+    process.exit(1);
+  }
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST || 'db',
     user: process.env.DB_USER || 'pb_hub',
-    password: process.env.DB_PASSWORD || 'drupal',
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || 'pb_translation_hub'
   });
 

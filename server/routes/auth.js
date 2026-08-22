@@ -1,6 +1,18 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const { encryptSecret, decryptSecret } = require('../lib/secretCrypto');
+
+// 15 attempts / 15 min per IP — generous enough for real users who mistype a
+// password a few times, tight enough to make online brute-forcing impractical.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
+});
 
 module.exports = (ctx) => {
   const { db, authenticateToken, JWT_SECRET, uploadAvatar } = ctx;
@@ -18,7 +30,7 @@ module.exports = (ctx) => {
   });
 
   // Register a new user
-  router.post('/auth/register', async (req, res) => {
+  router.post('/auth/register', authLimiter, async (req, res) => {
     const { username, password, email, user_type, target_languages } = req.body;
     try {
       const [settings] = await db.execute('SELECT setting_value FROM site_settings WHERE setting_key = ?', ['registration_enabled']);
@@ -52,20 +64,20 @@ module.exports = (ctx) => {
   });
 
   // Login
-  router.post('/auth/login', async (req, res) => {
+  router.post('/auth/login', authLimiter, async (req, res) => {
     const { username, password } = req.body;
     try {
       const [rows] = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
       if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
-      
+
       const user = rows[0];
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
-      
+
       if (user.is_active === 0) {
         return res.status(403).json({ error: 'Your account is pending approval by an administrator.' });
       }
-      
+
       const token = jwt.sign({ id: user.id, username: user.username, role: user.role, user_type: user.user_type }, JWT_SECRET, { expiresIn: '7d' });
       res.json({
         token,
@@ -78,9 +90,9 @@ module.exports = (ctx) => {
           role: user.role,
           user_type: user.user_type,
           target_languages: user.target_languages ? JSON.parse(user.target_languages) : [],
-          google_ai_key: user.google_ai_key,
+          google_ai_key: decryptSecret(user.google_ai_key),
           ai_batch_limit: user.ai_batch_limit,
-          deepl_api_key: user.deepl_api_key,
+          deepl_api_key: decryptSecret(user.deepl_api_key),
           last_reviewed_project: user.last_reviewed_project
         }
       });
@@ -100,6 +112,8 @@ module.exports = (ctx) => {
       } else {
         user.target_languages = [];
       }
+      user.google_ai_key = decryptSecret(user.google_ai_key);
+      user.deepl_api_key = decryptSecret(user.deepl_api_key);
       res.json(user);
     } catch (err) {
       res.status(500).json({ error: 'Failed to fetch user' });
@@ -112,7 +126,7 @@ module.exports = (ctx) => {
     try {
       await db.execute(
         'UPDATE users SET name = ?, email = ?, google_ai_key = ?, ai_batch_limit = ?, ai_prompt = ?, deepl_api_key = ? WHERE id = ?',
-        [name, email, google_ai_key || null, ai_batch_limit || 5, ai_prompt || null, deepl_api_key || null, req.user.id]
+        [name, email, encryptSecret(google_ai_key) || null, ai_batch_limit || 5, ai_prompt || null, encryptSecret(deepl_api_key) || null, req.user.id]
       );
       res.json({ success: true });
     } catch (err) {

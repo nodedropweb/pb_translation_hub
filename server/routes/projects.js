@@ -3,6 +3,40 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
+
+// Blocks SSRF via the image proxy: private/loopback/link-local ranges (and
+// their IPv6 equivalents) must never be reachable through a server-side
+// fetch that a client fully controls the target URL of.
+function isPrivateAddress(address) {
+  if (net.isIP(address) === 4) {
+    const [a, b] = address.split('.').map(Number);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a === 0
+    );
+  }
+  const lower = address.toLowerCase();
+  return (
+    lower === '::1' ||
+    lower === '::' ||
+    lower.startsWith('fc') ||
+    lower.startsWith('fd') ||
+    lower.startsWith('fe80')
+  );
+}
+
+async function assertPublicHost(hostname) {
+  const addresses = await dns.lookup(hostname, { all: true }).catch(() => []);
+  if (addresses.length === 0 || addresses.some((a) => isPrivateAddress(a.address))) {
+    throw new Error('Target host is not allowed');
+  }
+}
 
 const DETAIL_API = 'https://www.drupal.org/jsonapi/node/project_module';
 
@@ -37,6 +71,12 @@ module.exports = (ctx) => {
 
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return res.status(400).json({ error: 'Only http/https URLs are allowed' });
+    }
+
+    try {
+      await assertPublicHost(parsed.hostname);
+    } catch {
+      return res.status(400).json({ error: 'Target host is not allowed' });
     }
 
     try {

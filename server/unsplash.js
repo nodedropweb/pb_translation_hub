@@ -95,8 +95,21 @@ function registerUnsplashRoutes(app) {
    */
   app.post('/api/unsplash/track-download', async (req, res) => {
     const { download_location } = req.body;
-    
+
     if (!download_location) return res.status(400).json({ error: 'Missing download_location' });
+
+    // The Unsplash API guideline this endpoint implements only ever needs to
+    // call back to Unsplash's own API — without this check, download_location
+    // is a fully client-controlled URL the server would fetch blind (SSRF).
+    let parsed;
+    try {
+      parsed = new URL(download_location);
+    } catch {
+      return res.status(400).json({ error: 'Invalid download_location URL' });
+    }
+    if (parsed.hostname !== 'api.unsplash.com') {
+      return res.status(400).json({ error: 'download_location must point to api.unsplash.com' });
+    }
 
     try {
       // Guidelines: This must be a simple GET request to the provided location

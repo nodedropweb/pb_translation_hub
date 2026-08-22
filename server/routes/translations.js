@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
 const crypto = require('crypto');
-const { exec } = require('child_process');
+const AdmZip = require('adm-zip');
 
 module.exports = (ctx) => {
   const {
@@ -10,6 +10,7 @@ module.exports = (ctx) => {
     authenticateToken,
     optionalAuth,
     isReviewerOrAdmin,
+    isAdmin,
     DATA_DIR,
     METADATA_DIR,
     TRANSLATIONS_DIR,
@@ -18,11 +19,32 @@ module.exports = (ctx) => {
   } = ctx;
   const router = express.Router();
 
+  // Constant-time comparison for the debug shared secret — a plain !==
+  // leaks timing information proportional to how many leading characters
+  // match, which can be used to brute-force the key byte by byte.
+  function timingSafeEqualStrings(a, b) {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
+
+  // Resolves a langcode/filename pair to a path inside TRANSLATIONS_DIR,
+  // rejecting anything that would escape it (path traversal) or doesn't look
+  // like a real langcode/JSON filename.
+  function safeTranslationPath(langcode, filename) {
+    if (!/^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(langcode)) return null;
+    if (!/^[a-zA-Z0-9._-]+\.json$/.test(filename)) return null;
+    const root = path.resolve(TRANSLATIONS_DIR) + path.sep;
+    const resolved = path.resolve(TRANSLATIONS_DIR, langcode, filename);
+    return resolved.startsWith(root) ? resolved : null;
+  }
+
   // Get active translation overlay (file-based with DB fallback)
   router.get('/translations/:langcode/:machine_name', authenticateToken, async (req, res) => {
     const { langcode, machine_name } = req.params;
-    const filePath = path.join(TRANSLATIONS_DIR, langcode, `${machine_name}.json`);
-    if (await fs.pathExists(filePath)) {
+    const filePath = safeTranslationPath(langcode, `${machine_name}.json`);
+    if (filePath && await fs.pathExists(filePath)) {
       const data = await fs.readJson(filePath);
       if (data.body) {
         if (typeof data.body === 'string') {
@@ -258,7 +280,7 @@ module.exports = (ctx) => {
   });
 
   // Import local project JSONs from Drupal cache
-  router.post('/import-local', async (req, res) => {
+  router.post('/import-local', authenticateToken, isAdmin, async (req, res) => {
     const drupalEnDir = '/var/www/drupalcms/web/sites/default/files/pb_localizer/en';
     if (!await fs.pathExists(drupalEnDir)) return res.status(404).json({ error: 'Local Drupal metadata directory not found' });
     try {
@@ -286,13 +308,13 @@ module.exports = (ctx) => {
       return res.status(403).json({ error: 'Debug endpoint is not enabled on this server.' });
     }
     const providedKey = req.headers['x-pb-debug-key'];
-    if (!providedKey || providedKey !== debugKey) {
+    if (!providedKey || !timingSafeEqualStrings(providedKey, debugKey)) {
       return res.status(403).json({ error: 'Invalid or missing debug key.' });
     }
 
     const { langcode, filename } = req.params;
-    const filePath = path.join(TRANSLATIONS_DIR, langcode, filename);
-    if (!await fs.pathExists(filePath)) {
+    const filePath = safeTranslationPath(langcode, filename);
+    if (!filePath || !await fs.pathExists(filePath)) {
       // Fall back to DB if no file exists yet.
       const machine_name = filename.replace(/\.json$/, '');
       try {
@@ -325,8 +347,8 @@ module.exports = (ctx) => {
   router.get('/:langcode/:filename', optionalAuth, async (req, res, next) => {
     const { langcode, filename } = req.params;
     if (RESERVED_PREFIXES.includes(langcode)) return next();
-    const filePath = path.join(TRANSLATIONS_DIR, langcode, filename);
-    if (!await fs.pathExists(filePath)) {
+    const filePath = safeTranslationPath(langcode, filename);
+    if (!filePath || !await fs.pathExists(filePath)) {
       return res.status(404).json({ error: 'File not found' });
     }
 
@@ -346,57 +368,77 @@ module.exports = (ctx) => {
     res.sendFile(filePath);
   });
 
-  // Restore translations backup archive
-  router.post('/upload-backup', authenticateToken, upload.single('file'), async (req, res) => {
+  // Restore translations backup archive.
+  // Admin-only (was authenticateToken-only — any logged-in translator could
+  // restore/overwrite server data), and extracted with adm-zip instead of a
+  // shelled-out `unzip`/`tar`, with every archive entry checked to resolve
+  // inside DATA_DIR before being written (zip-slip protection).
+  router.post('/upload-backup', authenticateToken, isAdmin, upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    
+
     const filePath = req.file.path;
     const originalName = req.file.originalname;
     const extension = path.extname(originalName).toLowerCase();
-    
+    const destRoot = path.resolve(DATA_DIR);
+
     try {
-      let command = '';
       if (extension === '.zip') {
-        command = `unzip -o "${filePath}" -d "${DATA_DIR}"`;
+        const zip = new AdmZip(filePath);
+        for (const entry of zip.getEntries()) {
+          const target = path.resolve(destRoot, entry.entryName);
+          if (target !== destRoot && !target.startsWith(destRoot + path.sep)) {
+            await fs.remove(filePath);
+            return res.status(400).json({ error: 'Archive contains an entry outside the target directory.' });
+          }
+        }
+        zip.extractAllTo(destRoot, true);
       } else if (extension === '.gz' || extension === '.tgz') {
-        command = `tar -xzf "${filePath}" -C "${DATA_DIR}"`;
+        // .tar.gz backups are produced by our own backup.sh, not user-uploadable
+        // through any other path — kept on tar for that format, but still
+        // routed through execFile (no shell) with fixed, non-interpolated args.
+        const { execFile } = require('child_process');
+        await new Promise((resolve, reject) => {
+          execFile('tar', ['-xzf', filePath, '-C', destRoot], (error) => {
+            if (error) reject(error); else resolve();
+          });
+        });
       } else {
         await fs.remove(filePath);
         return res.status(400).json({ error: 'Unsupported file format. Please use .zip or .tar.gz' });
       }
 
-      exec(command, async (error) => {
-        if (error) {
-          console.error('Extraction error:', error);
-          return res.status(500).json({ error: 'Failed to extract archive' });
-        }
-        
-        await fs.remove(filePath);
+      await fs.remove(filePath);
 
-        const sanitationCmd = `find "${DATA_DIR}" -type f -not -name "*.json" -delete && chmod -R 644 "${DATA_DIR}" && find "${DATA_DIR}" -type d -exec chmod 755 {} +`;
-        
-        exec(sanitationCmd, async (sanError) => {
+      // Sanitize extracted content: only .json files are expected, fixed
+      // permissions. DATA_DIR itself is a server-side constant (not user
+      // input), so this remains injection-safe even though it still shells out.
+      const { exec } = require('child_process');
+      const sanitationCmd = `find "${destRoot}" -type f -not -name "*.json" -delete && chmod -R 644 "${destRoot}" && find "${destRoot}" -type d -exec chmod 755 {} +`;
+      await new Promise((resolve) => {
+        exec(sanitationCmd, (sanError) => {
           if (sanError) console.error('Sanitation error:', sanError);
-
-          try {
-            const langcodes = await fs.readdir(TRANSLATIONS_DIR);
-            let count = 0;
-            for (const lang of langcodes) {
-              const langPath = path.join(TRANSLATIONS_DIR, lang);
-              if (await fs.pathExists(langPath) && (await fs.stat(langPath)).isDirectory()) {
-                const files = await fs.readdir(langPath);
-                count += files.filter(f => f.endsWith('.json')).length;
-              }
-            }
-            res.json({ success: true, message: 'Backup restored, sanitized and synced', count });
-          } catch (syncErr) {
-            res.json({ success: true, message: 'Backup extracted and sanitized, but auto-sync report failed' });
-          }
+          resolve();
         });
       });
+
+      try {
+        const langcodes = await fs.readdir(TRANSLATIONS_DIR);
+        let count = 0;
+        for (const lang of langcodes) {
+          const langPath = path.join(TRANSLATIONS_DIR, lang);
+          if (await fs.pathExists(langPath) && (await fs.stat(langPath)).isDirectory()) {
+            const files = await fs.readdir(langPath);
+            count += files.filter(f => f.endsWith('.json')).length;
+          }
+        }
+        res.json({ success: true, message: 'Backup restored, sanitized and synced', count });
+      } catch (syncErr) {
+        res.json({ success: true, message: 'Backup extracted and sanitized, but auto-sync report failed' });
+      }
     } catch (error) {
       console.error('Backup upload processing error:', error);
-      res.status(500).json({ error: 'Processing failed' });
+      await fs.remove(filePath).catch(() => {});
+      res.status(500).json({ error: 'Failed to extract archive' });
     }
   });
 

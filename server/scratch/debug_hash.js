@@ -1,12 +1,17 @@
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
 
 async function debugHash() {
+  if (!process.env.DB_PASSWORD) {
+    console.error('FATAL: DB_PASSWORD environment variable is not set.');
+    process.exit(1);
+  }
   const db = await mysql.createConnection({
-    host: '127.0.0.1',
-    user: 'pb_hub',
-    password: 'drupal',
-    database: 'pb_translation_hub'
+    host: process.env.DB_HOST || '127.0.0.1',
+    user: process.env.DB_USER || 'pb_hub',
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME || 'pb_translation_hub'
   });
 
   try {

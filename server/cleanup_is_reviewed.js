@@ -9,10 +9,14 @@ const TRANSLATIONS_DIR = path.join(DATA_DIR, 'translations');
 async function runCleanup() {
   console.log('Starting data cleanup for is_reviewed flag...');
 
+  if (!process.env.DB_PASSWORD) {
+    console.error('FATAL: DB_PASSWORD environment variable is not set.');
+    process.exit(1);
+  }
   const db = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'pb_hub',
-    password: process.env.DB_PASSWORD || 'drupal',
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || 'pb_translation_hub'
   });
 

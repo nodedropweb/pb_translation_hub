@@ -3,6 +3,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
 const crypto = require('crypto');
+const { decryptSecret } = require('../lib/secretCrypto');
 
 module.exports = (ctx) => {
   const {
@@ -233,6 +234,7 @@ OUTPUT RULES — follow them exactly:
         [req.user.id]
       );
       const user = uRows[0];
+      if (user) user.google_ai_key = decryptSecret(user.google_ai_key);
 
       if (!user || !user.google_ai_key) {
         return res.status(400).json({ error: 'Missing Google AI Key in your profile.' });
@@ -308,7 +310,8 @@ OUTPUT RULES — follow them exactly:
     try {
       const [uRows] = await db.execute('SELECT google_ai_key, ai_prompt FROM users WHERE id = ?', [req.user.id]);
       const user = uRows[0];
-      
+      if (user) user.google_ai_key = decryptSecret(user.google_ai_key);
+
       if (!user || !user.google_ai_key) {
         return res.status(400).json({ error: 'Missing Google AI Key.' });
       }
@@ -362,6 +365,7 @@ OUTPUT RULES — follow them exactly:
     try {
       const [uRows] = await db.execute('SELECT deepl_api_key FROM users WHERE id = ?', [req.user.id]);
       const user = uRows[0];
+      if (user) user.deepl_api_key = decryptSecret(user.deepl_api_key);
 
       if (!user || !user.deepl_api_key) {
         return res.status(400).json({ error: 'Kein DeepL API-Key im Profil hinterlegt.' });
@@ -488,6 +492,7 @@ OUTPUT RULES — follow them exactly:
     try {
       const [uRows] = await db.execute('SELECT deepl_api_key FROM users WHERE id = ?', [req.user.id]);
       const user = uRows[0];
+      if (user) user.deepl_api_key = decryptSecret(user.deepl_api_key);
 
       if (!user || !user.deepl_api_key) {
         return res.status(400).json({ error: 'Kein DeepL API-Key im Profil hinterlegt.' });

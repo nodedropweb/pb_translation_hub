@@ -40,6 +40,8 @@ module.exports = (ctx) => {
   const {
     db,
     authenticateToken,
+    isAdmin,
+    isReviewerOrAdmin,
     TRANSLATIONS_DIR
   } = ctx;
   const router = express.Router();
@@ -139,7 +141,7 @@ module.exports = (ctx) => {
   });
 
   // Submit category translations
-  router.post('/categories/translate', authenticateToken, async (req, res) => {
+  router.post('/categories/translate', authenticateToken, isReviewerOrAdmin, async (req, res) => {
     const { langcode = 'de', translations } = req.body;
     const transPath = await catTransPath(TRANSLATIONS_DIR, langcode);
     try {
@@ -154,8 +156,11 @@ module.exports = (ctx) => {
   });
 
   // Import local categories translations from Drupal cache
-  router.post('/categories/import-local', async (req, res) => {
+  router.post('/categories/import-local', authenticateToken, isAdmin, async (req, res) => {
     const { langcode = 'de' } = req.body;
+    if (!/^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(langcode)) {
+      return res.status(400).json({ error: 'Invalid langcode' });
+    }
     const sourcePath = `/var/www/drupalcms/web/sites/default/files/pb_localizer/${langcode}/categories.json`;
     const targetPath = await catTransPath(TRANSLATIONS_DIR, langcode);
     try {

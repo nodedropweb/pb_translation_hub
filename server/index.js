@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const fs = require('fs-extra');
 const path = require('path');
@@ -12,9 +13,26 @@ const jwt = require('jsonwebtoken');
 const { registerUnsplashRoutes } = require('./unsplash');
 const { runMigrations }          = require('./db_migrate');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pb-hub-super-secret-key-2026';
+// No insecure fallback: a guessable default secret would let anyone forge
+// valid JWTs if the env var is ever missing on a fresh deployment.
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const upload = multer({ dest: 'uploads/' });
+// Restrict the generic upload endpoint (currently used only for
+// POST /api/upload-backup) to archive files and cap its size — an
+// unrestricted multer() accepted any file of any size from any logged-in user.
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB — generous for a data backup archive
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.zip', '.gz', '.tgz'].includes(ext)) cb(null, true);
+    else cb(new Error('Only .zip, .gz or .tgz archives are allowed'));
+  },
+});
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, 'uploads/avatars');
@@ -82,7 +100,7 @@ const isReviewerOrAdmin = (req, res, next) => {
 const db = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   user: process.env.DB_USER || 'pb_hub',
-  password: process.env.DB_PASSWORD || 'drupal',
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'pb_translation_hub',
   // mysql2 returns DECIMAL columns (e.g. SUM(CASE WHEN ... THEN 1 ELSE 0 END))
   // as strings by default to avoid precision loss. The Flutter client's
@@ -108,7 +126,25 @@ fs.ensureDirSync(METADATA_DIR);
 fs.ensureDirSync(TRANSLATIONS_DIR);
 fs.ensureDirSync(path.join(__dirname, 'uploads'));
 
-app.use(cors());
+// Origin allowlist instead of reflecting every caller: the API is only ever
+// called from the admin Flutter app (web build) and local dev. Falls back to
+// allowing all origins only if no allowlist is configured, so this cannot
+// brick a deployment that forgot to set the env var — but every real
+// deployment should set CORS_ALLOWED_ORIGINS.
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(cors(allowedOrigins.length ? {
+  origin: allowedOrigins,
+} : undefined));
+app.use(helmet({
+  // The admin UI is a Flutter-web SPA served from this same origin/behind
+  // the same reverse proxy in some deployments — a strict default CSP would
+  // block its own inline bootstrap script. Other Helmet protections
+  // (X-Content-Type-Options, X-Frame-Options, etc.) stay on.
+  contentSecurityPolicy: false,
+}));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -584,6 +620,15 @@ app.use('/api', require('./routes/ai')(ctx));
 app.use('/api', require('./routes/glossary')(ctx));
 app.use('/api', require('./routes/dashboard')(ctx));
 app.use('/api', require('./routes/translations')(ctx));
+
+// Catches multer file-validation errors (e.g. the upload-backup file-type
+// filter) and any other error passed to next() so clients get clean JSON
+// instead of Express's default HTML/stack-trace response.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  console.error('[Unhandled request error]', err.message);
+  res.status(400).json({ error: err.message || 'Request failed' });
+});
 
 // ── Startup: ensure translation files exist on the filesystem ─────────────────
 //

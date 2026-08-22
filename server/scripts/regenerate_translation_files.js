@@ -23,10 +23,14 @@ const mysql = require('mysql2/promise');
 const TRANSLATIONS_DIR = path.join(__dirname, '..', 'data', 'translations');
 
 async function main() {
+  if (!process.env.DB_PASSWORD) {
+    console.error('FATAL: DB_PASSWORD environment variable is not set.');
+    process.exit(1);
+  }
   const db = await mysql.createConnection({
     host:     process.env.DB_HOST     || 'localhost',
     user:     process.env.DB_USER     || 'pb_hub',
-    password: process.env.DB_PASSWORD || 'drupal',
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME     || 'pb_translation_hub',
   });
 

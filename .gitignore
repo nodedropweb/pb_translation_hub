@@ -48,6 +48,10 @@ server/*.pid
 .env.production.local
 server/.env
 
+# Ad-hoc credential/hash test scripts (must never contain real secrets, and
+# must never be committed even if they do — see check_pass.js incident)
+server/check_pass.js
+
 # Dev/Scratch Artifacts
 scratch/
 test-results/

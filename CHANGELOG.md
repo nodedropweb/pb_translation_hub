@@ -9,6 +9,29 @@ Dates are in `YYYY-MM-DD` format.
 
 ## [Unreleased]
 
+### Security
+
+A full security-coverage review (see the companion pb_localizer application) surfaced several findings in this codebase, all fixed here:
+
+- **Critical: credential leak in git history.** `server/check_pass.js` (a bcrypt hash plus a plaintext password candidate) was tracked in the public repo. File removed and added to `.gitignore`. **The affected password still needs to be rotated manually** — the leak remains in git history until a history rewrite is performed.
+- **Critical: zip-slip in the backup upload.** `POST /api/upload-backup` now requires `isAdmin` (previously any logged-in user) and extracts `.zip` archives via `adm-zip` with a path-containment check instead of a shelled-out `unzip`. Added a generic upload size limit (100 MB) and file-type filter to the `multer` handler.
+- **Critical: open proxy via `/api/image-proxy`.** The server now resolves the target via DNS and blocks private/loopback/link-local addresses (including the cloud metadata range) before making the request.
+- **High: SSRF in `/api/unsplash/track-download`.** `download_location` must now point exactly to `api.unsplash.com`.
+- **High: path traversal in the file-serving routes.** New `safeTranslationPath()` guard in `routes/translations.js` validates `langcode`/`filename` against a whitelist and enforces that the resolved path stays inside `TRANSLATIONS_DIR` — applied to `GET /translations/:langcode/:machine_name`, `GET /debug/:langcode/:filename` and `GET /:langcode/:filename`.
+- **High: missing auth on `POST /api/categories/import-local`.** Now requires `isAdmin`; `langcode` is additionally validated against a whitelist before being used in a file path.
+- **High: hardcoded JWT secret fallback.** `index.js` now hard-fails at startup if `JWT_SECRET` is unset, instead of falling back to a default visible in source.
+- **High: no rate limiting on login/registration.** Added `express-rate-limit` (15 attempts/15 min per IP) to `POST /api/auth/login` and `/api/auth/register`.
+- **Medium: missing auth on `POST /api/sync/quick` and `/api/sync/project/:machine_name`.** Both now require `authenticateToken`, consistent with the other sync routes.
+- **Medium: missing auth on `POST /api/import-local`.** Now requires `authenticateToken` + `isAdmin`.
+- **Medium: missing role check on `POST /api/categories/translate`.** Now requires `isReviewerOrAdmin`, matching `glossary.js`.
+- **Medium: unparameterized batch insert in `POST /api/sync/priority`.** Manual string escaping replaced with `db.query('... VALUES ?', [batch])` using an array placeholder.
+- **Medium: hardcoded DB password fallback (`'drupal'`)** removed from `index.js` and 8 maintenance/migration scripts; all now hard-fail if `DB_PASSWORD` is unset.
+- **Medium: Gemini/DeepL API keys stored in plaintext.** New `lib/secretCrypto.js` (AES-256-GCM, key from `ENCRYPTION_KEY` or derived from `JWT_SECRET`) encrypts `users.google_ai_key`/`deepl_api_key` on save; reads (login, `/auth/me`, every AI call in `routes/ai.js`) decrypt transparently. Existing plaintext keys keep working unchanged and get encrypted automatically on the next profile save.
+- **Low: CORS with no origin restriction.** Optional allowlist via `CORS_ALLOWED_ORIGINS` (comma-separated); without the env var set, behavior stays open as before, so this can't break a deployment that hasn't set it yet.
+- **Low: no security headers.** Added `helmet` as global middleware (CSP disabled, since the Flutter-web SPA is partly served from the same origin).
+- **Low: timing attack on the debug-key comparison.** `requireDebugKey` (in `routes/sync.js` and `routes/translations.js`) now uses `crypto.timingSafeEqual()` instead of `!==`.
+- **Dependencies:** `npm audit fix` resolved 5 reported vulnerabilities in `axios`, `body-parser`, `form-data`, `multer` and `qs` (0 remaining).
+
 ### Added
 
 #### Analyse-Dashboard — Kompatibilität, Übersetzungsbedarf & Wochen-Verläufe

@@ -2,6 +2,16 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
+const crypto = require('crypto');
+
+// Constant-time comparison for the debug shared secret — a plain !== leaks
+// timing information proportional to how many leading characters match.
+function timingSafeEqualStrings(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 const DETAIL_API = 'https://www.drupal.org/jsonapi/node/project_module';
 const DRUPAL_API_TIMEOUT = 15000; // ms — avoid hanging indefinitely on a stalled drupal.org response
@@ -25,7 +35,10 @@ module.exports = (ctx) => {
   const requireDebugKey = (req, res, next) => {
     const debugKey = process.env.PB_DEBUG_KEY;
     if (!debugKey) return res.status(403).json({ error: 'Debug endpoint not enabled on this server.' });
-    if (req.headers['x-pb-debug-key'] !== debugKey) return res.status(403).json({ error: 'Invalid or missing debug key.' });
+    const provided = req.headers['x-pb-debug-key'];
+    if (!provided || !timingSafeEqualStrings(provided, debugKey)) {
+      return res.status(403).json({ error: 'Invalid or missing debug key.' });
+    }
     next();
   };
 
@@ -155,7 +168,7 @@ module.exports = (ctx) => {
   });
 
   // Sync a single project details by machine name
-  router.post('/sync/project/:machine_name', async (req, res) => {
+  router.post('/sync/project/:machine_name', authenticateToken, async (req, res) => {
     const { machine_name } = req.params;
     try {
       const query = {
@@ -265,7 +278,7 @@ module.exports = (ctx) => {
   });
 
   // Start quick sync (for recently changed modules)
-  router.post('/sync/quick', (req, res) => {
+  router.post('/sync/quick', authenticateToken, (req, res) => {
     const { days = 7 } = req.body;
     const since = Math.floor((Date.now() - (days * 24 * 60 * 60 * 1000)) / 1000);
     syncProjects(since);
@@ -292,9 +305,8 @@ module.exports = (ctx) => {
       
       const batchSize = 500;
       for (let i = 0; i < machineNames.length; i += batchSize) {
-        const batch = machineNames.slice(i, i + batchSize);
-        const values = batch.map(name => `('${name.replace(/'/g, "''")}', 'drupal11')`).join(',');
-        await db.execute(`INSERT IGNORE INTO priority_projects (machine_name, list_name) VALUES ${values}`);
+        const batch = machineNames.slice(i, i + batchSize).map(name => [name, 'drupal11']);
+        await db.query('INSERT IGNORE INTO priority_projects (machine_name, list_name) VALUES ?', [batch]);
       }
       
       res.json({ success: true, count: machineNames.length });
