@@ -45,12 +45,16 @@ class TranslationHubApp extends ConsumerWidget {
 
     // The app's own interface language follows the target language selected
     // in the language dropdown — a translator working on French content sees
-    // a French interface, not just French content in a German UI. Only
-    // 'de' has a full native translation right now; every other target
-    // language falls back to English (the closest thing to a lingua franca
-    // for the module descriptions themselves) rather than staying German.
+    // a French interface, not just French content in a German UI. Only the
+    // locales below have a full native translation right now; every other
+    // target language falls back to English (the closest thing to a lingua
+    // franca for the module descriptions themselves) rather than staying
+    // German. Add a code here once its app_<code>.arb file exists.
+    const nativeUiLocales = {'de', 'fr'};
     final targetLangCode = ref.watch(languageProvider).targetLanguage.code;
-    final appLocale = targetLangCode == 'de' ? const Locale('de') : const Locale('en');
+    final appLocale = nativeUiLocales.contains(targetLangCode)
+        ? Locale(targetLangCode)
+        : const Locale('en');
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
