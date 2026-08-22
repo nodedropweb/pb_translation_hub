@@ -35,6 +35,20 @@ void main() async {
   );
 }
 
+// Maps our internal language codes (from languages.json, e.g. 'pt-br',
+// 'zh-hans') to the Flutter Locale their app_<code>.arb file was generated
+// for. Keep in sync with lib/l10n/app_*.arb.
+const _nativeUiLocales = <String, Locale>{
+  'de': Locale('de'),
+  'fr': Locale('fr'),
+  'ja': Locale('ja'),
+  'ru': Locale('ru'),
+  'es': Locale('es'),
+  'tr': Locale('tr'),
+  'pt-br': Locale('pt', 'BR'),
+  'zh-hans': Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+};
+
 class TranslationHubApp extends ConsumerWidget {
   const TranslationHubApp({super.key});
 
@@ -49,12 +63,11 @@ class TranslationHubApp extends ConsumerWidget {
     // locales below have a full native translation right now; every other
     // target language falls back to English (the closest thing to a lingua
     // franca for the module descriptions themselves) rather than staying
-    // German. Add a code here once its app_<code>.arb file exists.
-    const nativeUiLocales = {'de', 'fr'};
+    // German. Add an entry here once its app_<code>.arb file exists — the
+    // map key is our internal language code (from languages.json), the value
+    // is the actual Flutter Locale AppLocalizations was generated for.
     final targetLangCode = ref.watch(languageProvider).targetLanguage.code;
-    final appLocale = nativeUiLocales.contains(targetLangCode)
-        ? Locale(targetLangCode)
-        : const Locale('en');
+    final appLocale = _nativeUiLocales[targetLangCode] ?? const Locale('en');
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
