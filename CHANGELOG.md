@@ -7,7 +7,7 @@ Dates are in `YYYY-MM-DD` format.
 
 ---
 
-## [Unreleased]
+## [2.4.0] — 2026-08-22
 
 ### Security
 
